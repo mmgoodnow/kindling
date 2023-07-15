@@ -1,7 +1,6 @@
 import FormBody from "@fastify/formbody";
 import { randomUUID } from "crypto";
 import Fastify from "fastify";
-import { writeFileSync } from "fs";
 import { readFile, writeFile } from "fs/promises";
 import Dcc from "irc-dcc";
 import JsZip from "jszip";
@@ -9,8 +8,30 @@ import { Client } from "matrix-org-irc";
 import ms from "ms";
 import { tmpdir } from "os";
 import { join, extname, basename } from "path";
-import { exec, execFile } from "child_process";
+import { execFile } from "child_process";
 import { promisify } from "util";
+import NodeMailer from "nodemailer";
+
+class TokenManager {
+	constructor() {
+		this.activeTokens = new Set();
+	}
+
+	create() {
+		const token = randomUUID();
+		this.renew(token);
+		return token;
+	}
+
+	renew(token) {
+		this.activeTokens.add(token);
+		setTimeout(() => void this.checkAndRevoke(token), ms("10 minutes"));
+	}
+
+	checkAndRevoke(token) {
+		return this.activeTokens.delete(token);
+	}
+}
 
 const fastify = Fastify({ logger: true });
 fastify.register(FormBody);
@@ -34,58 +55,28 @@ const client = await new Promise((resolve, reject) => {
 
 const dcc = new Dcc(client);
 
-class TokenManager {
-	constructor() {
-		this.activeTokens = new Set();
-	}
-
-	create() {
-		const token = randomUUID();
-		this.renew(token);
-		return token;
-	}
-
-	renew(token) {
-		this.activeTokens.add(token);
-		setTimeout(() => void this.checkAndRevoke(token), ms("10 minutes"));
-	}
-
-	checkAndRevoke(token) {
-		return this.activeTokens.delete(token);
-	}
-}
-
 const tokenManager = new TokenManager();
 
-function listItem(r) {
+const transporter = NodeMailer.createTransport({
+	host: "***REMOVED***",
+	port: 587,
+	secure: true,
+	auth: {
+		// TODO: replace `user` and `pass` values from <https://forwardemail.net>
+		user: "***REMOVED***",
+		pass: "***REMOVED***",
+	},
+});
+
+function listItem(result, token) {
 	return `
 		<li>
 			<form action="/download" method="POST">
-				<input type="submit" name="f" value="${r}" />
+				<input type="hidden" name="token" value="${token}">
+				<input type="submit" name="f" value="${result}" />
 			</form>
 		</li>
 	`;
-}
-
-async function maybeConvert(filename, buf) {
-	if (extname(filename) === "mobi") {
-		return [filename, buf];
-	}
-	const oldFn = join(tmpdir(), filename);
-	const withoutExtension = basename(filename, extname(filename));
-	const newFn = join(tmpdir(), `${withoutExtension}.mobi`);
-	await writeFile(oldFn, buf);
-	try {
-		const output = await promisify(execFile)("ebook-convert", [oldFn, newFn]);
-		console.log(output.stdout);
-		console.error(output.stderr);
-	} catch (e) {
-		console.log(e.stdout);
-		console.error(e.stderr);
-		throw e;
-	}
-
-	return [basename(newFn), await readFile(newFn)];
 }
 
 function search(q) {
@@ -177,6 +168,31 @@ function download(f) {
 	});
 }
 
+async function maybeConvert(filename, buf) {
+	if (extname(filename) === "mobi") {
+		return [filename, buf];
+	}
+	const oldFn = join(tmpdir(), filename);
+	const withoutExtension = basename(filename, extname(filename));
+	const newFn = join(tmpdir(), `${withoutExtension}.mobi`);
+	await writeFile(oldFn, buf);
+	try {
+		const output = await promisify(execFile)("ebook-convert", [oldFn, newFn]);
+		console.log(output.stdout);
+		console.error(output.stderr);
+	} catch (e) {
+		console.log(e.stdout);
+		console.error(e.stderr);
+		throw e;
+	}
+
+	return [basename(newFn), await readFile(newFn)];
+}
+
+async function sendEmail(filename, buf) {
+	await transporter.sendMail();
+}
+
 fastify.get("/search", async (request, reply) => {
 	reply.header("Content-Type", "text/html");
 
@@ -198,12 +214,11 @@ fastify.get("/search", async (request, reply) => {
 		<h1>Search</h1>
 		<form action="/search" method="GET">
 			<input type="search" name="q" value="${request.query.q}">
-			<input type="hidden" name="token" value="${token}">
 			<input type="submit" />
 		</form>
 		<h1>Results</h1>
 		<ul>
-			${results.map(listItem).join("")}
+			${results.map((r) => listItem(r, token)).join("")}
 		</ul>
 	`;
 });
