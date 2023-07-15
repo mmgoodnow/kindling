@@ -12,6 +12,36 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import NodeMailer from "nodemailer";
 
+export const {
+	SENDER_EMAIL_ADDRESS,
+	APP_SPECIFIC_PASSWORD,
+	SMTP_HOST,
+	SMTP_PORT,
+	IRC_NICK,
+	KINDLE_EMAIL_ADDRESS,
+} = process.env;
+
+const requireds = {
+	SENDER_EMAIL_ADDRESS,
+	APP_SPECIFIC_PASSWORD,
+	SMTP_HOST,
+	SMTP_PORT,
+	IRC_NICK,
+	KINDLE_EMAIL_ADDRESS,
+};
+
+let bad = false;
+for (const [key, value] of Object.entries(requireds)) {
+	if (!value) {
+		bad = true;
+		console.error(`config not specified: ${key}`);
+	}
+}
+
+if (bad) {
+	throw new Error("Some config options not specified");
+}
+
 class TokenManager {
 	constructor() {
 		this.activeTokens = new Set();
@@ -37,9 +67,9 @@ const fastify = Fastify({ logger: true });
 fastify.register(FormBody);
 
 const client = await new Promise((resolve, reject) => {
-	const client = new Client("irc.irchighway.net", "kilimanjaro", {
+	const client = new Client("irc.irchighway.net", IRC_NICK, {
 		channels: ["#ebooks"],
-		onNickConflict: () => "kilimanjaro" + Math.random().toString()[2],
+		onNickConflict: () => IRC_NICK + Math.random().toString()[2],
 	});
 	let timeoutId;
 	client.on("registered", () => {
@@ -58,13 +88,12 @@ const dcc = new Dcc(client);
 const tokenManager = new TokenManager();
 
 const transporter = NodeMailer.createTransport({
-	host: "***REMOVED***",
-	port: 587,
+	host: SMTP_HOST,
+	port: Number(SMTP_PORT),
 	secure: true,
 	auth: {
-		// TODO: replace `user` and `pass` values from <https://forwardemail.net>
-		user: "***REMOVED***",
-		pass: "***REMOVED***",
+		user: EMAIL_ADDRESS,
+		pass: APP_SPECIFIC_PASSWORD,
 	},
 });
 
