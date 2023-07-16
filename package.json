@@ -1,5 +1,5 @@
 {
-	"name": "books",
+	"name": "kindling",
 	"version": "1.0.0",
 	"description": "Download books on kindle, to kindle",
 	"main": "index.js",
@@ -13,14 +13,14 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/mmgoodnow/books.git"
+		"url": "git+https://github.com/mmgoodnow/kindling.git"
 	},
 	"author": "",
 	"license": "MIT",
 	"bugs": {
-		"url": "https://github.com/mmgoodnow/books/issues"
+		"url": "https://github.com/mmgoodnow/kindling/issues"
 	},
-	"homepage": "https://github.com/mmgoodnow/books#readme",
+	"homepage": "https://github.com/mmgoodnow/kindling#readme",
 	"dependencies": {
 		"@fastify/formbody": "^7.4.0",
 		"fastify": "^4.19.2",
