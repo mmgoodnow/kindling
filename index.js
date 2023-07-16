@@ -13,7 +13,7 @@ import process from "node:process";
 import NodeMailer from "nodemailer";
 
 process.on("SIGINT", () => void process.exit(0));
-process.on("SIGTERM", () => void console.log("Terminating"));
+process.on("SIGTERM", () => void process.exit(0));
 
 export const {
 	SENDER_EMAIL_ADDRESS,
