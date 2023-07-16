@@ -1,33 +1,39 @@
 import FormBody from "@fastify/formbody";
+import { execFile, spawn } from "child_process";
 import { randomUUID } from "crypto";
 import Fastify from "fastify";
-import { readFile, writeFile } from "fs/promises";
+import { readFile, unlink, writeFile } from "fs/promises";
 import Dcc from "irc-dcc";
 import JsZip from "jszip";
 import { Client } from "matrix-org-irc";
 import ms from "ms";
-import { tmpdir } from "os";
-import { join, extname, basename } from "path";
-import { execFile } from "child_process";
-import { promisify } from "util";
 import NodeMailer from "nodemailer";
+import { tmpdir } from "os";
+import { basename, extname, join } from "path";
+import { promisify } from "util";
 
 export const {
 	SENDER_EMAIL_ADDRESS,
-	APP_SPECIFIC_PASSWORD,
+	SENDER_EMAIL_PASSWORD,
+	SENDER_NAME,
+	SENDER_EMAIL_AS,
 	SMTP_HOST,
 	SMTP_PORT,
 	IRC_NICK,
 	KINDLE_EMAIL_ADDRESS,
+	PORT,
 } = process.env;
 
 const requireds = {
 	SENDER_EMAIL_ADDRESS,
-	APP_SPECIFIC_PASSWORD,
+	SENDER_EMAIL_PASSWORD,
+	SENDER_NAME,
+	SENDER_EMAIL_AS,
 	SMTP_HOST,
 	SMTP_PORT,
 	IRC_NICK,
 	KINDLE_EMAIL_ADDRESS,
+	PORT,
 };
 
 let bad = false;
@@ -90,11 +96,8 @@ const tokenManager = new TokenManager();
 const transporter = NodeMailer.createTransport({
 	host: SMTP_HOST,
 	port: Number(SMTP_PORT),
-	secure: true,
-	auth: {
-		user: EMAIL_ADDRESS,
-		pass: APP_SPECIFIC_PASSWORD,
-	},
+	secure: false,
+	auth: { user: SENDER_EMAIL_ADDRESS, pass: SENDER_EMAIL_PASSWORD },
 });
 
 function listItem(result, token) {
@@ -108,52 +111,7 @@ function listItem(result, token) {
 	`;
 }
 
-function search(q) {
-	client.say("#ebooks", `@search ${q}`);
-	return new Promise((resolve, reject) => {
-		async function handleSend(from, args) {
-			const buffer = await new Promise((resolve, reject) => {
-				dcc.acceptFile(
-					from,
-					args.host,
-					args.port,
-					args.filename,
-					args.length,
-					(err, filename, connection) => {
-						if (err) {
-							console.log(err);
-							client.notice(from, err);
-							reject(err);
-						}
-						const bufs = [];
-						connection.on("data", (d) => void bufs.push(d));
-						connection.on("end", () => {
-							resolve(Buffer.concat(bufs));
-						});
-					},
-				);
-			});
-
-			const zip = await JsZip.loadAsync(buffer);
-			const filename = Object.values(zip.files)[0].name;
-			const textContent = await zip.file(filename).async("string");
-			const lines = textContent
-				.split("\n")
-				.filter((line) => line.startsWith("!"))
-				.map((line) => line.trim());
-			resolve(lines);
-		}
-
-		function onSend(from, args) {
-			handleSend(from, args).then(resolve, reject);
-		}
-
-		client.once("dcc-send", onSend);
-	});
-}
-
-function download(f) {
-	client.say("#ebooks", f);
+function receiveDcc() {
 	return new Promise((resolve, reject) => {
 		async function handleSend(from, { host, port, filename, length }) {
 			console.log(`received dcc from ${from}`);
@@ -170,9 +128,9 @@ function download(f) {
 						bufs.push(d);
 						bytes += Buffer.byteLength(d);
 						if (bufs.length % 10 === 0 || bufs.length === 1) {
-							console.log(`${((bytes * 100) / args.length).toFixed()}%`);
+							console.log(`${((bytes * 100) / length).toFixed()}%`);
 						}
-						if (bytes === args.length) {
+						if (bytes === length) {
 							console.log("100%");
 							resolve(Buffer.concat(bufs));
 						}
@@ -197,6 +155,23 @@ function download(f) {
 	});
 }
 
+async function search(q) {
+	client.say("#ebooks", `@search ${q}`);
+	const [, buffer] = await receiveDcc();
+	const zip = await JsZip.loadAsync(buffer);
+	const { name } = Object.values(zip.files)[0];
+	const textContent = await zip.file(name).async("string");
+	return textContent
+		.split("\n")
+		.filter((line) => line.startsWith("!"))
+		.map((line) => line.trim());
+}
+
+function download(f) {
+	client.say("#ebooks", f);
+	return receiveDcc();
+}
+
 async function maybeConvert(filename, buf) {
 	if (extname(filename) === "mobi") {
 		return [filename, buf];
@@ -205,21 +180,33 @@ async function maybeConvert(filename, buf) {
 	const withoutExtension = basename(filename, extname(filename));
 	const newFn = join(tmpdir(), `${withoutExtension}.mobi`);
 	await writeFile(oldFn, buf);
-	try {
-		const output = await promisify(execFile)("ebook-convert", [oldFn, newFn]);
-		console.log(output.stdout);
-		console.error(output.stderr);
-	} catch (e) {
-		console.log(e.stdout);
-		console.error(e.stderr);
-		throw e;
-	}
 
-	return [basename(newFn), await readFile(newFn)];
+	await new Promise((resolve, reject) => {
+		const ebookConvert = spawn("ebook-convert", [oldFn, newFn], {
+			stdio: "inherit",
+		});
+		ebookConvert.on("close", () => {
+			console.log("Conversion finished");
+			resolve();
+		});
+		ebookConvert.on("error", reject);
+	});
+
+	const mobiBuf = await readFile(newFn);
+	await unlink(newFn);
+	return [basename(newFn), mobiBuf];
 }
 
 async function sendEmail(filename, buf) {
-	await transporter.sendMail();
+	console.log("Sending email…");
+	const info = await transporter.sendMail({
+		from: `${SENDER_NAME} <${SENDER_EMAIL_AS}>`,
+		to: KINDLE_EMAIL_ADDRESS,
+		subject: `eBook attached: ${filename}`,
+		text: `${filename}\n`,
+		attachments: { filename, content: buf },
+	});
+	console.log("Email sent", info);
 }
 
 fastify.get("/search", async (request, reply) => {
@@ -238,7 +225,6 @@ fastify.get("/search", async (request, reply) => {
 	const results = await search(request.query.q);
 	const token = tokenManager.create();
 
-	reply.header("Content-Type", "text/html");
 	return `
 		<h1>Search</h1>
 		<form action="/search" method="GET">
@@ -280,12 +266,25 @@ fastify.post("/download", async (request, reply) => {
 	}
 
 	const [mobiFn, mobiBuf] = await maybeConvert(filename, buf);
+	await sendEmail(mobiFn, mobiBuf);
+	reply.header("Content-Type", "text/html");
+	return `
+		<h1>Download Successful</h1>
+		<a href="/search">Return to search</a>
+	`;
+});
 
-	return "Success";
+fastify.get("/", (request, reply) => {
+	reply.redirect("/search");
+	return reply;
+});
+
+fastify.get("/download", (request, reply) => {
+	reply.redirect("/search");
 });
 
 try {
-	await fastify.listen({ port: 3000 });
+	await fastify.listen({ port: PORT });
 } catch (err) {
 	fastify.log.error(err);
 	process.exit(1);
