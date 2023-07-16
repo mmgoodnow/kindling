@@ -9,7 +9,11 @@ import { randomUUID } from "node:crypto";
 import { readFile, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, extname, join } from "node:path";
+import process from "node:process";
 import NodeMailer from "nodemailer";
+
+process.on("SIGINT", () => void process.exit(0));
+process.on("SIGTERM", () => void console.log("Terminating"));
 
 export const {
 	SENDER_EMAIL_ADDRESS,
