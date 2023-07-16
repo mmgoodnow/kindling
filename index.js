@@ -1,16 +1,15 @@
 import FormBody from "@fastify/formbody";
-import { execFile, spawn } from "child_process";
-import { randomUUID } from "crypto";
 import Fastify from "fastify";
-import { readFile, unlink, writeFile } from "fs/promises";
 import Dcc from "irc-dcc";
 import JsZip from "jszip";
 import { Client } from "matrix-org-irc";
 import ms from "ms";
+import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { readFile, unlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { basename, extname, join } from "node:path";
 import NodeMailer from "nodemailer";
-import { tmpdir } from "os";
-import { basename, extname, join } from "path";
-import { promisify } from "util";
 
 export const {
 	SENDER_EMAIL_ADDRESS,
