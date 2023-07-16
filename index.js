@@ -4,11 +4,7 @@ import Dcc from "irc-dcc";
 import JsZip from "jszip";
 import { Client } from "matrix-org-irc";
 import ms from "ms";
-import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { readFile, unlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { basename, extname, join } from "node:path";
 import process from "node:process";
 import NodeMailer from "nodemailer";
 
@@ -25,6 +21,7 @@ export const {
 	IRC_NICK,
 	KINDLE_EMAIL_ADDRESS,
 	PORT,
+	BASE_PATH,
 } = process.env;
 
 const requireds = {
@@ -37,7 +34,25 @@ const requireds = {
 	IRC_NICK,
 	KINDLE_EMAIL_ADDRESS,
 	PORT,
+	BASE_PATH,
 };
+
+function html(body) {
+	return `
+		<!DOCTYPE html>
+		<html lang="en">
+  			<head>
+    			<meta charset="UTF-8">
+    			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    			<title>Kindling</title>
+    			<base href="${BASE_PATH}/">
+  			</head>
+  			<body>
+  				${body}
+  			</body>
+		</html>
+	`;
+}
 
 let bad = false;
 for (const [key, value] of Object.entries(requireds)) {
@@ -105,12 +120,10 @@ const transporter = NodeMailer.createTransport({
 
 function listItem(result, token) {
 	return `
-		<li>
-			<form action="/download" method="POST">
-				<input type="hidden" name="token" value="${token}">
-				<input type="submit" name="f" value="${result}" />
-			</form>
-		</li>
+		<form action="download" method="POST">
+			<input type="hidden" name="token" value="${token}">
+			<input type="submit" name="f" value="${result}" />
+		</form>
 	`;
 }
 
@@ -155,6 +168,15 @@ function receiveDcc() {
 		}
 
 		client.once("dcc-send", onSend);
+
+		setTimeout(() => {
+			client.off("dcc-send", onSend);
+			reject(
+				new Error(
+					"Never received the file. Try downloading from a different server.",
+				),
+			);
+		}, ms("10 seconds"));
 	});
 }
 
@@ -175,31 +197,6 @@ function download(f) {
 	return receiveDcc();
 }
 
-async function maybeConvert(filename, buf) {
-	if (extname(filename) === "mobi") {
-		return [filename, buf];
-	}
-	const oldFn = join(tmpdir(), filename);
-	const withoutExtension = basename(filename, extname(filename));
-	const newFn = join(tmpdir(), `${withoutExtension}.mobi`);
-	await writeFile(oldFn, buf);
-
-	await new Promise((resolve, reject) => {
-		const ebookConvert = spawn("ebook-convert", [oldFn, newFn], {
-			stdio: "inherit",
-		});
-		ebookConvert.on("close", () => {
-			console.log("Conversion finished");
-			resolve();
-		});
-		ebookConvert.on("error", reject);
-	});
-
-	const mobiBuf = await readFile(newFn);
-	await unlink(newFn);
-	return [basename(newFn), mobiBuf];
-}
-
 async function sendEmail(filename, buf) {
 	console.log("Sending email…");
 	const info = await transporter.sendMail({
@@ -212,36 +209,34 @@ async function sendEmail(filename, buf) {
 	console.log("Email sent", info);
 }
 
-fastify.get("/search", async (request, reply) => {
+const searchResource = async (request, reply) => {
 	reply.header("Content-Type", "text/html");
 
 	if (!request.query.q) {
-		return `
+		return html(`
 			<h1>Search</h1>
-			<form action="/search" method="GET">
-					<input type="search" name="q">
-					<input type="submit" />
+			<form action="search" method="GET">
+				<input type="search" name="q" />
+				<input type="submit" />
 			</form>
-		`;
+		`);
 	}
 
 	const results = await search(request.query.q);
 	const token = tokenManager.create();
 
-	return `
+	return html(`
 		<h1>Search</h1>
-		<form action="/search" method="GET">
-			<input type="search" name="q" value="${request.query.q}">
+		<form action="search" method="GET">
+			<input type="search" name="q" value="${request.query.q}" />
 			<input type="submit" />
 		</form>
 		<h1>Results</h1>
-		<ul>
 			${results.map((r) => listItem(r, token)).join("")}
-		</ul>
-	`;
-});
+	`);
+};
 
-fastify.post("/download", async (request, reply) => {
+const downloadResource = async (request, reply) => {
 	if (!request.body.f || !request.body.token) {
 		throw {
 			statusCode: 400,
@@ -268,23 +263,28 @@ fastify.post("/download", async (request, reply) => {
 		};
 	}
 
-	const [mobiFn, mobiBuf] = await maybeConvert(filename, buf);
-	await sendEmail(mobiFn, mobiBuf);
+	await sendEmail(filename, buf);
 	reply.header("Content-Type", "text/html");
-	return `
+	return html(`
 		<h1>Download Successful</h1>
-		<a href="/search">Return to search</a>
-	`;
-});
-
-fastify.get("/", (request, reply) => {
-	reply.redirect("/search");
+		<a href="search">Return to search</a>
+	`);
+};
+const redirectToSearch = function (request, reply) {
+	reply.redirect(`${BASE_PATH}/search`);
 	return reply;
-});
+};
 
-fastify.get("/download", (request, reply) => {
-	reply.redirect("/search");
-});
+fastify.register(
+	(app, _, done) => {
+		app.get("/search", searchResource);
+		app.post("/download", downloadResource);
+		app.get("/", redirectToSearch);
+		app.get("/download", redirectToSearch);
+		done();
+	},
+	{ prefix: BASE_PATH },
+);
 
 try {
 	await fastify.listen({ port: PORT });
