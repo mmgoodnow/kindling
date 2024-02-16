@@ -180,8 +180,29 @@ function receiveDcc() {
 	});
 }
 
-async function search(q) {
-	client.say("#ebooks", `@search ${q}`);
+function cleanse(message) {
+	return message.replaceAll(/[^\w ]/g, " ").replaceAll(/\s+/g, " ");
+}
+
+function receiveNoMatchesNotice(q) {
+	return new Promise((resolve) => {
+		function onNotice(from, to, message) {
+			if (
+				from === "Search" &&
+				message.includes(q) &&
+				cleanse(message).includes("returned no matches")
+			) {
+				resolve([]);
+			}
+		}
+		client.on("notice", onNotice);
+		setTimeout(() => {
+			client.off("notice", onNotice);
+		}, ms("10 seconds"));
+	});
+}
+
+async function getSearchResults() {
 	const [, buffer] = await receiveDcc();
 	const zip = await JsZip.loadAsync(buffer);
 	const { name } = Object.values(zip.files)[0];
@@ -190,6 +211,11 @@ async function search(q) {
 		.split("\n")
 		.filter((line) => line.startsWith("!"))
 		.map((line) => line.trim());
+}
+
+async function search(q) {
+	client.say("#ebooks", `@search ${q}`);
+	return Promise.race([getSearchResults(), receiveNoMatchesNotice(q)]);
 }
 
 function download(f) {
@@ -225,6 +251,7 @@ const searchResource = async (request, reply) => {
 	const results = await search(request.query.q);
 	const token = tokenManager.create();
 
+	const resultsStr = results.map((r) => listItem(r, token)).join("");
 	return html(`
 		<h1>Search</h1>
 		<form action="search" method="GET">
@@ -232,7 +259,7 @@ const searchResource = async (request, reply) => {
 			<input type="submit" />
 		</form>
 		<h1>Results</h1>
-			${results.map((r) => listItem(r, token)).join("")}
+			${results.length > 0 ? resultsStr : `No results for "${request.query.q}"`}
 	`);
 };
 
