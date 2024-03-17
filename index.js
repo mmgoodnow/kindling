@@ -36,7 +36,6 @@ const requireds = {
 	KINDLE_EMAIL_ADDRESS,
 	PORT,
 	BASE_PATH,
-	NODE_ENV,
 };
 
 let bad = false;
@@ -109,9 +108,10 @@ function parseSearchResultStr(result) {
 		name,
 		server = "Unknown Server",
 		size = "Unknown Size",
-	} = /^!(?<server>\w+) (?<name>.+?)( ::INFO:: (?<size>.+))?$/.exec(result)
-		?.groups ?? { name: result };
-	return { name, server, size };
+	} = /^!(?<server>\w+) (?<name>.+?)( ::INFO:: (?<size>.+))?$/.exec(
+		result.trim(),
+	)?.groups ?? { name: result.trim() };
+	return { name: name.trim(), server, size };
 }
 
 class TokenManager {
@@ -170,12 +170,12 @@ const transporter = NodeMailer.createTransport({
 	auth: { user: SENDER_EMAIL_ADDRESS, pass: SENDER_EMAIL_PASSWORD },
 });
 
-function listItem({ name, server, size }, token) {
+function listItem({ name, server, size }, token, i) {
 	return `
-		<form action="download" method="POST">
+		<form action="download#result-${i}" method="POST" target="htmz">
 			<div class="custom-row">
 				<div class="col flex-shrink-1 flex-grow-0">
-					<input class="btn btn-sm btn-outline-primary" type="submit" name="f" value="Download" />
+					<input id="result-${i}" class="btn btn-sm btn-outline-primary" type="submit" name="f" value="Download" />
 				</div>
 				<div class="custom-col flex-grow-1">
 					<span><strong>${name}</strong></span>
@@ -315,13 +315,14 @@ const searchResource = async (request, reply) => {
 		<div class="custom-items">
 			${results
 				.map(parseSearchResultStr)
+				.filter((r) => r.name.includes(".epub") && !r.name.endsWith("rar"))
 				.sort((a, b) => {
-					const priority = ["peapod", "Ook", "Oatmeal"];
+					const priority = ["peapod", "Oatmeal"];
 					const x = priority.indexOf(a.server);
 					const y = priority.indexOf(b.server);
 					return y - x;
 				})
-				.map((r) => listItem(r, token))
+				.map((r, i) => listItem(r, token, i))
 				.join("")}
 		</div>`;
 	return html(`
@@ -353,24 +354,18 @@ const downloadResource = async (request, reply) => {
 	}
 
 	let filename, buf;
+	reply.header("Content-Type", "text/html");
 	try {
 		[filename, buf] = await download(request.body.f);
 	} catch (e) {
-		tokenManager.renew(request.body.token);
-		throw {
-			statusCode: 500,
-			message: "Failed to download book, try a different server.",
-		};
+		console.error(e);
+		return `<span class="btn btn-sm btn-danger">Failure</span>`;
 	}
 
 	if (NODE_ENV !== "development") {
 		await sendEmail(filename, buf);
 	}
-	reply.header("Content-Type", "text/html");
-	return html(`
-		<h1>Download Successful</h1>
-		<a href="search">Return to search</a>
-	`);
+	return `<span class="btn btn-sm btn-success">Success</span>`;
 };
 const redirectToSearch = function (request, reply) {
 	reply.redirect(`${BASE_PATH}/search`);
