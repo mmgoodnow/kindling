@@ -21,6 +21,7 @@ Set the following environment variables
 - `KINDLE_EMAIL_ADDRESS`
 - `PORT`
 - `BASE_PATH`
+- `NODE_ENV`
 
 ```
 node index.js
