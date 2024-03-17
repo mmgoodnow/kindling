@@ -22,6 +22,7 @@ export const {
 	KINDLE_EMAIL_ADDRESS,
 	PORT,
 	BASE_PATH,
+	NODE_ENV,
 } = process.env;
 
 const requireds = {
@@ -35,24 +36,8 @@ const requireds = {
 	KINDLE_EMAIL_ADDRESS,
 	PORT,
 	BASE_PATH,
+	NODE_ENV,
 };
-
-function html(body) {
-	return `
-		<!DOCTYPE html>
-		<html lang="en">
-  			<head>
-    			<meta charset="UTF-8">
-    			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-    			<title>Kindling</title>
-    			<base href="${BASE_PATH}/">
-  			</head>
-  			<body>
-  				${body}
-  			</body>
-		</html>
-	`;
-}
 
 let bad = false;
 for (const [key, value] of Object.entries(requireds)) {
@@ -64,6 +49,69 @@ for (const [key, value] of Object.entries(requireds)) {
 
 if (bad) {
 	throw new Error("Some config options not specified");
+}
+
+function html(body) {
+	return `
+		<!DOCTYPE html>
+		<html lang="en">
+  			<head>
+    			<meta charset="UTF-8" />
+    			<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    			<title>Kindling</title>
+    			<base href="${BASE_PATH}/" />
+    			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    			<link rel="stylesheet" href="index.css" />
+    			<iframe hidden name=htmz onload="setTimeout(()=>document.querySelector(contentWindow.location.hash||null)?.replaceWith(...contentDocument.body.childNodes))"></iframe>
+  			</head>
+  			<body class="container">
+  				${body}
+  			</body>
+		</html>
+	`;
+}
+
+function cssFile(request, reply) {
+	const cssText = `
+*, *::before, *::after { box-sizing: border-box; }
+body { 
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+	font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif 
+}
+img, picture, video, canvas, svg {
+	display: block;
+	max-width: 100%;
+}
+p, h1, h2, h3, h4, h5, h6 { overflow-wrap: break-word; }
+#root, #__next { isolation: isolate; }
+.custom-row {
+	display: flex;
+	flex-direction: row;
+	gap: 0.5rem;
+}
+.custom-col {
+	display: flex;
+	flex-direction: column;
+}
+.custom-items {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+`;
+	reply.header("Content-Type", "text/css");
+	return cssText;
+}
+
+function parseSearchResultStr(result) {
+	const {
+		name,
+		server = "Unknown Server",
+		size = "Unknown Size",
+	} = /^!(?<server>\w+) (?<name>.+?)( ::INFO:: (?<size>.+))?$/.exec(result)
+		?.groups ?? { name: result };
+	return { name, server, size };
 }
 
 class TokenManager {
@@ -80,6 +128,10 @@ class TokenManager {
 	renew(token) {
 		this.activeTokens.add(token);
 		setTimeout(() => void this.checkAndRevoke(token), ms("10 minutes"));
+	}
+
+	check(token) {
+		return this.activeTokens.has(token);
 	}
 
 	checkAndRevoke(token) {
@@ -118,11 +170,19 @@ const transporter = NodeMailer.createTransport({
 	auth: { user: SENDER_EMAIL_ADDRESS, pass: SENDER_EMAIL_PASSWORD },
 });
 
-function listItem(result, token) {
+function listItem({ name, server, size }, token) {
 	return `
 		<form action="download" method="POST">
+			<div class="custom-row">
+				<div class="col flex-shrink-1 flex-grow-0">
+					<input class="btn btn-sm btn-outline-primary" type="submit" name="f" value="Download" />
+				</div>
+				<div class="custom-col flex-grow-1">
+					<span><strong>${name}</strong></span>
+					<span>${server} (${size})</span>
+				</div>
+			</div>
 			<input type="hidden" name="token" value="${token}">
-			<input type="submit" name="f" value="${result}" />
 		</form>
 	`;
 }
@@ -241,9 +301,9 @@ const searchResource = async (request, reply) => {
 	if (!request.query.q) {
 		return html(`
 			<h1>Search</h1>
-			<form action="search" method="GET">
-				<input type="search" name="q" />
-				<input type="submit" />
+			<form class="input-group" action="search" method="GET">
+				<input class="form-control" type="search" name="q" />
+				<input class="btn btn-primary" type="submit" />
 			</form>
 		`);
 	}
@@ -251,13 +311,26 @@ const searchResource = async (request, reply) => {
 	const results = await search(request.query.q);
 	const token = tokenManager.create();
 
-	const resultsStr = results.map((r) => listItem(r, token)).join("");
+	const resultsStr = `
+		<div class="custom-items">
+			${results
+				.map(parseSearchResultStr)
+				.sort((a, b) => {
+					const priority = ["peapod", "Ook", "Oatmeal"];
+					const x = priority.indexOf(a.server);
+					const y = priority.indexOf(b.server);
+					return y - x;
+				})
+				.map((r) => listItem(r, token))
+				.join("")}
+		</div>`;
 	return html(`
 		<h1>Search</h1>
-		<form action="search" method="GET">
-			<input type="search" name="q" value="${request.query.q}" />
-			<input type="submit" />
+		<form class="input-group" action="search" method="GET">
+			<input class="form-control" type="search" name="q" value="${request.query.q}" />
+			<input class="btn btn-primary" type="submit" />
 		</form>
+		<br />
 		<h1>Results</h1>
 			${results.length > 0 ? resultsStr : `No results for "${request.query.q}"`}
 	`);
@@ -272,7 +345,7 @@ const downloadResource = async (request, reply) => {
 		};
 	}
 
-	if (!tokenManager.checkAndRevoke(request.body.token)) {
+	if (!tokenManager.check(request.body.token)) {
 		throw {
 			statusCode: 400,
 			message: "Form token invalid. Go back to the search page and refresh.",
@@ -290,7 +363,9 @@ const downloadResource = async (request, reply) => {
 		};
 	}
 
-	await sendEmail(filename, buf);
+	if (NODE_ENV !== "development") {
+		await sendEmail(filename, buf);
+	}
 	reply.header("Content-Type", "text/html");
 	return html(`
 		<h1>Download Successful</h1>
@@ -308,6 +383,7 @@ fastify.register(
 		app.post("/download", downloadResource);
 		app.get("/", redirectToSearch);
 		app.get("/download", redirectToSearch);
+		app.get("/index.css", cssFile);
 		done();
 	},
 	{ prefix: BASE_PATH },
