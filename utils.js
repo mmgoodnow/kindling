@@ -32,15 +32,15 @@ export function parseSearchResultStr(result) {
 	} = /^!(?<server>\w+) (?<name>.+?)( ::INFO:: (?<size>.+))?$/.exec(
 		result.trim(),
 	)?.groups ?? { name: result.trim() };
-	return { name: name.trim(), server, size };
+	return { name: name.trim(), server, size, downloadCommand: result };
 }
 
-export function listItem({ name, server, size }, token, i) {
+export function listItem({ name, server, size, downloadCommand }, token, i) {
 	return `
 		<form action="download#result-${i}" method="POST" target="htmz">
 			<div class="custom-row">
 				<div class="col flex-shrink-1 flex-grow-0">
-					<input id="result-${i}" class="btn btn-sm btn-outline-primary" type="submit" name="f" value="Download" />
+					<input id="result-${i}" class="btn btn-sm btn-outline-primary" type="submit" value="Download" />
 				</div>
 				<div class="custom-col flex-grow-1">
 					<span><strong>${name}</strong></span>
@@ -48,6 +48,8 @@ export function listItem({ name, server, size }, token, i) {
 				</div>
 			</div>
 			<input type="hidden" name="token" value="${token}">
+			<input type="hidden" name="downloadCommand" value="${downloadCommand}">
+
 		</form>
 	`;
 }

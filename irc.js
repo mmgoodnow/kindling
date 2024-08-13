@@ -11,7 +11,10 @@ export const client = await new Promise((resolve, reject) => {
 		onNickConflict: () => IRC_NICK + Math.random().toString()[2],
 	});
 	let timeoutId;
-	client.on("registered", () => {
+	client.on("data", (data) => {
+		console.log("data:", data);
+	});
+	client.once("registered", () => {
 		resolve(client);
 		console.log("Registered");
 		clearTimeout(timeoutId);

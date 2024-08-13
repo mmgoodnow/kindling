@@ -49,7 +49,7 @@ export async function searchResource(request, reply) {
 }
 
 export async function downloadResource(request, reply) {
-	if (!request.body.f || !request.body.token) {
+	if (!request.body.downloadCommand || !request.body.token) {
 		throw {
 			statusCode: 400,
 			message:
@@ -67,7 +67,8 @@ export async function downloadResource(request, reply) {
 	let filename, buf;
 	reply.header("Content-Type", "text/html");
 	try {
-		[filename, buf] = await download(request.body.f);
+		console.log(request.body);
+		[filename, buf] = await download(request.body.downloadCommand);
 	} catch (e) {
 		console.error(e);
 		return `<span class="btn btn-sm btn-danger">Failure</span>`;
