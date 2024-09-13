@@ -2,14 +2,15 @@ import Dcc from "irc-dcc";
 import { Client } from "matrix-org-irc";
 import net from "net";
 import { createReadStream, statSync } from "node:fs";
+import { basename } from "path";
 import { IRC_NICK } from "./env.js";
 
 export const client = await new Promise((resolve, reject) => {
-	const client = new Client("localhost", IRC_NICK, {
+	const client = new Client("localhost", "testbot", {
 		port: 6667,
 		debug: true,
 		channels: ["#ebooks"],
-		onNickConflict: () => IRC_NICK + Math.random().toString()[2],
+		userName: "username",
 	});
 	let timeoutId;
 
@@ -68,21 +69,29 @@ function sendFile(to, filename, length, callback) {
 	server.listen(55556, "localhost");
 }
 
+function sendFileHighLevel(nick, filepath) {
+	const stats = statSync(filepath);
+	sendFile(nick, basename(filepath), stats.size, (err, con, position) => {
+		if (err) {
+			client.notice(nick, err);
+			return;
+		}
+		const rs = createReadStream(filepath, { start: position });
+		rs.pipe(con);
+	});
+}
+
 client.on("message", (nick, channel, message) => {
 	client.say(channel, `echo ${message}`);
 	if (message.startsWith("@Search")) {
-		const searchResults =
-			"***REMOVED***";
-		const stats = statSync(searchResults);
-		sendFile(nick, "data.txt.zip", stats.size, (err, con, position) => {
-			if (err) {
-				client.notice(nick, err);
-				return;
-			}
-			const rs = createReadStream(searchResults, {
-				start: position,
-			});
-			rs.pipe(con);
-		});
+		sendFileHighLevel(
+			nick,
+			"***REMOVED***",
+		);
+	} else if (message.startsWith("!Oatmeal")) {
+		sendFileHighLevel(
+			nick,
+			"***REMOVED***",
+		);
 	}
 });
