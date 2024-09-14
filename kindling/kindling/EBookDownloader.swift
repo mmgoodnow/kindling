@@ -12,7 +12,7 @@ class EBookDownloader {
     // Sends a search query in the form `@Search <query>` to the #ebooks channel
     func searchForEBook(query: String) async throws -> Data? {
         let searchMessage = "@Search \(query)"
-        try await ircConnection.send(searchMessage, to: ebooksChannel)
+		ircConnection.send(message: searchMessage, to: ebooksChannel)
 
         print("Search query sent: \(searchMessage)")
         

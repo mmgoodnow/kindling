@@ -17,6 +17,10 @@
 		51792FC12C91250F004B6E71 /* Irc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC02C91250F004B6E71 /* Irc.swift */; };
 		51792FC32C93CB90004B6E71 /* Dcc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC22C93CB90004B6E71 /* Dcc.swift */; };
 		51792FC52C93CF90004B6E71 /* EBookDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC42C93CF90004B6E71 /* EBookDownloader.swift */; };
+		51792FCD2C962803004B6E71 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FCC2C962803004B6E71 /* main.swift */; };
+		51792FD12C96283F004B6E71 /* Irc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC02C91250F004B6E71 /* Irc.swift */; };
+		51792FD22C962844004B6E71 /* Dcc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC22C93CB90004B6E71 /* Dcc.swift */; };
+		51792FD32C962848004B6E71 /* EBookDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC42C93CF90004B6E71 /* EBookDownloader.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,6 +40,28 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		51792FC82C962803004B6E71 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		51792FE82C962A77004B6E71 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		51792F8D2C900EEA004B6E71 /* kindling.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = kindling.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		51792F902C900EEA004B6E71 /* kindlingApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = kindlingApp.swift; sourceTree = "<group>"; };
@@ -51,6 +77,8 @@
 		51792FC02C91250F004B6E71 /* Irc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Irc.swift; sourceTree = "<group>"; };
 		51792FC22C93CB90004B6E71 /* Dcc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dcc.swift; sourceTree = "<group>"; };
 		51792FC42C93CF90004B6E71 /* EBookDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EBookDownloader.swift; sourceTree = "<group>"; };
+		51792FCA2C962803004B6E71 /* ircli */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ircli; sourceTree = BUILT_PRODUCTS_DIR; };
+		51792FCC2C962803004B6E71 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,6 +103,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		51792FC72C962803004B6E71 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -84,6 +119,7 @@
 				51792F8F2C900EEA004B6E71 /* kindling */,
 				51792FA32C900EEB004B6E71 /* kindlingTests */,
 				51792FAD2C900EEB004B6E71 /* kindlingUITests */,
+				51792FCB2C962803004B6E71 /* ircli */,
 				51792F8E2C900EEA004B6E71 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -94,6 +130,7 @@
 				51792F8D2C900EEA004B6E71 /* kindling.app */,
 				51792FA02C900EEB004B6E71 /* kindlingTests.xctest */,
 				51792FAA2C900EEB004B6E71 /* kindlingUITests.xctest */,
+				51792FCA2C962803004B6E71 /* ircli */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -138,6 +175,14 @@
 			path = kindlingUITests;
 			sourceTree = "<group>";
 		};
+		51792FCB2C962803004B6E71 /* ircli */ = {
+			isa = PBXGroup;
+			children = (
+				51792FCC2C962803004B6E71 /* main.swift */,
+			);
+			path = ircli;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -148,6 +193,7 @@
 				51792F892C900EEA004B6E71 /* Sources */,
 				51792F8A2C900EEA004B6E71 /* Frameworks */,
 				51792F8B2C900EEA004B6E71 /* Resources */,
+				51792FE82C962A77004B6E71 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
@@ -194,6 +240,23 @@
 			productReference = 51792FAA2C900EEB004B6E71 /* kindlingUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		51792FC92C962803004B6E71 /* ircli */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 51792FCE2C962803004B6E71 /* Build configuration list for PBXNativeTarget "ircli" */;
+			buildPhases = (
+				51792FC62C962803004B6E71 /* Sources */,
+				51792FC72C962803004B6E71 /* Frameworks */,
+				51792FC82C962803004B6E71 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ircli;
+			productName = ircli;
+			productReference = 51792FCA2C962803004B6E71 /* ircli */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -214,6 +277,9 @@
 					51792FA92C900EEB004B6E71 = {
 						CreatedOnToolsVersion = 15.4;
 						TestTargetID = 51792F8C2C900EEA004B6E71;
+					};
+					51792FC92C962803004B6E71 = {
+						CreatedOnToolsVersion = 15.4;
 					};
 				};
 			};
@@ -236,6 +302,7 @@
 				51792F8C2C900EEA004B6E71 /* kindling */,
 				51792F9F2C900EEB004B6E71 /* kindlingTests */,
 				51792FA92C900EEB004B6E71 /* kindlingUITests */,
+				51792FC92C962803004B6E71 /* ircli */,
 			);
 		};
 /* End PBXProject section */
@@ -293,6 +360,17 @@
 			files = (
 				51792FB12C900EEB004B6E71 /* kindlingUITestsLaunchTests.swift in Sources */,
 				51792FAF2C900EEB004B6E71 /* kindlingUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		51792FC62C962803004B6E71 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				51792FD12C96283F004B6E71 /* Irc.swift in Sources */,
+				51792FCD2C962803004B6E71 /* main.swift in Sources */,
+				51792FD22C962844004B6E71 /* Dcc.swift in Sources */,
+				51792FD32C962848004B6E71 /* EBookDownloader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -594,6 +672,32 @@
 			};
 			name = Release;
 		};
+		51792FCF2C962803004B6E71 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = AFD89X85F4;
+				ENABLE_HARDENED_RUNTIME = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.4;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		51792FD02C962803004B6E71 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = AFD89X85F4;
+				ENABLE_HARDENED_RUNTIME = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.4;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -629,6 +733,15 @@
 			buildConfigurations = (
 				51792FBB2C900EEB004B6E71 /* Debug */,
 				51792FBC2C900EEB004B6E71 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		51792FCE2C962803004B6E71 /* Build configuration list for PBXNativeTarget "ircli" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				51792FCF2C962803004B6E71 /* Debug */,
+				51792FD02C962803004B6E71 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
