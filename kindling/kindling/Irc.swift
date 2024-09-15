@@ -17,29 +17,34 @@ class IRCConnection {
 		self.connection = connection
 		self.nickname = nickname
 		self.username = username
+	}
 
-		// Start the connection and handle state updates
-		self.connection.stateUpdateHandler = { newState in
-			switch newState {
-			case .ready:
-				print("Connection ready")
-				// Once the connection is ready, start negotiation and receiving messages
-				self.capNegotiate()
-				Task {
-					await self.receiveMessages()
+	// Async start method to handle connection readiness, CAP negotiation, and message reception
+	public func start() async {
+		// Wait for the connection to become ready
+		await withCheckedContinuation { continuation in
+			self.connection.stateUpdateHandler = { newState in
+				switch newState {
+				case .ready:
+					print("Connection ready")
+					self.capNegotiate()  // Perform CAP negotiation
+					Task {
+						await self.receiveMessages()  // Start receiving messages asynchronously
+					}
+					continuation.resume()
+				case .failed(let error):
+					print("Connection failed with error: \(error)")
+					continuation.resume()  // Resume continuation even in case of failure
+				default:
+					break
 				}
-			case .failed(let error):
-				print("Connection failed with error: \(error)")
-			default:
-				break
 			}
+
+			// Start the connection
+			self.connection.start(queue: .global())
 		}
 
-		// Start the connection
-		self.connection.start(queue: .global())
-
-		// Start logging messages
-		logAllMessages()
+		// Optionally, you could return a result here based on whether the connection succeeded or failed
 	}
 
 	// Asynchronous function to continuously receive messages
