@@ -19,18 +19,14 @@ class IRCConnection {
 		self.username = username
 	}
 
-	// Async start method to handle connection readiness, CAP negotiation, and message reception
-	public func start() async {
+	public func start() async throws {
 		// Wait for the connection to become ready
+		self.publishReceivedMessages()
 		await withCheckedContinuation { continuation in
 			self.connection.stateUpdateHandler = { newState in
 				switch newState {
 				case .ready:
 					print("Connection ready")
-					self.capNegotiate()  // Perform CAP negotiation
-					Task {
-						await self.receiveMessages()  // Start receiving messages asynchronously
-					}
 					continuation.resume()
 				case .failed(let error):
 					print("Connection failed with error: \(error)")
@@ -39,24 +35,24 @@ class IRCConnection {
 					break
 				}
 			}
-
-			// Start the connection
-			self.connection.start(queue: .global())
+			connection.start(queue: .global())
 		}
-
-		// Optionally, you could return a result here based on whether the connection succeeded or failed
+		logAllMessages()
+		handleMandatoryResponses()
+		try await capNegotiate()
 	}
 
-	// Asynchronous function to continuously receive messages
-	private func receiveMessages() async {
-		while true {
-			if let message = await receiveMessage() {
-				messageSubject.send(message)  // Publish the received message
+	private func publishReceivedMessages() {
+		Task {
+			while true {
+				if let message = await receiveMessage() {
+					messageSubject.send(message)
+				}
 			}
 		}
 	}
 
-	// Function to receive a message from the IRC server asynchronously
+	// will suspend waiting for new messages to come in
 	func receiveMessage() async -> String? {
 		return await withCheckedContinuation { continuation in
 			connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) {
@@ -68,88 +64,74 @@ class IRCConnection {
 						continuation.resume(returning: nil)
 					}
 				} else if error != nil {
-					continuation.resume(returning: nil)  // Consider handling errors if needed
+					continuation.resume(returning: nil)
 				} else if isComplete {
-					continuation.resume(returning: nil)  // Connection closed
+					continuation.resume(returning: nil)
 				}
 			}
 		}
 	}
 
-	func capNegotiate() {
+	func capNegotiate() async throws {
 		// Start CAP negotiation by asking the server what capabilities it supports
-		send(raw: "CAP LS 302")
+		try await send(raw: "CAP LS 302")
 		// Authenticate (send NICK and USER command to IRC server)
-		send(raw: "NICK \(nickname)")
-		send(raw: "USER \(username) 0 * :\(username)")
-		send(raw: "CAP END")
+		try await send(raw: "NICK \(nickname)")
+		try await send(raw: "USER \(username) 0 * :\(username)")
+		try await send(raw: "CAP END")
 	}
 
-	private func send(raw message: String) {
+	private func send(raw message: String) async throws {
 		let messageWithNewline = message + "\r\n"
 		let data = messageWithNewline.data(using: .utf8)!
 		print("send: \(message)")
-
-		connection.send(
-			content: data,
-			completion: .contentProcessed({ error in
-				if let error = error {
-					print("Failed to send message: \(error)")
-				}
-			}))
-	}
-
-	public func send(message: String, to channel: String) {
-		let formattedMessage = "PRIVMSG \(channel) :\(message)"
-		send(raw: formattedMessage)
-	}
-
-	public func join(channel: String) {
-		let joinMessage = "JOIN \(channel)"
-		send(raw: joinMessage)
-	}
-
-	// Helper function to asynchronously receive data from the connection
-	private func receiveData() async throws -> Data {
-		try await withCheckedThrowingContinuation { continuation in
-			connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) {
-				data, _, isComplete, error in
-				if let data = data, !data.isEmpty {
-					continuation.resume(returning: data)
-				} else if let error = error {
-					continuation.resume(throwing: error)
-				} else if isComplete {
-					continuation.resume(
-						throwing: NSError(
-							domain: "ConnectionClosed", code: 1,
-							userInfo: nil))
-				}
-			}
+		// Wrap send in async/await
+		try await withCheckedThrowingContinuation {
+			(continuation: CheckedContinuation<Void, Error>) in
+			connection.send(
+				content: data,
+				completion: .contentProcessed { error in
+					if let error = error {
+						continuation.resume(throwing: error)  // Resume with error
+					} else {
+						continuation.resume(returning: ())  // Resume with success
+					}
+				})
 		}
 	}
 
-	func handlePing(_ pingMessage: String) {
+	public func send(message: String, to channel: String) async throws {
+		let formattedMessage = "PRIVMSG \(channel) :\(message)"
+		try await send(raw: formattedMessage)
+	}
+
+	public func join(channel: String) async throws {
+		let joinMessage = "JOIN \(channel)"
+		try await send(raw: joinMessage)
+	}
+
+	func handlePing(_ pingMessage: String) async throws {
 		// Reply to server PING with PONG to keep the connection alive
 		let pongMessage = pingMessage.replacingOccurrences(of: "PING", with: "PONG")
-		send(raw: pongMessage)
+		try await send(raw: pongMessage)
 	}
 
 	// Function to handle CTCP requests like VERSION
-	func handleCTCP(_ message: String) {
+	func handleCTCP(_ message: String) async throws {
 		// CTCP messages are usually in the format: PRIVMSG <your_nickname> :\x01VERSION\x01
 		if message.contains("\u{01}VERSION\u{01}") {
 			// Extract the sender's nickname (example message: ":nick!user@host PRIVMSG your_nickname :\x01VERSION\x01")
 			if let sender = extractSender(from: message) {
-				respondToCTCPVersionRequest(from: sender)
+				try await respondToCTCPVersionRequest(from: sender)
 			}
 		}
 	}
 
 	// Respond to a CTCP VERSION request
-	func respondToCTCPVersionRequest(from sender: String) {
+	func respondToCTCPVersionRequest(from sender: String) async throws {
 		let versionResponse = "MySwiftIRCClient 1.0"
 		let ctcpVersionResponse = "\u{01}VERSION \(versionResponse)\u{01}"
-		send(raw: "NOTICE \(sender) :\(ctcpVersionResponse)")
+		try await send(raw: "NOTICE \(sender) :\(ctcpVersionResponse)")
 	}
 
 	// Helper function to extract the sender's nickname from the message
@@ -233,6 +215,19 @@ class IRCConnection {
 	func logAllMessages() {
 		subscribeToMessages { message in
 			print("recv: \(message)")
+		}
+	}
+
+	func handleMandatoryResponses() {
+		subscribeToMessages { message in
+			Task {
+				do {
+					try await self.handlePing(message)
+					try await self.handleCTCP(message)
+				} catch {
+					print(error)
+				}
+			}
 		}
 	}
 }

@@ -7,17 +7,17 @@ class EBookDownloader {
 
 	init(ircConnection: IRCConnection) {
 		self.ircConnection = ircConnection
-		ircConnection.join(channel: ebooksChannel)
 	}
 
-	public func start() async {
-		
+	public func start() async throws {
+		try await ircConnection.start()
+		try await ircConnection.join(channel: ebooksChannel)
 	}
 
 	// Sends a search query in the form `@Search <query>` to the #ebooks channel
 	func searchForEBook(query: String) async throws -> Data? {
 		let searchMessage = "@Search \(query)"
-		ircConnection.send(message: searchMessage, to: ebooksChannel)
+		try await ircConnection.send(message: searchMessage, to: ebooksChannel)
 
 		print("Search query sent: \(searchMessage)")
 

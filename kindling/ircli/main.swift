@@ -1,7 +1,7 @@
 import Foundation
 import Network
 
-func main() async {
+func main() async throws {
 	print("Running main")
 	let ircConnection = IRCConnection(
 		connection: NWConnection(
@@ -11,6 +11,7 @@ func main() async {
 	)
 
 	let downloader = EBookDownloader(ircConnection: ircConnection)
+	try await downloader.start()
 
 	do {
 		if let fileData = try await downloader.searchForEBook(query: "swift programming") {
@@ -24,7 +25,7 @@ func main() async {
 }
 
 Task {
-	await main()
+	try await main()
 }
 
 RunLoop.main.run()
