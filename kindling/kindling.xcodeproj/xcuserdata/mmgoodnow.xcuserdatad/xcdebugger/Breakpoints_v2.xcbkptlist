@@ -24,7 +24,7 @@
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
             uuid = "7AF6DF5D-33D7-49C6-8F80-8BFBAAE78153"
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "ircli/main.swift"
@@ -39,129 +39,59 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "DFA91E97-840F-4238-AD79-ED8B31E0C920"
-            shouldBeEnabled = "No"
+            uuid = "02A21687-7A2E-4A8C-B2C4-75AE697B0840"
+            shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "kindling/Irc.swift"
+            filePath = "kindling/EBookDownloader.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "77"
-            endingLineNumber = "77"
-            landmarkName = "capNegotiate()"
+            startingLineNumber = "21"
+            endingLineNumber = "21"
+            landmarkName = "searchForEBook(query:)"
             landmarkType = "7">
             <Locations>
                <Location
-                  uuid = "DFA91E97-840F-4238-AD79-ED8B31E0C920 - b7f8ef8dd039c6d2"
+                  uuid = "02A21687-7A2E-4A8C-B2C4-75AE697B0840 - 837c5fd90ce917a3"
                   shouldBeEnabled = "Yes"
                   ignoreCount = "0"
                   continueAfterRunningActions = "No"
-                  symbolName = "(3) suspend resume partial function for ircli.IRCConnection.capNegotiate() async throws -&gt; ()"
+                  symbolName = "(2) await resume partial function for ircli.EBookDownloader.searchForEBook(query: Swift.String) async throws -&gt; Swift.Optional&lt;Foundation.Data&gt;"
                   moduleName = "ircli"
                   usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/kindling/Irc.swift"
+                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/kindling/EBookDownloader.swift"
                   startingColumnNumber = "9223372036854775807"
                   endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "78"
-                  endingLineNumber = "78">
+                  startingLineNumber = "21"
+                  endingLineNumber = "21">
                </Location>
                <Location
-                  uuid = "DFA91E97-840F-4238-AD79-ED8B31E0C920 - 2c1f6a6fe07013e7"
+                  uuid = "02A21687-7A2E-4A8C-B2C4-75AE697B0840 - d451ea46e81d35a2"
                   shouldBeEnabled = "Yes"
                   ignoreCount = "0"
                   continueAfterRunningActions = "No"
-                  symbolName = "(4) await resume partial function for ircli.IRCConnection.capNegotiate() async throws -&gt; ()"
+                  symbolName = "(3) await resume partial function for ircli.EBookDownloader.searchForEBook(query: Swift.String) async throws -&gt; Swift.Optional&lt;Foundation.Data&gt;"
                   moduleName = "ircli"
                   usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/kindling/Irc.swift"
+                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/kindling/EBookDownloader.swift"
                   startingColumnNumber = "9223372036854775807"
                   endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "78"
-                  endingLineNumber = "78">
+                  startingLineNumber = "21"
+                  endingLineNumber = "21">
                </Location>
                <Location
-                  uuid = "DFA91E97-840F-4238-AD79-ED8B31E0C920 - a58f750a563f38d0"
+                  uuid = "02A21687-7A2E-4A8C-B2C4-75AE697B0840 - 700b19e30f7e2350"
                   shouldBeEnabled = "Yes"
                   ignoreCount = "0"
                   continueAfterRunningActions = "No"
-                  symbolName = "(5) suspend resume partial function for ircli.IRCConnection.capNegotiate() async throws -&gt; ()"
+                  symbolName = "(4) suspend resume partial function for ircli.EBookDownloader.searchForEBook(query: Swift.String) async throws -&gt; Swift.Optional&lt;Foundation.Data&gt;"
                   moduleName = "ircli"
                   usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/kindling/Irc.swift"
+                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/kindling/EBookDownloader.swift"
                   startingColumnNumber = "9223372036854775807"
                   endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "78"
-                  endingLineNumber = "78">
-               </Location>
-               <Location
-                  uuid = "DFA91E97-840F-4238-AD79-ED8B31E0C920 - 90bc1873df837003"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(10) suspend resume partial function for ircli.IRCConnection.capNegotiate() async throws -&gt; ()"
-                  moduleName = "ircli"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/kindling/Irc.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "78"
-                  endingLineNumber = "78">
-               </Location>
-               <Location
-                  uuid = "DFA91E97-840F-4238-AD79-ED8B31E0C920 - d82a1a175a388c2d"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(1) suspend resume partial function for ircli.IRCConnection.capNegotiate() async throws -&gt; ()"
-                  moduleName = "ircli"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/kindling/Irc.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "77"
-                  endingLineNumber = "77">
-               </Location>
-               <Location
-                  uuid = "DFA91E97-840F-4238-AD79-ED8B31E0C920 - 9eab587d4798dd00"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(2) await resume partial function for ircli.IRCConnection.capNegotiate() async throws -&gt; ()"
-                  moduleName = "ircli"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/kindling/Irc.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "77"
-                  endingLineNumber = "77">
-               </Location>
-               <Location
-                  uuid = "DFA91E97-840F-4238-AD79-ED8B31E0C920 - b7f8ef8dd039c633"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(3) suspend resume partial function for ircli.IRCConnection.capNegotiate() async throws -&gt; ()"
-                  moduleName = "ircli"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/kindling/Irc.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "77"
-                  endingLineNumber = "77">
-               </Location>
-               <Location
-                  uuid = "DFA91E97-840F-4238-AD79-ED8B31E0C920 - 816c403d423da435"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(9) suspend resume partial function for ircli.IRCConnection.capNegotiate() async throws -&gt; ()"
-                  moduleName = "ircli"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/kindling/Irc.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "77"
-                  endingLineNumber = "77">
+                  startingLineNumber = "21"
+                  endingLineNumber = "21">
                </Location>
             </Locations>
          </BreakpointContent>

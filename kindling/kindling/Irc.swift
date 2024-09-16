@@ -37,8 +37,9 @@ class IRCConnection {
 			}
 			connection.start(queue: .global())
 		}
-		logAllMessages()
-		handleMandatoryResponses()
+		logReceivedMessages()
+		handlePings()
+		handleCTCPVersionRequests()
 		try await capNegotiate()
 	}
 
@@ -59,7 +60,9 @@ class IRCConnection {
 				data, _, isComplete, error in
 				if let data = data, !data.isEmpty {
 					if let message = String(data: data, encoding: .utf8) {
-						continuation.resume(returning: message)
+						continuation.resume(
+							returning: message.trimmingCharacters(
+								in: .newlines))
 					} else {
 						continuation.resume(returning: nil)
 					}
@@ -110,21 +113,42 @@ class IRCConnection {
 		try await send(raw: joinMessage)
 	}
 
-	func handlePing(_ pingMessage: String) async throws {
-		// Reply to server PING with PONG to keep the connection alive
-		let pongMessage = pingMessage.replacingOccurrences(of: "PING", with: "PONG")
-		try await send(raw: pongMessage)
+	func handlePings() {
+		messageSubject
+			.filter { $0.contains("PING") }
+			.sink { message in
+				Task {
+					let pongMessage = message.replacingOccurrences(
+						of: "PING", with: "PONG")
+					do {
+						try await self.send(raw: pongMessage)
+					} catch {
+						print("error sending ping: \(error)")
+					}
+				}
+			}
+			.store(in: &cancellables)
 	}
 
-	// Function to handle CTCP requests like VERSION
-	func handleCTCP(_ message: String) async throws {
-		// CTCP messages are usually in the format: PRIVMSG <your_nickname> :\x01VERSION\x01
-		if message.contains("\u{01}VERSION\u{01}") {
-			// Extract the sender's nickname (example message: ":nick!user@host PRIVMSG your_nickname :\x01VERSION\x01")
-			if let sender = extractSender(from: message) {
-				try await respondToCTCPVersionRequest(from: sender)
+	func handleCTCPVersionRequests() {
+		messageSubject
+			.filter { $0.contains("\u{01}VERSION\u{01}") }
+			.sink { message in
+				Task {
+					// :nick!user@host PRIVMSG <your_nickname> :\x01VERSION\x01
+					if let sender = self.extractSender(from: message) {
+						do {
+							try await self.respondToCTCPVersionRequest(
+								from: sender)
+						} catch {
+							print(
+								"error responding to CTCP Version request: \(error)"
+							)
+						}
+					}
+				}
 			}
-		}
+			.store(in: &cancellables)
 	}
 
 	// Respond to a CTCP VERSION request
@@ -148,29 +172,24 @@ class IRCConnection {
 
 	// Function to handle DCC SEND requests using async/await
 	func handleDCCSend(_ message: String) async {
-		// Example DCC SEND message: PRIVMSG your_nickname :\u{01}DCC SEND <filename> <ip> <port> <filesize>\u{01}
+		// PRIVMSG you :\u{01}DCC SEND <filename> <ip> <port> <filesize>\u{01}
 		if message.contains("\u{01}DCC SEND") {
-			// Parse the DCC SEND message
 			if let (filename, ip, port, fileSize) = parseDCCSendMessage(message) {
 				print(
 					"DCC SEND request received for file: \(filename), size: \(fileSize) bytes"
 				)
 
-				// Convert IP from integer to human-readable format
 				let humanReadableIP = convertDCCIP(ip)
 
-				// Initialize DCCFileTransfer and start the download
 				let fileTransfer = DCCFileTransfer(
 					filename: filename, senderIP: humanReadableIP, port: port,
 					fileSize: fileSize)
 
 				do {
-					// Await the file transfer result
 					let fileData = try await fileTransfer.startTransfer()
 					print(
 						"File successfully downloaded in memory. Size: \(fileData.count) bytes."
 					)
-					// Do something with the downloaded file data in memory
 				} catch {
 					print("File transfer failed: \(error)")
 				}
@@ -204,30 +223,9 @@ class IRCConnection {
 		return ipBytes.map { String($0) }.joined(separator: ".")
 	}
 
-	// Method to subscribe to message updates
-	func subscribeToMessages(_ handler: @escaping (String) -> Void) {
+	func logReceivedMessages() {
 		messageSubject
-			.sink(receiveValue: handler)
+			.sink { print("recv: \($0)") }
 			.store(in: &cancellables)
-	}
-
-	// Method to subscribe to all messages and log them
-	func logAllMessages() {
-		subscribeToMessages { message in
-			print("recv: \(message)")
-		}
-	}
-
-	func handleMandatoryResponses() {
-		subscribeToMessages { message in
-			Task {
-				do {
-					try await self.handlePing(message)
-					try await self.handleCTCP(message)
-				} catch {
-					print(error)
-				}
-			}
-		}
 	}
 }

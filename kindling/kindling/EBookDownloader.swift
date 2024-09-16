@@ -14,13 +14,9 @@ class EBookDownloader {
 		try await ircConnection.join(channel: ebooksChannel)
 	}
 
-	// Sends a search query in the form `@Search <query>` to the #ebooks channel
 	func searchForEBook(query: String) async throws -> Data? {
 		let searchMessage = "@Search \(query)"
 		try await ircConnection.send(message: searchMessage, to: ebooksChannel)
-
-		print("Search query sent: \(searchMessage)")
-
 		// Listen for messages and handle DCC SEND requests
 		return await receiveAndDownloadFile()
 	}
@@ -28,7 +24,6 @@ class EBookDownloader {
 	// Receives messages and downloads the file if a DCC SEND request is detected
 	private func receiveAndDownloadFile() async -> Data? {
 		while true {
-			// Assume `ircConnection.receiveMessage()` is an async method that waits for an incoming message
 			if let message = await ircConnection.receiveMessage() {
 				// Handle the DCC SEND request if present
 				if message.contains("\u{01}DCC SEND") {
