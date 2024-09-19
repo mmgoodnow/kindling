@@ -39,61 +39,33 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "02A21687-7A2E-4A8C-B2C4-75AE697B0840"
-            shouldBeEnabled = "Yes"
+            uuid = "236B6A67-177C-4189-ABEF-391939152D03"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "kindling/EBookDownloader.swift"
+            filePath = "kindling/Dcc.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "21"
-            endingLineNumber = "21"
-            landmarkName = "searchForEBook(query:)"
+            startingLineNumber = "18"
+            endingLineNumber = "18"
+            landmarkName = "init?(dccSendMessage:)"
             landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "02A21687-7A2E-4A8C-B2C4-75AE697B0840 - 837c5fd90ce917a3"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(2) await resume partial function for ircli.EBookDownloader.searchForEBook(query: Swift.String) async throws -&gt; Swift.Optional&lt;Foundation.Data&gt;"
-                  moduleName = "ircli"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/kindling/EBookDownloader.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "21"
-                  endingLineNumber = "21">
-               </Location>
-               <Location
-                  uuid = "02A21687-7A2E-4A8C-B2C4-75AE697B0840 - d451ea46e81d35a2"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(3) await resume partial function for ircli.EBookDownloader.searchForEBook(query: Swift.String) async throws -&gt; Swift.Optional&lt;Foundation.Data&gt;"
-                  moduleName = "ircli"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/kindling/EBookDownloader.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "21"
-                  endingLineNumber = "21">
-               </Location>
-               <Location
-                  uuid = "02A21687-7A2E-4A8C-B2C4-75AE697B0840 - 700b19e30f7e2350"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(4) suspend resume partial function for ircli.EBookDownloader.searchForEBook(query: Swift.String) async throws -&gt; Swift.Optional&lt;Foundation.Data&gt;"
-                  moduleName = "ircli"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/kindling/EBookDownloader.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "21"
-                  endingLineNumber = "21">
-               </Location>
-            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "1FEC0E50-6E24-4296-B494-A98AEE137D9E"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "kindling/Dcc.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "31"
+            endingLineNumber = "31"
+            landmarkName = "init?(dccSendMessage:)"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

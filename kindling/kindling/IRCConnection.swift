@@ -88,7 +88,6 @@ class IRCConnection {
 		let messageWithNewline = message + "\r\n"
 		let data = messageWithNewline.data(using: .utf8)!
 		print("send: \(message)")
-		// Wrap send in async/await
 		try await withCheckedThrowingContinuation {
 			(continuation: CheckedContinuation<Void, Error>) in
 			connection.send(
@@ -114,7 +113,7 @@ class IRCConnection {
 	}
 
 	func handlePings() {
-		messageSubject
+		messages()
 			.filter { $0.contains("PING") }
 			.sink { message in
 				Task {
@@ -131,7 +130,7 @@ class IRCConnection {
 	}
 
 	func handleCTCPVersionRequests() {
-		messageSubject
+		messages()
 			.filter { $0.contains("\u{01}VERSION\u{01}") }
 			.sink { message in
 				Task {
@@ -170,62 +169,13 @@ class IRCConnection {
 		return nil
 	}
 
-	// Function to handle DCC SEND requests using async/await
-	func handleDCCSend(_ message: String) async {
-		// PRIVMSG you :\u{01}DCC SEND <filename> <ip> <port> <filesize>\u{01}
-		if message.contains("\u{01}DCC SEND") {
-			if let (filename, ip, port, fileSize) = parseDCCSendMessage(message) {
-				print(
-					"DCC SEND request received for file: \(filename), size: \(fileSize) bytes"
-				)
-
-				let humanReadableIP = convertDCCIP(ip)
-
-				let fileTransfer = DCCFileTransfer(
-					filename: filename, senderIP: humanReadableIP, port: port,
-					fileSize: fileSize)
-
-				do {
-					let fileData = try await fileTransfer.startTransfer()
-					print(
-						"File successfully downloaded in memory. Size: \(fileData.count) bytes."
-					)
-				} catch {
-					print("File transfer failed: \(error)")
-				}
-			}
-		}
-	}
-
-	// Function to parse DCC SEND message and extract filename, IP, port, and file size
-	func parseDCCSendMessage(_ message: String) -> (String, UInt32, UInt16, UInt64)? {
-		// Extract DCC SEND parts: "DCC SEND <filename> <ip> <port> <filesize>"
-		let parts = message.split(separator: " ")
-		guard parts.count >= 6 else { return nil }
-
-		let filename = String(parts[3])
-		if let ip = UInt32(parts[4]), let port = UInt16(parts[5]),
-			let fileSize = UInt64(parts[6])
-		{
-			return (filename, ip, port, fileSize)
-		}
-		return nil
-	}
-
-	// Convert DCC IP from integer to human-readable IP format
-	func convertDCCIP(_ ip: UInt32) -> String {
-		let ipBytes = [
-			UInt8((ip >> 24) & 0xFF),
-			UInt8((ip >> 16) & 0xFF),
-			UInt8((ip >> 8) & 0xFF),
-			UInt8(ip & 0xFF),
-		]
-		return ipBytes.map { String($0) }.joined(separator: ".")
-	}
-
 	func logReceivedMessages() {
-		messageSubject
+		messages()
 			.sink { print("recv: \($0)") }
 			.store(in: &cancellables)
+	}
+	
+	public func messages() ->AnyPublisher<String, Never> {
+		return messageSubject.eraseToAnyPublisher()
 	}
 }

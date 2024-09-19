@@ -14,13 +14,17 @@
 		51792FA52C900EEB004B6E71 /* kindlingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FA42C900EEB004B6E71 /* kindlingTests.swift */; };
 		51792FAF2C900EEB004B6E71 /* kindlingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FAE2C900EEB004B6E71 /* kindlingUITests.swift */; };
 		51792FB12C900EEB004B6E71 /* kindlingUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FB02C900EEB004B6E71 /* kindlingUITestsLaunchTests.swift */; };
-		51792FC12C91250F004B6E71 /* Irc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC02C91250F004B6E71 /* Irc.swift */; };
-		51792FC32C93CB90004B6E71 /* Dcc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC22C93CB90004B6E71 /* Dcc.swift */; };
+		51792FC12C91250F004B6E71 /* IRCConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC02C91250F004B6E71 /* IRCConnection.swift */; };
+		51792FC32C93CB90004B6E71 /* DCCFileTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC22C93CB90004B6E71 /* DCCFileTransfer.swift */; };
 		51792FC52C93CF90004B6E71 /* EBookDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC42C93CF90004B6E71 /* EBookDownloader.swift */; };
 		51792FCD2C962803004B6E71 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FCC2C962803004B6E71 /* main.swift */; };
-		51792FD12C96283F004B6E71 /* Irc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC02C91250F004B6E71 /* Irc.swift */; };
-		51792FD22C962844004B6E71 /* Dcc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC22C93CB90004B6E71 /* Dcc.swift */; };
+		51792FD12C96283F004B6E71 /* IRCConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC02C91250F004B6E71 /* IRCConnection.swift */; };
+		51792FD22C962844004B6E71 /* DCCFileTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC22C93CB90004B6E71 /* DCCFileTransfer.swift */; };
 		51792FD32C962848004B6E71 /* EBookDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC42C93CF90004B6E71 /* EBookDownloader.swift */; };
+		51929E1F2C9A531400D77429 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 51929E1E2C9A531400D77429 /* ZIPFoundation */; };
+		51929E212C9A532700D77429 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 51929E202C9A532700D77429 /* ZIPFoundation */; };
+		51929E232C9A5F3A00D77429 /* SearchResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51929E222C9A5F3A00D77429 /* SearchResult.swift */; };
+		51929E242C9A5F3A00D77429 /* SearchResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51929E222C9A5F3A00D77429 /* SearchResult.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,11 +78,12 @@
 		51792FAA2C900EEB004B6E71 /* kindlingUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = kindlingUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		51792FAE2C900EEB004B6E71 /* kindlingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = kindlingUITests.swift; sourceTree = "<group>"; };
 		51792FB02C900EEB004B6E71 /* kindlingUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = kindlingUITestsLaunchTests.swift; sourceTree = "<group>"; };
-		51792FC02C91250F004B6E71 /* Irc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Irc.swift; sourceTree = "<group>"; };
-		51792FC22C93CB90004B6E71 /* Dcc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dcc.swift; sourceTree = "<group>"; };
+		51792FC02C91250F004B6E71 /* IRCConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IRCConnection.swift; sourceTree = "<group>"; };
+		51792FC22C93CB90004B6E71 /* DCCFileTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DCCFileTransfer.swift; sourceTree = "<group>"; };
 		51792FC42C93CF90004B6E71 /* EBookDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EBookDownloader.swift; sourceTree = "<group>"; };
 		51792FCA2C962803004B6E71 /* ircli */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ircli; sourceTree = BUILT_PRODUCTS_DIR; };
 		51792FCC2C962803004B6E71 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		51929E222C9A5F3A00D77429 /* SearchResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchResult.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -86,6 +91,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				51929E1F2C9A531400D77429 /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -107,6 +113,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				51929E212C9A532700D77429 /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -143,9 +150,10 @@
 				51792F962C900EEB004B6E71 /* Assets.xcassets */,
 				51792F982C900EEB004B6E71 /* kindling.entitlements */,
 				51792F992C900EEB004B6E71 /* Preview Content */,
-				51792FC02C91250F004B6E71 /* Irc.swift */,
-				51792FC22C93CB90004B6E71 /* Dcc.swift */,
+				51792FC02C91250F004B6E71 /* IRCConnection.swift */,
+				51792FC22C93CB90004B6E71 /* DCCFileTransfer.swift */,
 				51792FC42C93CF90004B6E71 /* EBookDownloader.swift */,
+				51929E222C9A5F3A00D77429 /* SearchResult.swift */,
 			);
 			path = kindling;
 			sourceTree = "<group>";
@@ -200,6 +208,9 @@
 			dependencies = (
 			);
 			name = kindling;
+			packageProductDependencies = (
+				51929E1E2C9A531400D77429 /* ZIPFoundation */,
+			);
 			productName = kindling;
 			productReference = 51792F8D2C900EEA004B6E71 /* kindling.app */;
 			productType = "com.apple.product-type.application";
@@ -253,6 +264,9 @@
 			dependencies = (
 			);
 			name = ircli;
+			packageProductDependencies = (
+				51929E202C9A532700D77429 /* ZIPFoundation */,
+			);
 			productName = ircli;
 			productReference = 51792FCA2C962803004B6E71 /* ircli */;
 			productType = "com.apple.product-type.tool";
@@ -294,6 +308,7 @@
 			mainGroup = 51792F842C900EEA004B6E71;
 			packageReferences = (
 				51792FBE2C902162004B6E71 /* XCRemoteSwiftPackageReference "swift-format" */,
+				51929E1D2C9A531400D77429 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 			);
 			productRefGroup = 51792F8E2C900EEA004B6E71 /* Products */;
 			projectDirPath = "";
@@ -340,8 +355,9 @@
 			files = (
 				51792F932C900EEA004B6E71 /* ContentView.swift in Sources */,
 				51792FC52C93CF90004B6E71 /* EBookDownloader.swift in Sources */,
-				51792FC32C93CB90004B6E71 /* Dcc.swift in Sources */,
-				51792FC12C91250F004B6E71 /* Irc.swift in Sources */,
+				51792FC32C93CB90004B6E71 /* DCCFileTransfer.swift in Sources */,
+				51792FC12C91250F004B6E71 /* IRCConnection.swift in Sources */,
+				51929E232C9A5F3A00D77429 /* SearchResult.swift in Sources */,
 				51792F912C900EEA004B6E71 /* kindlingApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -367,9 +383,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				51792FD12C96283F004B6E71 /* Irc.swift in Sources */,
+				51792FD12C96283F004B6E71 /* IRCConnection.swift in Sources */,
 				51792FCD2C962803004B6E71 /* main.swift in Sources */,
-				51792FD22C962844004B6E71 /* Dcc.swift in Sources */,
+				51929E242C9A5F3A00D77429 /* SearchResult.swift in Sources */,
+				51792FD22C962844004B6E71 /* DCCFileTransfer.swift in Sources */,
 				51792FD32C962848004B6E71 /* EBookDownloader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -757,7 +774,28 @@
 				minimumVersion = 510.1.0;
 			};
 		};
+		51929E1D2C9A531400D77429 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.19;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		51929E1E2C9A531400D77429 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 51929E1D2C9A531400D77429 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
+		};
+		51929E202C9A532700D77429 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 51929E1D2C9A531400D77429 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 51792F852C900EEA004B6E71 /* Project object */;
 }

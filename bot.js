@@ -4,7 +4,7 @@ import net from "net";
 import { createReadStream, statSync } from "node:fs";
 import { basename } from "path";
 import { IRC_NICK } from "./env.js";
-
+let port = 55556;
 export const client = await new Promise((resolve, reject) => {
 	const client = new Client("localhost", "testbot", {
 		port: 6667,
@@ -53,7 +53,7 @@ function sendFile(to, filename, length, callback) {
 		client.ctcp(
 			to,
 			"privmsg",
-			`DCC SEND ${filename} localhost ${server.address().port} ${length}`,
+			`DCC SEND ${filename} 2130706433 ${server.address().port} ${length}`,
 		);
 		client.once("dcc-resume", onResume);
 	});
@@ -66,7 +66,7 @@ function sendFile(to, filename, length, callback) {
 	});
 
 	// go
-	server.listen(55556, "localhost");
+	server.listen(port++, "localhost");
 }
 
 function sendFileHighLevel(nick, filepath) {
