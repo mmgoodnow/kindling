@@ -88,7 +88,7 @@ client.on("message", (nick, channel, message) => {
 			nick,
 			"***REMOVED***",
 		);
-	} else if (message.startsWith("!Oatmeal")) {
+	} else if (message.startsWith("!")) {
 		sendFileHighLevel(
 			nick,
 			"***REMOVED***",

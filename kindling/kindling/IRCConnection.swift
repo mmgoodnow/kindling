@@ -2,6 +2,11 @@ import Combine
 import Foundation
 import Network
 
+enum IRCError: Error {
+	case timeout
+	case dataNotDecodable
+}
+
 class IRCConnection {
 	let connection: NWConnection
 	let nickname: String
@@ -37,7 +42,6 @@ class IRCConnection {
 			}
 			connection.start(queue: .global())
 		}
-		logReceivedMessages()
 		handlePings()
 		handleCTCPVersionRequests()
 		try await capNegotiate()
@@ -45,29 +49,45 @@ class IRCConnection {
 
 	private func publishReceivedMessages() {
 		Task {
+			var buffer = ""
+
 			while true {
-				if let message = await receiveMessage() {
-					messageSubject.send(message)
+				if let chunk = try await receiveMessage() {
+					buffer.append(chunk)
+					var messages = buffer.components(separatedBy: "\r\n")
+					if buffer.hasSuffix("\r\n") {
+						buffer = ""
+					} else {
+						buffer = messages.popLast() ?? ""
+					}
+
+					// Emit all the complete messages
+					for message in messages where !message.isEmpty {
+						messageSubject.send(message)
+					}
+				} else {
+					print(
+						"Stopping message processing as the connection is closed or an error occurred."
+					)
+					break
 				}
 			}
 		}
 	}
 
 	// will suspend waiting for new messages to come in
-	func receiveMessage() async -> String? {
-		return await withCheckedContinuation { continuation in
+	func receiveMessage() async throws -> String? {
+		return try await withCheckedThrowingContinuation { continuation in
 			connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) {
 				data, _, isComplete, error in
 				if let data = data, !data.isEmpty {
 					if let message = String(data: data, encoding: .utf8) {
-						continuation.resume(
-							returning: message.trimmingCharacters(
-								in: .newlines))
+						continuation.resume(returning: message)
 					} else {
-						continuation.resume(returning: nil)
+						continuation.resume(throwing:IRCError.dataNotDecodable)
 					}
-				} else if error != nil {
-					continuation.resume(returning: nil)
+				} else if let error = error {
+					continuation.resume(throwing: error)
 				} else if isComplete {
 					continuation.resume(returning: nil)
 				}
@@ -76,12 +96,10 @@ class IRCConnection {
 	}
 
 	func capNegotiate() async throws {
-		// Start CAP negotiation by asking the server what capabilities it supports
-		try await send(raw: "CAP LS 302")
 		// Authenticate (send NICK and USER command to IRC server)
 		try await send(raw: "NICK \(nickname)")
 		try await send(raw: "USER \(username) 0 * :\(username)")
-		try await send(raw: "CAP END")
+		try await waitForRegistration()
 	}
 
 	private func send(raw message: String) async throws {
@@ -112,9 +130,27 @@ class IRCConnection {
 		try await send(raw: joinMessage)
 	}
 
+	func waitForRegistration() async throws {
+		let stream = messages()
+			.filter { message in
+				let components = message.split(
+					separator: " ", omittingEmptySubsequences: true)
+				return components.count >= 2 && components[1] == "001"
+			}
+			.timeout(.seconds(10), scheduler: DispatchQueue.main)
+		for await _ in stream.values {
+			return
+		}
+		throw IRCError.timeout
+	}
+
 	func handlePings() {
 		messages()
-			.filter { $0.contains("PING") }
+			.filter { message in
+				let components = message.split(
+					separator: " ", omittingEmptySubsequences: true)
+				return components.count >= 2 && components[1] == "PING"
+			}
 			.sink { message in
 				Task {
 					let pongMessage = message.replacingOccurrences(
@@ -152,7 +188,7 @@ class IRCConnection {
 
 	// Respond to a CTCP VERSION request
 	func respondToCTCPVersionRequest(from sender: String) async throws {
-		let versionResponse = "MySwiftIRCClient 1.0"
+		let versionResponse = "Swindling 2.0"
 		let ctcpVersionResponse = "\u{01}VERSION \(versionResponse)\u{01}"
 		try await send(raw: "NOTICE \(sender) :\(ctcpVersionResponse)")
 	}
@@ -174,8 +210,8 @@ class IRCConnection {
 			.sink { print("recv: \($0)") }
 			.store(in: &cancellables)
 	}
-	
-	public func messages() ->AnyPublisher<String, Never> {
+
+	public func messages() -> AnyPublisher<String, Never> {
 		return messageSubject.eraseToAnyPublisher()
 	}
 }

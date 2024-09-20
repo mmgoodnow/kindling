@@ -15,29 +15,33 @@ class DCCFileTransfer {
 
 	convenience init?(dccSendMessage: String) {
 		// Example format: "nick!user@host DCC SEND <filename> <ip> <port> <filesize>"
-		let components = dccSendMessage.split(separator: "DCC SEND")[1].trimmingCharacters(
+		let dccSendParameters = dccSendMessage.split(separator: "DCC SEND")[1].trimmingCharacters(
 			in: .whitespacesAndNewlines
-		).trimmingCharacters(in: .init(charactersIn: "\u{1}")).split(
-			separator: " ")
+		).trimmingCharacters(in: CharacterSet(charactersIn: "\u{1}"));
+		
+		let regex = /^"?(?<filename>.+?)"? (?<ip>\d+) (?<port>\d+) (?<fileSize>\d+)$/
 
-		// Ensure we have enough parts (DCC, SEND, filename, ip, port, filesize)
-		guard components.count == 4,
-			let ip = UInt32(components[1]),  // IP address as UInt32
-			let port = UInt16(components[2]),  // Port as UInt16
-			let fileSize = UInt64(components[3])  // File size as UInt64
-		else {
+		guard let match = dccSendParameters.wholeMatch(of: regex) else {
 			print("Invalid DCC SEND message format")
 			return nil
 		}
-
+		
+		let filename = String(match.output.filename)
+		guard let ip = UInt32(match.output.ip),
+			  let port = UInt16(match.output.port),
+			  let fileSize = UInt64(match.output.fileSize) else {
+			print("Invalid IP, port, or file size format")
+			return nil
+		}
+		
 		let ipString = DCCFileTransfer.convertDCCIP(ip)
-
+		
 		let connection = NWConnection(
 			host: NWEndpoint.Host(ipString), port: NWEndpoint.Port(rawValue: port)!,
-			using: .tcp)
-
-		self.init(
-			connection: connection, filename: String(components[0]), fileSize: fileSize)
+			using: .tcp
+		)
+		
+		self.init(connection: connection, filename: filename, fileSize: fileSize)
 	}
 
 	private static func convertDCCIP(_ ip: UInt32) -> String {
@@ -50,54 +54,42 @@ class DCCFileTransfer {
 		return ipBytes.map { String($0) }.joined(separator: ".")
 	}
 
+	// Method to download the file by accumulating received chunks
 	func download() async throws -> Data {
-		return try await withCheckedThrowingContinuation { continuation in
-			self.connection.stateUpdateHandler = { newState in
-				switch newState {
-				case .ready:
-					self.receiveFile { result in
-						continuation.resume(with: result)
-					}
-				case .failed(let error):
-					print("Failed to connect: \(error)")
-					continuation.resume(throwing: error)
-				default:
-					break
-				}
+		var totalBytesReceived: UInt64 = 0
+		
+		connection.start(queue: .global())
+		
+		while totalBytesReceived < fileSize {
+			let (data, isComplete) = try await receiveChunk()
+			receivedData.append(data)
+			totalBytesReceived += UInt64(data.count)
+			let acknowledgment = withUnsafeBytes(of: UInt32(totalBytesReceived).bigEndian) { Data($0) }
+			self.connection.send(content: acknowledgment, completion: .contentProcessed({ _ in }))
+			if isComplete {
+				print("Connection completed before receiving the full file.")
+				break
 			}
-
-			self.connection.start(queue: .global())
 		}
+		
+		return receivedData
 	}
-
-	// Private helper function to receive the file content in memory
-	private func receiveFile(
-		completion: @escaping (Result<Data, Error>) -> Void
-	) {
-		var receivedBytes: UInt64 = 0
-
-		connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) {
-			data, _, isComplete, error in
-			if let data = data {
-				receivedBytes += UInt64(data.count)
-				self.receivedData.append(data)
-
-				let acknowledgment = withUnsafeBytes(of: UInt32(receivedBytes).bigEndian) { Data($0) }
-				self.connection.send(content: acknowledgment, completion: .contentProcessed({ _ in }))
-
-				if receivedBytes >= self.fileSize {
-					print("File download complete!")
-					self.connection.cancel()
-					completion(.success(self.receivedData))  // Return the in-memory file data
-				} else {
-					// Continue receiving more data until the file is fully downloaded
-					self.receiveFile(completion: completion)
+	
+	// Method to receive data chunks
+	private func receiveChunk() async throws -> (Data, Bool) {
+		return try await withCheckedThrowingContinuation { continuation in
+			connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { data, _, isComplete, error in
+				if let error = error {
+					continuation.resume(throwing: error)
+					return
 				}
-			}
-
-			if let error = error {
-				print("Error receiving file: \(error)")
-				completion(.failure(error))
+				
+				guard let data = data else {
+					continuation.resume(throwing: NSError(domain: "No data received", code: -1))
+					return
+				}
+				
+				continuation.resume(returning: (data, isComplete))
 			}
 		}
 	}

@@ -54,18 +54,23 @@ class EBookDownloader {
 		guard let dccSendMessage = await receiveDccSendMessage() else {
 			throw EBookError.failedToReceiveDccSendMessage
 		}
+		print(dccSendMessage)
 
 		guard let fileTransfer = DCCFileTransfer(dccSendMessage: dccSendMessage) else {
 			throw EBookError.invalidDccSendMessage
 		}
+		print(fileTransfer.filename)
 
 		guard let downloadedFileContents = try? await fileTransfer.download() else {
 			throw EBookError.failedToDownloadFile
 		}
+		print("downloaded file contents")
 
 		guard let extractedFiles = try? unzipData(downloadedFileContents) else {
 			throw EBookError.failedToUnzipFile
 		}
+		
+		print("extracted files")
 
 		guard let (_, fileData) = extractedFiles.first else {
 			throw EBookError.noExtractedFilesFound
@@ -74,6 +79,8 @@ class EBookDownloader {
 		guard let fileContents = String(data: fileData, encoding: .utf8) else {
 			throw EBookError.invalidFileContentsEncoding
 		}
+		
+		print("unzipped")
 
 		return
 			fileContents
@@ -90,15 +97,22 @@ class EBookDownloader {
 		guard let dccSendMessage = await receiveDccSendMessage() else {
 			throw EBookError.failedToReceiveDccSendMessage
 		}
-
+		
+		print("received dcc send message")
+		
 		// Initialize a DCCFileTransfer based on the DCC SEND message
 		guard let fileTransfer = DCCFileTransfer(dccSendMessage: dccSendMessage) else {
 			throw EBookError.invalidDccSendMessage
 		}
+		
+		print("created file transfer")
 
 		guard let downloadedData = try? await fileTransfer.download() else {
 			throw EBookError.failedToDownloadFile
 		}
+		
+		print("downloaded \(fileTransfer.filename)")
+			  
 		return (fileTransfer.filename, downloadedData)
 	}
 
@@ -106,7 +120,12 @@ class EBookDownloader {
 		let dccSendMessagesStream =
 			ircConnection
 			.messages()
-			.filter { $0.contains("DCC SEND") }
+			.filter { message in
+				print(message)
+				let ret = message.contains("DCC SEND")
+				print(ret)
+				return ret
+			}
 			.timeout(.seconds(10), scheduler: DispatchQueue.main)
 		for await message in dccSendMessagesStream.values {
 			return message
