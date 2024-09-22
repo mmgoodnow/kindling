@@ -7,39 +7,26 @@
 
 import SwiftData
 import SwiftUI
+import Network
 
 struct ContentView: View {
-  @Environment(\.modelContext) private var modelContext
-  @State private var inputText: String = "" // A state variable to hold the text input
-  
-  var body: some View {
-    VStack {
-      HStack {
-        Button(action: { }) {
-          Text("Connect to Server")
-            .padding()
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(10)
-        }
-        Button(action: {}) {
-          Text("Disconnect")
-            .padding()
-            .background(Color.red)
-            .foregroundColor(.white)
-            .cornerRadius(10)
-        }
-      }
-      TextField("Enter your text here", text: $inputText)
-        .padding()
-        .textFieldStyle(RoundedBorderTextFieldStyle())
-        .onSubmit {
-        }
-    }
-    .padding()
-  }
+	@Environment(\.modelContext) private var modelContext
+	var downloader = EBookDownloader(
+		ircConnection: IRCConnection(
+			connection: NWConnection(
+				host: "irc.irchighway.net", port: NWEndpoint.Port(6667), using: .tcp
+			),
+			nickname: "thankyoukindly",
+			username: "thankyoukindly"
+		))
+
+	var body: some View {
+		NavigationStack {
+			MainView(downloader: downloader)
+		}
+	}
 }
 
 #Preview {
-  ContentView()
+	ContentView()
 }

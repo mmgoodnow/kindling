@@ -214,4 +214,8 @@ class IRCConnection {
 	public func messages() -> AnyPublisher<String, Never> {
 		return messageSubject.eraseToAnyPublisher()
 	}
+	
+	deinit {
+		connection.cancel()
+	}
 }
