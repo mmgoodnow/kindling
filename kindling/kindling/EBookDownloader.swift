@@ -46,16 +46,25 @@ class EBookDownloader {
 		try await ircConnection.join(channel: ebooksChannel)
 	}
 
-	func searchForEBook(query: String) async throws -> [SearchResult] {
+	func searchForEBook(
+		query: String, onProgress: (_ status: String, _ current: Int, _ total: Int) -> Void
+	)
+		async throws -> [SearchResult]
+	{
+		let total = 6
+
 		let searchMessage = "@Search \(query)"
+		onProgress("Sending search query", 1, total)
 
 		try await ircConnection.send(message: searchMessage, to: ebooksChannel)
 
+		onProgress("Waiting to receive search results", 2, total)
 		guard let dccSendMessage = await receiveDccSendMessage() else {
 			throw EBookError.failedToReceiveDccSendMessage
 		}
 		print(dccSendMessage)
 
+		onProgress("Downloading search results", 3, total)
 		guard let fileTransfer = DCCFileTransfer(dccSendMessage: dccSendMessage) else {
 			throw EBookError.invalidDccSendMessage
 		}
@@ -64,29 +73,30 @@ class EBookDownloader {
 		guard let downloadedFileContents = try? await fileTransfer.download() else {
 			throw EBookError.failedToDownloadFile
 		}
-		print("downloaded file contents")
 
+		print("downloaded file contents")
+		onProgress("Unzipping search results", 4, total)
 		guard let extractedFiles = try? unzipData(downloadedFileContents) else {
 			throw EBookError.failedToUnzipFile
 		}
-
 		print("extracted files")
-
+		
+		onProgress("Extracting search results", 5, total)
 		guard let (_, fileData) = extractedFiles.first else {
 			throw EBookError.noExtractedFilesFound
 		}
-
 		guard let fileContents = String(data: fileData, encoding: .utf8) else {
 			throw EBookError.invalidFileContentsEncoding
 		}
-
 		print("unzipped")
-
-		return
+		let results =
 			fileContents
 			.components(separatedBy: .newlines)
 			.filter { $0.hasPrefix("!") }
 			.compactMap { SearchResult(from: $0) }
+		onProgress("Done", total, total)
+		return results
+
 	}
 
 	func download(searchResult: SearchResult) async throws -> (filename: String, data: Data) {
@@ -121,7 +131,7 @@ class EBookDownloader {
 			ircConnection
 			.messages()
 			.filter { return $0.contains("DCC SEND") }
-			.timeout(.seconds(10), scheduler: DispatchQueue.main)
+			.timeout(.seconds(30), scheduler: DispatchQueue.main)
 		for await message in dccSendMessagesStream.values {
 			return message
 		}

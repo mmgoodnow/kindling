@@ -66,7 +66,7 @@ function sendFile(to, filename, length, callback) {
 	});
 
 	// go
-	server.listen(port++, "localhost");
+	server.listen(port++, "0.0.0.0");
 }
 
 function sendFileHighLevel(nick, filepath) {
@@ -81,8 +81,9 @@ function sendFileHighLevel(nick, filepath) {
 	});
 }
 
-client.on("message", (nick, channel, message) => {
+client.on("message", async (nick, channel, message) => {
 	client.say(channel, `echo ${message}`);
+	await new Promise((r) => setTimeout(r, 5000));
 	if (message.startsWith("@Search")) {
 		sendFileHighLevel(
 			nick,

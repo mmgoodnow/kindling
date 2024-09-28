@@ -26,7 +26,8 @@ class IRCConnection {
 
 	public func start() async throws {
 		// Wait for the connection to become ready
-		self.publishReceivedMessages()
+		publishReceivedMessages()
+		logReceivedMessages()
 		await withCheckedContinuation { continuation in
 			self.connection.stateUpdateHandler = { newState in
 				switch newState {
@@ -35,7 +36,6 @@ class IRCConnection {
 					continuation.resume()
 				case .failed(let error):
 					print("Connection failed with error: \(error)")
-					continuation.resume()  // Resume continuation even in case of failure
 				default:
 					break
 				}
@@ -87,8 +87,10 @@ class IRCConnection {
 						continuation.resume(throwing:IRCError.dataNotDecodable)
 					}
 				} else if let error = error {
+					print("Receive error: \(error)")
 					continuation.resume(throwing: error)
 				} else if isComplete {
+					print("Connection is complete")
 					continuation.resume(returning: nil)
 				}
 			}

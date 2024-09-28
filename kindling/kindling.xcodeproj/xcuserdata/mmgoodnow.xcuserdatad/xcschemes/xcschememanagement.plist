@@ -28,17 +28,32 @@
 		<key>ircli.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>1</integer>
+			<integer>0</integer>
 		</dict>
 		<key>kindling.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
+			<integer>3</integer>
+		</dict>
+		<key>kindlingTests.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
 			<integer>1</integer>
+		</dict>
+		<key>kindlingUITests.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>2</integer>
 		</dict>
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
 		<key>51792F8C2C900EEA004B6E71</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>51792F9F2C900EEB004B6E71</key>
 		<dict>
 			<key>primary</key>
 			<true/>

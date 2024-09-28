@@ -5,16 +5,18 @@
 //  Created by Michael Goodnow on 9/9/24.
 //
 
+import Network
 import SwiftData
 import SwiftUI
-import Network
 
 struct ContentView: View {
 	@Environment(\.modelContext) private var modelContext
 	var downloader = EBookDownloader(
 		ircConnection: IRCConnection(
 			connection: NWConnection(
-				host: "irc.irchighway.net", port: NWEndpoint.Port(6667), using: .tcp
+				host: "127.0.0.1",
+				port: NWEndpoint.Port(6667),
+				using: .tcp
 			),
 			nickname: "thankyoukindly",
 			username: "thankyoukindly"
