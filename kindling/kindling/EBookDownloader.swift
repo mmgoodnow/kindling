@@ -34,15 +34,18 @@ enum EBookError: Error {
 
 class EBookDownloader {
 	let ircConnection: IRCConnection
-	let ebooksChannel = "#ebooks"
+	let ebooksChannel: String
 	private var cancellables = Set<AnyCancellable>()
 
-	init(ircConnection: IRCConnection) {
+	init(ircConnection: IRCConnection, ebooksChannel: String) {
 		self.ircConnection = ircConnection
+		self.ebooksChannel = ebooksChannel
 	}
 
 	public func start() async throws {
+		print("Starting")
 		try await ircConnection.start()
+		print("Joining")
 		try await ircConnection.join(channel: ebooksChannel)
 	}
 
@@ -51,7 +54,7 @@ class EBookDownloader {
 	)
 		async throws -> [SearchResult]
 	{
-		let total = 6
+		let total = 7
 
 		let searchMessage = "@Search \(query)"
 		onProgress("Sending search query", 1, total)
@@ -64,24 +67,25 @@ class EBookDownloader {
 		}
 		print(dccSendMessage)
 
-		onProgress("Downloading search results", 3, total)
+		onProgress("Parsing DCC SEND message", 3, total)
 		guard let fileTransfer = DCCFileTransfer(dccSendMessage: dccSendMessage) else {
 			throw EBookError.invalidDccSendMessage
 		}
 		print(fileTransfer.filename)
 
+		onProgress("Downloading search results", 4, total)
 		guard let downloadedFileContents = try? await fileTransfer.download() else {
 			throw EBookError.failedToDownloadFile
 		}
 
 		print("downloaded file contents")
-		onProgress("Unzipping search results", 4, total)
+		onProgress("Unzipping search results", 5, total)
 		guard let extractedFiles = try? unzipData(downloadedFileContents) else {
 			throw EBookError.failedToUnzipFile
 		}
 		print("extracted files")
 		
-		onProgress("Extracting search results", 5, total)
+		onProgress("Extracting search results", 6, total)
 		guard let (_, fileData) = extractedFiles.first else {
 			throw EBookError.noExtractedFilesFound
 		}

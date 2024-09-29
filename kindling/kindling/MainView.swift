@@ -1,7 +1,14 @@
 import SwiftUI
 
+enum RegistrationStatus {
+	case failed
+	case ready
+	case loading
+}
+
 struct MainView: View {
 	@State private var query: String = ""
+	@State private var registrationStatus: RegistrationStatus = .loading
 	@State private var searchResults: [SearchResult] = []
 	@State private var isDownloading: Bool = false
 	@State private var downloadedFilename: String?
@@ -10,7 +17,21 @@ struct MainView: View {
 	@State private var isShowingMailComposer = false
 	@State private var progress: Double? = nil
 	@State private var mostRecentProgressUpdate: String? = nil
+	@AppStorage("kindleEmailAddress") private var kindleEmailAddress =
+		"wengvince_z6xtde@kindle.com"
+
 	var downloader: EBookDownloader
+
+	var registrationStatusDotColor: Color {
+		switch registrationStatus {
+		case .failed:
+			Color.red
+		case .ready:
+			Color.green
+		case .loading:
+			Color.yellow
+		}
+	}
 
 	var body: some View {
 		NavigationStack {
@@ -27,12 +48,6 @@ struct MainView: View {
 					searchResults: searchResults,
 					onDownload: download
 				).backgroundStyle(.background)
-				// Download status
-				if let filename = downloadedFilename {
-					Text("Downloaded: \(filename)")
-						.font(.footnote)
-						.foregroundColor(.green)
-				}
 
 				if let error = errorMessage {
 					Text("Error: \(error)")
@@ -42,18 +57,23 @@ struct MainView: View {
 			}.onAppear {
 				Task {
 					do {
-						// Call the start method to register with the IRC server
+						registrationStatus = .loading
 						try await downloader.start()
-						print("started")
+						registrationStatus = .ready
 					} catch {
-						errorMessage =
-							"Failed to start: \(error.localizedDescription)"
+						registrationStatus = .failed
 					}
 				}
 			}
 			.navigationTitle("Kindling")
 			.toolbar {
-				ToolbarItem(placement: .automatic) {
+				ToolbarItem {
+					Circle()
+						.fill(registrationStatusDotColor)
+						.frame(width: 10, height: 10)
+
+				}
+				ToolbarItem {
 					NavigationLink(destination: SettingsView()) {
 						Image(systemName: "gear")
 					}
@@ -65,10 +85,10 @@ struct MainView: View {
 						let filename = downloadedFilename
 					{
 						MailComposerView(
-							subject: "Downloaded eBook",
+							subject: filename,
 							messageBody:
-								"Here is the eBook you requested.",
-							recipient: "recipient@example.com",
+								"Make sure your email is an approved sender!",
+							recipient: kindleEmailAddress,
 							attachmentData: data,
 							attachmentMimeType: "application/epub+zip",
 							attachmentFileName: filename

@@ -54,6 +54,10 @@ struct SearchResultsView: View {
 				}
 			}
 
+		}.overlay {
+			if searchResults.isEmpty {
+				ContentUnavailableView.search
+			}
 		}
 	}
 }

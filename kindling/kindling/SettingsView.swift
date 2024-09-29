@@ -11,13 +11,14 @@ struct SettingsView: View {
 	var body: some View {
 		Form {
 			Section("IRC") {
-				TextField("Nickname", text: $ircNick)
 				TextField("Server", text: $ircServer)
-				TextField("Channel", text: $ircChannel)
 				TextField(
 					"Port", value: $ircPort,
 					formatter: portNumberFormatter
 				)
+				TextField("Channel", text: $ircChannel)
+				TextField("Nickname", text: $ircNick)
+
 			}
 
 			Section("Email") {
@@ -37,5 +38,7 @@ struct SettingsView: View {
 }
 
 #Preview {
-	SettingsView()
+	VStack {
+		SettingsView()
+	}
 }

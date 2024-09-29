@@ -44,7 +44,7 @@ class IRCConnection {
 		}
 		handlePings()
 		handleCTCPVersionRequests()
-		try await capNegotiate()
+		try await register()
 	}
 
 	private func publishReceivedMessages() {
@@ -84,7 +84,9 @@ class IRCConnection {
 					if let message = String(data: data, encoding: .utf8) {
 						continuation.resume(returning: message)
 					} else {
-						continuation.resume(throwing:IRCError.dataNotDecodable)
+						continuation.resume(
+							throwing: IRCError.dataNotDecodable
+						)
 					}
 				} else if let error = error {
 					print("Receive error: \(error)")
@@ -95,13 +97,6 @@ class IRCConnection {
 				}
 			}
 		}
-	}
-
-	func capNegotiate() async throws {
-		// Authenticate (send NICK and USER command to IRC server)
-		try await send(raw: "NICK \(nickname)")
-		try await send(raw: "USER \(username) 0 * :\(username)")
-		try await waitForRegistration()
 	}
 
 	private func send(raw message: String) async throws {
@@ -132,18 +127,32 @@ class IRCConnection {
 		try await send(raw: joinMessage)
 	}
 
-	func waitForRegistration() async throws {
-		let stream = messages()
+	func register() async throws {
+		let isRegistered = CurrentValueSubject<Bool, Never>(false)
+		let cancellable = messages()
 			.filter { message in
 				let components = message.split(
 					separator: " ", omittingEmptySubsequences: true)
 				return components.count >= 2 && components[1] == "001"
 			}
+			.sink { _ in
+				isRegistered.send(true)
+			}
+
+		try await self.send(raw: "NICK \(self.nickname)")
+		try await self.send(raw: "USER \(self.username) 0 * :\(self.username)")
+
+		let timeoutPublisher =
+			isRegistered
+			.first { $0 }
 			.timeout(.seconds(10), scheduler: DispatchQueue.main)
-		for await _ in stream.values {
-			return
+
+		let isSuccessful = await timeoutPublisher.values.first { $0 } ?? false
+
+		cancellable.cancel()
+		guard isSuccessful else {
+			throw IRCError.timeout
 		}
-		throw IRCError.timeout
 	}
 
 	func handlePings() {
@@ -216,7 +225,7 @@ class IRCConnection {
 	public func messages() -> AnyPublisher<String, Never> {
 		return messageSubject.eraseToAnyPublisher()
 	}
-	
+
 	deinit {
 		connection.cancel()
 	}
