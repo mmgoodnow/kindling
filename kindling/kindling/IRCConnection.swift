@@ -12,7 +12,6 @@ class IRCConnection {
 	let nickname: String
 	let username: String
 
-	// To manage Combine subscriptions
 	private var cancellables = Set<AnyCancellable>()
 	private let messageSubject = PassthroughSubject<String, Never>()
 
@@ -105,13 +104,15 @@ class IRCConnection {
 		print("send: \(message)")
 		try await withCheckedThrowingContinuation {
 			(continuation: CheckedContinuation<Void, Error>) in
+			print("sending…")
 			connection.send(
 				content: data,
 				completion: .contentProcessed { error in
+					print("sent")
 					if let error = error {
-						continuation.resume(throwing: error)  // Resume with error
+						continuation.resume(throwing: error)
 					} else {
-						continuation.resume(returning: ())  // Resume with success
+						continuation.resume(returning: ())
 					}
 				})
 		}
@@ -226,6 +227,11 @@ class IRCConnection {
 		return messageSubject.eraseToAnyPublisher()
 	}
 
+	func cleanup() async throws {
+		try await send(raw: "QUIT")
+		connection.cancel()
+	}
+	
 	deinit {
 		connection.cancel()
 	}

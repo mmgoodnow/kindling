@@ -32,14 +32,16 @@ enum EBookError: Error {
 	case invalidFileContentsEncoding
 }
 
-class EBookDownloader {
+actor EBookDownloader {
 	let ircConnection: IRCConnection
 	let ebooksChannel: String
+	let reporter: ProgressReporter
 	private var cancellables = Set<AnyCancellable>()
 
-	init(ircConnection: IRCConnection, ebooksChannel: String) {
+	init(ircConnection: IRCConnection, ebooksChannel: String, reporter: ProgressReporter) {
 		self.ircConnection = ircConnection
 		self.ebooksChannel = ebooksChannel
+		self.reporter = reporter
 	}
 
 	public func start() async throws {
@@ -49,61 +51,69 @@ class EBookDownloader {
 		try await ircConnection.join(channel: ebooksChannel)
 	}
 
-	func searchForEBook(
-		query: String, onProgress: (_ status: String, _ current: Int, _ total: Int) -> Void
-	)
+	public func search(query: String)
 		async throws -> [SearchResult]
 	{
-		let total = 7
+		reporter.total = 8
+		let searchBot = "SearchOok"
+		let searchMessage = "@\(searchBot) \(query)"
+		reporter.tick("Sending search query")
+		// subscribe to messages received earlier than sending
+		let cancellable = ircConnection.messages().filter { msg in
 
-		let searchMessage = "@Search \(query)"
-		onProgress("Sending search query", 1, total)
-
+			let a = msg.contains("PRIVMSG") || msg.contains("NOTICE")
+			let b = msg.contains(searchBot)
+			let c = msg.contains("accepted")
+			print(a, b, c, msg)
+			return a && b && c
+		}.sink { _ in
+			self.reporter.tick("Waiting to receive search results")
+		}
 		try await ircConnection.send(message: searchMessage, to: ebooksChannel)
 
-		onProgress("Waiting to receive search results", 2, total)
+		reporter.tick("Waiting for search to be accepted")
+
 		guard let dccSendMessage = await receiveDccSendMessage() else {
 			throw EBookError.failedToReceiveDccSendMessage
 		}
-		print(dccSendMessage)
 
-		onProgress("Parsing DCC SEND message", 3, total)
+		cancellable.cancel()
+
+		reporter.tick("Parsing DCC SEND message")
 		guard let fileTransfer = DCCFileTransfer(dccSendMessage: dccSendMessage) else {
 			throw EBookError.invalidDccSendMessage
 		}
-		print(fileTransfer.filename)
 
-		onProgress("Downloading search results", 4, total)
+		reporter.tick("Downloading search results")
 		guard let downloadedFileContents = try? await fileTransfer.download() else {
 			throw EBookError.failedToDownloadFile
 		}
 
-		print("downloaded file contents")
-		onProgress("Unzipping search results", 5, total)
+		reporter.tick("Unzipping search results")
 		guard let extractedFiles = try? unzipData(downloadedFileContents) else {
 			throw EBookError.failedToUnzipFile
 		}
-		print("extracted files")
-		
-		onProgress("Extracting search results", 6, total)
+
+		reporter.tick("Extracting search results")
 		guard let (_, fileData) = extractedFiles.first else {
 			throw EBookError.noExtractedFilesFound
 		}
 		guard let fileContents = String(data: fileData, encoding: .utf8) else {
 			throw EBookError.invalidFileContentsEncoding
 		}
-		print("unzipped")
 		let results =
 			fileContents
 			.components(separatedBy: .newlines)
 			.filter { $0.hasPrefix("!") }
 			.compactMap { SearchResult(from: $0) }
-		onProgress("Done", total, total)
+		reporter.complete("Done")
 		return results
 
 	}
 
-	func download(searchResult: SearchResult) async throws -> (filename: String, data: Data) {
+	public func download(searchResult: SearchResult) async throws -> (
+		filename: String, data: Data
+	) {
 		// Send the search result original message to the ebooks channel
 		try await ircConnection.send(message: searchResult.original, to: ebooksChannel)
 
@@ -130,7 +140,7 @@ class EBookDownloader {
 		return (fileTransfer.filename, downloadedData)
 	}
 
-	func receiveDccSendMessage() async -> String? {
+	private func receiveDccSendMessage() async -> String? {
 		let dccSendMessagesStream =
 			ircConnection
 			.messages()
@@ -140,5 +150,9 @@ class EBookDownloader {
 			return message
 		}
 		return nil
+	}
+
+	public func cleanup() async throws {
+		try await ircConnection.cleanup()
 	}
 }
