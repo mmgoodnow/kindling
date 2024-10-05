@@ -13,20 +13,21 @@ struct ExportModifier: ViewModifier {
 			#if os(iOS)
 				.sheet(isPresented: $isExportModalOpen) {
 					MailComposerView(
-						subject: file.filename,
+						subject: downloadedFile?.filename ?? "",
 						messageBody:
 							"Make sure your email is an approved sender!",
 						recipient: kindleEmailAddress,
-						attachmentData: file.data,
+						attachmentData: downloadedFile?.data,
 						attachmentMimeType: "application/epub+zip",
-						attachmentFileName: file.filename
+						attachmentFileName: downloadedFile?.filename,
+						isExported: $isExported
 					)
 				}
 			#endif
 			#if os(macOS)
 				.fileExporter(
 					isPresented: $isExportModalOpen,
-					document: downloadedFile,
+					document: downloadedFile?,
 					contentType: .epub,
 					defaultFilename: downloadedFile?.filename
 				) { result in
@@ -53,6 +54,8 @@ extension View {
 			ExportModifier(
 				downloadedFile: downloadedFile,
 				kindleEmailAddress: kindleEmailAddress,
-				isExportModalOpen: isExportModalOpen, isExported: isExported))
+				isExportModalOpen: isExportModalOpen,
+				isExported: isExported)
+		)
 	}
 }

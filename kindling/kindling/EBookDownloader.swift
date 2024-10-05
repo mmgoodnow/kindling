@@ -30,6 +30,8 @@ enum EBookError: Error {
 }
 
 actor EBookDownloader {
+	private let NO_MATCHES_MESSAGE = "no\u{2} matches"
+	
 	let ircConnection: IRCConnection
 	let ebooksChannel: String
 	let stateReporter: StateReporter
@@ -52,6 +54,29 @@ actor EBookDownloader {
 			.filter { return $0.contains("DCC SEND") }
 			.timeout(.seconds(30), scheduler: DispatchQueue.main)
 		for await message in dccSendMessagesStream.values {
+			return message
+		}
+		return nil
+	}
+	private func receiveDccSendMessageOrNoMatches(searchBot: String, nickname: String) async
+		-> String?
+	{
+		let stream =
+			ircConnection
+			.messages()
+			.filter { msg in
+				let isDccSend = msg.contains("DCC SEND")
+
+				let isPM =
+					msg.contains("PRIVMSG \(nickname)")
+					|| msg.contains("NOTICE \(nickname)")
+				let isFromSearchBot = msg.contains(searchBot)
+				let isNoMatchesMsg = msg.contains(self.NO_MATCHES_MESSAGE)
+				print(isDccSend, isPM, isFromSearchBot, isNoMatchesMsg)
+				return isDccSend || isPM && isFromSearchBot && isNoMatchesMsg
+			}
+			.timeout(.seconds(30), scheduler: DispatchQueue.main)
+		for await message in stream.values {
 			return message
 		}
 		return nil
@@ -89,12 +114,14 @@ actor EBookDownloader {
 		stateReporter.registrationState = .ready
 	}
 
-	public func search(query: String, progressReporter: ProgressReporter)
+	public func search(
+		query: String, searchBot: String, nickname: String,
+		progressReporter: ProgressReporter
+	)
 		async throws -> [SearchResult]
 	{
 		do {
 			progressReporter.start(9)
-			let searchBot = "Search"
 			let searchMessage = "@\(searchBot) \(query)"
 			progressReporter.tick("Sending search query")
 			// subscribe to messages received earlier than sending
@@ -111,14 +138,23 @@ actor EBookDownloader {
 
 			progressReporter.tick("Waiting for search to be accepted")
 
-			guard let dccSendMessage = await receiveDccSendMessage() else {
+			guard
+				let dccSendMessageOrNoMatches =
+					await receiveDccSendMessageOrNoMatches(
+						searchBot: searchBot, nickname: nickname)
+			else {
 				throw EBookError.failedToReceiveDccSendMessage
 			}
-
 			cancellable.cancel()
+			if dccSendMessageOrNoMatches.contains(NO_MATCHES_MESSAGE) {
+				progressReporter.complete("Done")
+				return []
+			}
 
 			progressReporter.tick("Parsing DCC SEND message")
-			guard let fileTransfer = DCCFileTransfer(dccSendMessage: dccSendMessage)
+			guard
+				let fileTransfer = DCCFileTransfer(
+					dccSendMessage: dccSendMessageOrNoMatches)
 			else {
 				throw EBookError.invalidDccSendMessage
 			}

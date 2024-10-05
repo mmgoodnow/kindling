@@ -3,13 +3,13 @@ import SwiftUI
 
 struct SearchView: View {
 	let progressReporter = ProgressReporter()
+	let minSearchLength = 3
+
+	@EnvironmentObject var userSettings: UserSettings
 
 	@State private var query: String = ""
-	@State private var searchResults: [SearchResult] = []
-	@State private var downloadedFilename: String?
-	@State private var downloadedData: Data?
+	@State private var searchResults: [SearchResult]? = nil
 	@State private var errorMessage: String?
-	@State private var isShowingMailComposer = false
 
 	var downloader: EBookDownloader
 
@@ -23,10 +23,20 @@ struct SearchView: View {
 					.font(.caption)
 					.foregroundStyle(.gray)
 			}
-			SearchResultsView(
-				searchResults: searchResults,
-				downloader: downloader
-			).backgroundStyle(.background)
+			if let searchResults = searchResults {
+				SearchResultsView(
+					searchResults: searchResults,
+					downloader: downloader
+				).backgroundStyle(.background)
+			} else {
+				ContentUnavailableView {
+					Label("Search", systemImage: "magnifyingglass")
+				} description: {
+					if query.count < minSearchLength {
+						Text("Enter at least 3 characters.")
+					}
+				}
+			}
 
 			if let error = errorMessage {
 				Text("Error: \(error)")
@@ -43,10 +53,15 @@ struct SearchView: View {
 	}
 
 	private func doSearch() {
+		guard query.count >= minSearchLength else { return }
 		Task {
 			do {
 				searchResults = try await downloader.search(
-					query: query, progressReporter: progressReporter)
+					query: query,
+					searchBot: userSettings.searchBot,
+					nickname: userSettings.ircNick,
+					progressReporter: progressReporter
+				)
 
 				try await Task.sleep(for: .seconds(0.5))
 				withAnimation {
@@ -55,7 +70,7 @@ struct SearchView: View {
 			} catch {
 				progressReporter.reset()
 				errorMessage =
-				"Search failed: \((error as! EBookError).localizedDescription)"
+					"Search failed: \((error as! EBookError).localizedDescription)"
 			}
 		}
 	}
