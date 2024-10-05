@@ -8,7 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		514A16B72CA78AD800B6F94E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 514A16B62CA78AD800B6F94E /* SettingsView.swift */; };
-		514A16BB2CAB6D9B00B6F94E /* ProgressReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 514A16BA2CAB6D9B00B6F94E /* ProgressReporter.swift */; };
+		514A16BB2CAB6D9B00B6F94E /* Reporters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 514A16BA2CAB6D9B00B6F94E /* Reporters.swift */; };
+		514A16BD2CAFB51800B6F94E /* SearchResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 514A16BC2CAFB51800B6F94E /* SearchResultView.swift */; };
+		514A16BF2CB1017200B6F94E /* UserSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 514A16BE2CB1017200B6F94E /* UserSettings.swift */; };
 		51792F912C900EEA004B6E71 /* kindlingApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792F902C900EEA004B6E71 /* kindlingApp.swift */; };
 		51792F932C900EEA004B6E71 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792F922C900EEA004B6E71 /* ContentView.swift */; };
 		51792F972C900EEB004B6E71 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 51792F962C900EEB004B6E71 /* Assets.xcassets */; };
@@ -27,7 +29,7 @@
 		51929E212C9A532700D77429 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 51929E202C9A532700D77429 /* ZIPFoundation */; };
 		51929E232C9A5F3A00D77429 /* SearchResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51929E222C9A5F3A00D77429 /* SearchResult.swift */; };
 		51929E242C9A5F3A00D77429 /* SearchResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51929E222C9A5F3A00D77429 /* SearchResult.swift */; };
-		51929E262C9E511F00D77429 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51929E252C9E511F00D77429 /* MainView.swift */; };
+		51929E262C9E511F00D77429 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51929E252C9E511F00D77429 /* SearchView.swift */; };
 		51929E282C9FA70900D77429 /* SearchResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51929E272C9FA70900D77429 /* SearchResultsView.swift */; };
 		51929E2A2CA0072600D77429 /* MailComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51929E292CA0072600D77429 /* MailComposerView.swift */; };
 		51929E2C2CA007BC00D77429 /* MailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51929E2B2CA007BC00D77429 /* MailView.swift */; };
@@ -74,7 +76,9 @@
 
 /* Begin PBXFileReference section */
 		514A16B62CA78AD800B6F94E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		514A16BA2CAB6D9B00B6F94E /* ProgressReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressReporter.swift; sourceTree = "<group>"; };
+		514A16BA2CAB6D9B00B6F94E /* Reporters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reporters.swift; sourceTree = "<group>"; };
+		514A16BC2CAFB51800B6F94E /* SearchResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchResultView.swift; sourceTree = "<group>"; };
+		514A16BE2CB1017200B6F94E /* UserSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSettings.swift; sourceTree = "<group>"; };
 		51792F8D2C900EEA004B6E71 /* kindling.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = kindling.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		51792F902C900EEA004B6E71 /* kindlingApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = kindlingApp.swift; sourceTree = "<group>"; };
 		51792F922C900EEA004B6E71 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -92,7 +96,7 @@
 		51792FCA2C962803004B6E71 /* ircli */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ircli; sourceTree = BUILT_PRODUCTS_DIR; };
 		51792FCC2C962803004B6E71 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		51929E222C9A5F3A00D77429 /* SearchResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchResult.swift; sourceTree = "<group>"; };
-		51929E252C9E511F00D77429 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		51929E252C9E511F00D77429 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		51929E272C9FA70900D77429 /* SearchResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchResultsView.swift; sourceTree = "<group>"; };
 		51929E292CA0072600D77429 /* MailComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailComposerView.swift; sourceTree = "<group>"; };
 		51929E2B2CA007BC00D77429 /* MailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailView.swift; sourceTree = "<group>"; };
@@ -159,6 +163,7 @@
 			children = (
 				51792F902C900EEA004B6E71 /* kindlingApp.swift */,
 				51792F922C900EEA004B6E71 /* ContentView.swift */,
+				514A16BE2CB1017200B6F94E /* UserSettings.swift */,
 				51792FC02C91250F004B6E71 /* IRCConnection.swift */,
 				51792FC22C93CB90004B6E71 /* DCCFileTransfer.swift */,
 				51792FC42C93CF90004B6E71 /* EBookDownloader.swift */,
@@ -166,12 +171,13 @@
 				51792F962C900EEB004B6E71 /* Assets.xcassets */,
 				51792F982C900EEB004B6E71 /* kindling.entitlements */,
 				51792F992C900EEB004B6E71 /* Preview Content */,
-				51929E252C9E511F00D77429 /* MainView.swift */,
+				51929E252C9E511F00D77429 /* SearchView.swift */,
 				514A16B62CA78AD800B6F94E /* SettingsView.swift */,
 				51929E272C9FA70900D77429 /* SearchResultsView.swift */,
+				514A16BC2CAFB51800B6F94E /* SearchResultView.swift */,
 				51929E292CA0072600D77429 /* MailComposerView.swift */,
 				51929E2B2CA007BC00D77429 /* MailView.swift */,
-				514A16BA2CAB6D9B00B6F94E /* ProgressReporter.swift */,
+				514A16BA2CAB6D9B00B6F94E /* Reporters.swift */,
 			);
 			path = kindling;
 			sourceTree = "<group>";
@@ -371,16 +377,18 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				514A16BD2CAFB51800B6F94E /* SearchResultView.swift in Sources */,
 				51792F932C900EEA004B6E71 /* ContentView.swift in Sources */,
-				51929E262C9E511F00D77429 /* MainView.swift in Sources */,
+				51929E262C9E511F00D77429 /* SearchView.swift in Sources */,
 				51792FC52C93CF90004B6E71 /* EBookDownloader.swift in Sources */,
 				51792FC32C93CB90004B6E71 /* DCCFileTransfer.swift in Sources */,
 				51792FC12C91250F004B6E71 /* IRCConnection.swift in Sources */,
 				51929E282C9FA70900D77429 /* SearchResultsView.swift in Sources */,
 				51929E232C9A5F3A00D77429 /* SearchResult.swift in Sources */,
-				514A16BB2CAB6D9B00B6F94E /* ProgressReporter.swift in Sources */,
+				514A16BB2CAB6D9B00B6F94E /* Reporters.swift in Sources */,
 				51929E2A2CA0072600D77429 /* MailComposerView.swift in Sources */,
 				51792F912C900EEA004B6E71 /* kindlingApp.swift in Sources */,
+				514A16BF2CB1017200B6F94E /* UserSettings.swift in Sources */,
 				51929E2C2CA007BC00D77429 /* MailView.swift in Sources */,
 				514A16B72CA78AD800B6F94E /* SettingsView.swift in Sources */,
 			);

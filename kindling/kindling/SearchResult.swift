@@ -1,6 +1,6 @@
 import Foundation
 
-struct ProbableMetadata {
+struct ProbableMetadata: Equatable, Hashable {
 	let title: String
 	let author: String
 	let series: String?
@@ -13,6 +13,7 @@ struct SearchResult: Identifiable, Hashable {
 	let filename: String
 	let size: String?
 	let hash: String?
+	let metadata: ProbableMetadata?
 
 	init?(from line: String) {
 		let regex =
@@ -27,18 +28,21 @@ struct SearchResult: Identifiable, Hashable {
 		self.hash = (match.output.hash ?? match.output.hash2).map {
 			String($0).lowercased()
 		}
+		self.metadata = SearchResult.getMetadata(filename: filename)
 	}
 
 	var ext: String {
 		return URL(fileURLWithPath: filename).pathExtension
 	}
 
-	var metadata: ProbableMetadata? {
+	static func getMetadata(filename: String) -> ProbableMetadata? {
 
 		// remove unnecessary information from end
 		var bookName = filename
 
-		if let match = bookName.firstMatch(of: /( [\[(][\w\d\.b]+[)\]])* ?\.[A-Za-z0-9]{2,4}$/) {
+		if let match = bookName.firstMatch(
+			of: /( [\[(][\w\d\.b]+[)\]])* ?\.[A-Za-z0-9]{2,4}$/)
+		{
 			bookName = String(bookName.prefix(upTo: match.range.lowerBound))
 		}
 

@@ -1,28 +1,28 @@
 import SwiftUI
 
 struct SettingsView: View {
-	@AppStorage("ircNick") private var ircNick = "happygolucky"
-	@AppStorage("ircServer") private var ircServer = "irc.irchighway.net"
-	@AppStorage("ircPort") private var ircPort = 6667
-	@AppStorage("ircChannel") private var ircChannel = "#ebooks"
-	@AppStorage("kindleEmailAddress") private var kindleEmailAddress =
-		"wengvince_z6xtde@kindle.com"
+	@EnvironmentObject var userSettings: UserSettings
 
 	var body: some View {
 		Form {
 			Section("IRC") {
-				TextField("Server", text: $ircServer)
+				TextField("Server", text: userSettings.$ircServer)
 				TextField(
-					"Port", value: $ircPort,
+					"Port", value: userSettings.$ircPort,
 					formatter: portNumberFormatter
 				)
-				TextField("Channel", text: $ircChannel)
-				TextField("Nickname", text: $ircNick)
-
+				TextField("Channel", text: userSettings.$ircChannel)
+				TextField("Nickname", text: userSettings.$ircNick)
+				Picker("Search Bot", selection: userSettings.$searchBot) {
+					Text("Search").tag("Search")
+					Text("SearchOok").tag("SearchOok")
+				}.pickerStyle(.menu)
 			}
 
 			Section("Email") {
-				TextField("Kindle Email Address", text: $kindleEmailAddress)
+				TextField(
+					"Kindle Email Address",
+					text: userSettings.$kindleEmailAddress)
 			}
 		}.formStyle(.grouped)
 			.navigationTitle("Settings")
@@ -38,7 +38,5 @@ struct SettingsView: View {
 }
 
 #Preview {
-	VStack {
-		SettingsView()
-	}
+	SettingsView()
 }

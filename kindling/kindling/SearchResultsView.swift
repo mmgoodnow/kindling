@@ -3,13 +3,13 @@ import SwiftUI
 extension SearchResult {
 	// returns int for sorting
 	var isPreferredBot: Int {
-		return bot == "Oatmeal" ? 1 : 0
+		return bot == "Oatmeal" || bot == "TrainFiles" ? 1 : 0
 	}
 }
 
 struct SearchResultsView: View {
 	let searchResults: [SearchResult]
-	let onDownload: (SearchResult) -> Void
+	var downloader: EBookDownloader?
 
 	var smartSearchResults: [SearchResult] {
 		let comparators: [SortDescriptor<SearchResult>] = [
@@ -26,37 +26,14 @@ struct SearchResultsView: View {
 
 	var body: some View {
 		List(smartSearchResults) { result in
-			HStack {
-				VStack(alignment: .leading) {
-					if let metadata = result.metadata {
-						Text(metadata.title)
-							.font(.headline)
-						if let series = metadata.series {
-							Text(metadata.author)
-								.font(.subheadline)
-							Text(series).font(.subheadline)
-						} else {
-							Text(metadata.author).font(.subheadline)
-						}
-					} else {
-						Text(result.filename)
-							.font(.headline)
-					}
-					Text("\(result.bot)\(result.size.map {" " + $0} ?? "")")
-						.font(.subheadline)
-						.foregroundColor(.gray)
-				}
-				Spacer(minLength: 18)
-				Button(action: { onDownload(result) }) {
-					Image(systemName: "arrow.down.circle")
-						.font(.title2)
-						.foregroundColor(.blue)
-				}
-			}
-
+			SearchResultView(result: result, downloader: downloader)
 		}.overlay {
-			if searchResults.isEmpty {
-				ContentUnavailableView.search
+			if smartSearchResults.isEmpty {
+				ContentUnavailableView {
+					Label("No search results", systemImage: "magnifyingglass")
+				} description: {
+					Text("\(searchResults.count) non-epub files omitted.")
+				}
 			}
 		}
 	}
@@ -170,6 +147,6 @@ struct SearchResultsView: View {
 	return SearchResultsView(
 		searchResults: rawResults.components(separatedBy: .newlines)
 			.filter { $0.hasPrefix("!") }
-			.compactMap { SearchResult(from: $0) },
-		onDownload: { _ in })
+			.compactMap { SearchResult(from: $0) }
+	)
 }

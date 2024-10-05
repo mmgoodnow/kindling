@@ -3,7 +3,6 @@ import { Client } from "matrix-org-irc";
 import net from "net";
 import { createReadStream, statSync } from "node:fs";
 import { basename } from "path";
-import { IRC_NICK } from "./env.js";
 let port = 55556;
 export const client = await new Promise((resolve, reject) => {
 	const client = new Client("localhost", "testbot", {
@@ -83,8 +82,16 @@ function sendFileHighLevel(nick, filepath) {
 
 client.on("message", async (nick, channel, message) => {
 	client.say(channel, `echo ${message}`);
-	await new Promise((r) => setTimeout(r, 5000));
+	await new Promise((r) => setTimeout(r, 3000));
+
 	if (message.startsWith("@Search")) {
+		// client.say(
+		// 	nick,
+		// 	"Search results already waiting to be recieved. Search denied.",
+		// );
+		client.say(nick, "Search accepted");
+		await new Promise((r) => setTimeout(r, 3000));
+
 		sendFileHighLevel(
 			nick,
 			"***REMOVED***",

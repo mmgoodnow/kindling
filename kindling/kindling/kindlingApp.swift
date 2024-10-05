@@ -10,6 +10,7 @@ import SwiftUI
 
 @main
 struct kindlingApp: App {
+	@StateObject private var userSettings = UserSettings()
 	var sharedModelContainer: ModelContainer = {
 		let schema = Schema([])
 		let modelConfiguration = ModelConfiguration(
@@ -25,6 +26,7 @@ struct kindlingApp: App {
 	var body: some Scene {
 		WindowGroup {
 			ContentView()
+				.environmentObject(userSettings)
 		}
 		.modelContainer(sharedModelContainer)
 		#if os(macOS)
@@ -32,6 +34,7 @@ struct kindlingApp: App {
 				SettingsView()
 					.scenePadding()
 					.frame(minWidth: 400, minHeight: 400)
+					.environmentObject(userSettings)
 			}
 		#endif
 	}

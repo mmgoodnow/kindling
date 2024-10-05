@@ -5,48 +5,33 @@
 //  Created by Michael Goodnow on 9/9/24.
 //
 
+import Combine
 import Network
 import SwiftData
 import SwiftUI
 
-enum RegistrationStatus {
-	case failed
-	case ready
-	case loading
-}
-
 struct ContentView: View {
 	@Environment(\.modelContext) private var modelContext
-	@AppStorage("ircNick") private var ircNick = "happygolucky"
-	@AppStorage("ircServer") private var ircServer = "irc.irchighway.net"
-	@AppStorage("ircPort") private var ircPort = 6667
-	@AppStorage("ircChannel") private var ircChannel = "#ebooks"
-
+	@EnvironmentObject var userSettings: UserSettings
 	@State private var downloader: EBookDownloader?
-	@State private var reporter = ProgressReporter()
+	@State private var stateReporter = StateReporter()
 	@State private var downloaderID = UUID()
-	@State private var registrationStatus: RegistrationStatus = .loading
+	@State private var cancellables = Set<AnyCancellable>()
 
 	var registrationStatusDotColor: Color {
-		switch registrationStatus {
-		case .failed:
-			Color.red
-		case .ready:
-			Color.green
-		case .loading:
-			Color.yellow
+		switch stateReporter.state {
+		case .idle: Color.gray
+		case .failed: Color.red
+		case .ready: Color.green
+		case .loading: Color.yellow
 		}
 	}
 
 	var body: some View {
 		NavigationStack {
 			if let downloader = downloader {
-				MainView(downloader: downloader, reporter: reporter)
+				SearchView(downloader: downloader)
 					.id(downloaderID)
-					.onChange(of: ircNick) { updateDownloader() }
-					.onChange(of: ircServer) { updateDownloader() }
-					.onChange(of: ircPort) { updateDownloader() }
-					.onChange(of: ircChannel) { updateDownloader() }
 					.toolbar {
 						ToolbarItem {
 							Circle()
@@ -73,6 +58,7 @@ struct ContentView: View {
 					.onAppear { updateDownloader() }
 			}
 		}
+
 	}
 
 	private func updateDownloader() {
@@ -81,32 +67,28 @@ struct ContentView: View {
 				try await oldDownloader.cleanup()
 			}
 		}
-		let reporter = ProgressReporter()
-
-		downloader = EBookDownloader(
+		let stateReporter = StateReporter()
+		let downloader = EBookDownloader(
 			ircConnection: IRCConnection(
 				connection: NWConnection(
-					host: NWEndpoint.Host(ircServer),
+					host: NWEndpoint.Host(userSettings.ircServer),
 					port: NWEndpoint.Port(
-						integerLiteral: UInt16(ircPort)),
+						integerLiteral: UInt16(userSettings.ircPort)),
 					using: .tcp
 				),
-				nickname: ircNick,
-				username: ircNick
+				nickname: userSettings.ircNick,
+				username: userSettings.ircNick,
+				stateReporter: stateReporter
 			),
-			ebooksChannel: ircChannel,
-			reporter: reporter
+			ebooksChannel: userSettings.ircChannel,
+			stateReporter: stateReporter
 		)
 		downloaderID = UUID()
-		self.reporter = reporter
+		self.downloader = downloader
+		self.stateReporter = stateReporter
+
 		Task {
-			do {
-				registrationStatus = .loading
-				try await downloader!.start()
-				registrationStatus = .ready
-			} catch {
-				registrationStatus = .failed
-			}
+			try await downloader.start()
 		}
 	}
 }

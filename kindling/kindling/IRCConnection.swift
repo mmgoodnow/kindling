@@ -11,16 +11,17 @@ class IRCConnection {
 	let connection: NWConnection
 	let nickname: String
 	let username: String
-
+	var stateReporter: StateReporter
 	private var cancellables = Set<AnyCancellable>()
 	private let messageSubject = PassthroughSubject<String, Never>()
-
+	
 	init(
-		connection: NWConnection, nickname: String, username: String
+		connection: NWConnection, nickname: String, username: String, stateReporter: StateReporter
 	) {
 		self.connection = connection
 		self.nickname = nickname
 		self.username = username
+		self.stateReporter = stateReporter
 	}
 
 	public func start() async throws {
@@ -29,6 +30,7 @@ class IRCConnection {
 		logReceivedMessages()
 		await withCheckedContinuation { continuation in
 			self.connection.stateUpdateHandler = { newState in
+				self.stateReporter.nwConnectionState = newState
 				switch newState {
 				case .ready:
 					print("Connection ready")
@@ -36,6 +38,7 @@ class IRCConnection {
 				case .failed(let error):
 					print("Connection failed with error: \(error)")
 				default:
+					print("connection state changed to \(newState)")
 					break
 				}
 			}
@@ -48,26 +51,36 @@ class IRCConnection {
 
 	private func publishReceivedMessages() {
 		Task {
-			var buffer = ""
+			var buffer = Data()
 
 			while true {
-				if let chunk = try await receiveMessage() {
+				if let chunk = try await self.receiveMessage() {
 					buffer.append(chunk)
-					var messages = buffer.components(separatedBy: "\r\n")
-					if buffer.hasSuffix("\r\n") {
-						buffer = ""
+					let delimiter = Data("\r\n".utf8)
+					var messages = buffer.split(separator: delimiter)
+
+					if buffer.suffix(delimiter.count) == delimiter {
+						buffer = Data()
 					} else {
-						buffer = messages.popLast() ?? ""
+						buffer = messages.popLast() ?? Data()
 					}
 
-					// Emit all the complete messages
-					for message in messages where !message.isEmpty {
-						messageSubject.send(message)
+					for messageData in messages where !messageData.isEmpty {
+						if let message = String(
+							data: messageData, encoding: .utf8)
+						{
+							messageSubject.send(message)
+						} else if let message = String(
+							data: messageData, encoding: .isoLatin1)
+						{
+							messageSubject.send(message)
+						} else {
+							print(
+								"Error decoding message: \(messageData)"
+							)
+						}
 					}
 				} else {
-					print(
-						"Stopping message processing as the connection is closed or an error occurred."
-					)
 					break
 				}
 			}
@@ -75,18 +88,12 @@ class IRCConnection {
 	}
 
 	// will suspend waiting for new messages to come in
-	func receiveMessage() async throws -> String? {
+	func receiveMessage() async throws -> Data? {
 		return try await withCheckedThrowingContinuation { continuation in
 			connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) {
 				data, _, isComplete, error in
-				if let data = data, !data.isEmpty {
-					if let message = String(data: data, encoding: .utf8) {
-						continuation.resume(returning: message)
-					} else {
-						continuation.resume(
-							throwing: IRCError.dataNotDecodable
-						)
-					}
+				if let data = data {
+					continuation.resume(returning: data)
 				} else if let error = error {
 					print("Receive error: \(error)")
 					continuation.resume(throwing: error)
@@ -104,11 +111,9 @@ class IRCConnection {
 		print("send: \(message)")
 		try await withCheckedThrowingContinuation {
 			(continuation: CheckedContinuation<Void, Error>) in
-			print("sending…")
 			connection.send(
 				content: data,
 				completion: .contentProcessed { error in
-					print("sent")
 					if let error = error {
 						continuation.resume(throwing: error)
 					} else {
@@ -161,7 +166,7 @@ class IRCConnection {
 			.filter { message in
 				let components = message.split(
 					separator: " ", omittingEmptySubsequences: true)
-				return components.count >= 2 && components[1] == "PING"
+				return components.count == 2 && components[0] == "PING"
 			}
 			.sink { message in
 				Task {
@@ -226,12 +231,12 @@ class IRCConnection {
 	public func messages() -> AnyPublisher<String, Never> {
 		return messageSubject.eraseToAnyPublisher()
 	}
-
+	
 	func cleanup() async throws {
 		try await send(raw: "QUIT")
 		connection.cancel()
 	}
-	
+
 	deinit {
 		connection.cancel()
 	}
