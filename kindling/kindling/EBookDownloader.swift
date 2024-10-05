@@ -3,12 +3,6 @@ import Foundation
 import Network
 import ZIPFoundation
 
-struct BookFile {
-	let filename: String
-	let searchResult: SearchResult
-	let data: Data
-}
-
 enum EBookError: Error {
 	case failedToReceiveDccSendMessage
 	case invalidDccSendMessage
@@ -16,7 +10,7 @@ enum EBookError: Error {
 	case failedToUnzipFile
 	case noExtractedFilesFound
 	case invalidFileContentsEncoding
-	
+
 	var localizedDescription: String {
 		switch self {
 		case .failedToReceiveDccSendMessage:
@@ -161,9 +155,9 @@ actor EBookDownloader {
 
 	}
 
-	public func download(searchResult: SearchResult, progressReporter: ProgressReporter) async throws -> (
-		filename: String, data: Data
-	) {
+	public func download(searchResult: SearchResult, progressReporter: ProgressReporter)
+		async throws -> BookFile
+	{
 		progressReporter.start(5)
 		progressReporter.tick("Sending download request")
 		try await ircConnection.send(message: searchResult.original, to: ebooksChannel)
@@ -184,7 +178,7 @@ actor EBookDownloader {
 		}
 		progressReporter.complete("Done")
 
-		return (fileTransfer.filename, downloadedData)
+		return BookFile(filename: fileTransfer.filename, data: downloadedData)
 	}
 
 	public func cleanup() async throws {

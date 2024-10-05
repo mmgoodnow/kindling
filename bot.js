@@ -82,7 +82,7 @@ function sendFileHighLevel(nick, filepath) {
 
 client.on("message", async (nick, channel, message) => {
 	client.say(channel, `echo ${message}`);
-	await new Promise((r) => setTimeout(r, 3000));
+	await new Promise((r) => setTimeout(r, 1000));
 
 	if (message.startsWith("@Search")) {
 		// client.say(
@@ -90,7 +90,7 @@ client.on("message", async (nick, channel, message) => {
 		// 	"Search results already waiting to be recieved. Search denied.",
 		// );
 		client.say(nick, "Search accepted");
-		await new Promise((r) => setTimeout(r, 3000));
+		await new Promise((r) => setTimeout(r, 1000));
 
 		sendFileHighLevel(
 			nick,

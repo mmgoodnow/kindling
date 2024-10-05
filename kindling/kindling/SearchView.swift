@@ -30,7 +30,7 @@ struct SearchView: View {
 
 			if let error = errorMessage {
 				Text("Error: \(error)")
-					.font(.footnote)
+					.font(.caption)
 					.foregroundColor(.red)
 			}
 		}
@@ -54,7 +54,8 @@ struct SearchView: View {
 				}
 			} catch {
 				progressReporter.reset()
-				errorMessage = "Search failed: \(error.localizedDescription)"
+				errorMessage =
+				"Search failed: \((error as! EBookError).localizedDescription)"
 			}
 		}
 	}
@@ -62,4 +63,5 @@ struct SearchView: View {
 
 #Preview {
 	ContentView()
+		.environmentObject(UserSettings())
 }

@@ -7,33 +7,27 @@ struct SearchResultView: View {
 	let progressReporter = ProgressReporter()
 
 	@EnvironmentObject var userSettings: UserSettings
-	@State private var isShowingMailComposer = false
+	@State private var isExportModalOpen = false
 	@State private var downloadedFile: BookFile?
 	@State private var error: EBookError?
+	@State private var isExported = false
 
 	private func download() {
+		guard let downloader = downloader else { return }
+
 		Task {
-			do {
-				if let (filename, data) = try await downloader?.download(
-					searchResult: result, progressReporter: progressReporter)
-				{
-					#if os(iOS)
-						isShowingMailComposer = true
-					#endif
-					#if os(macOS)
-						let downloadsDirectory = FileManager.default.urls(
-							for: .downloadsDirectory,
-							in: .userDomainMask
-						).first!
-						try data.write(
-							to: downloadsDirectory.appending(
-								path: filename)
-						)
-					#endif
+			if downloadedFile == nil {
+				do {
+					downloadedFile = try await downloader.download(
+						searchResult: result,
+						progressReporter: progressReporter
+					)
+					progressReporter.reset()
+				} catch {
+					self.error = (error as! EBookError)
 				}
-			} catch {
-				self.error = error as? EBookError
 			}
+			isExportModalOpen = true
 		}
 	}
 
@@ -57,7 +51,7 @@ struct SearchResultView: View {
 					Text(result.filename)
 						.font(.headline)
 				}
-				Text("\(result.bot)\(result.size.map {" " + $0} ?? "")")
+				Text("\(result.bot)\(result.size.map { " " + $0 } ?? "")")
 					.font(.subheadline)
 					.foregroundStyle(.gray)
 				if let error = error {
@@ -68,6 +62,15 @@ struct SearchResultView: View {
 					Text(progress)
 						.font(.caption)
 						.foregroundStyle(.gray)
+				} else if isExported {
+					Text("Exported")
+						.font(.caption)
+						.foregroundStyle(.gray)
+				} else if downloadedFile != nil {
+					Text("Downloaded")
+						.font(.caption)
+						.foregroundStyle(.gray)
+
 				}
 			}
 			Spacer(minLength: 18)
@@ -75,45 +78,29 @@ struct SearchResultView: View {
 				Image(systemName: "exclamationmark.circle")
 					.font(.title2)
 					.foregroundColor(.red)
-			} else if let status = progressReporter.status {
-				ProgressView()
+			} else if let progress = progressReporter.progress {
+				ProgressView(value: progress)
+					.progressViewStyle(.circular)
 			} else {
-				Button(action: download) {
-					Image(systemName: "arrow.down.circle")
-						.font(.title2)
-						.foregroundColor(.blue)
+				VStack {
+					Button(action: download) {
+						if isExported {
+							Image(systemName: "checkmark.circle")
+								.font(.title2)
+								.foregroundColor(.green)
+						} else {
+							Image(systemName: "arrow.down.circle")
+								.font(.title2)
+								.foregroundColor(.blue)
+						}
+					}
 				}
 			}
-		}.sheet(isPresented: $isShowingMailComposer) {
-			#if os(iOS)
-				if let file = downloadedFile {
-					MailComposerView(
-						subject: file.filename,
-						messageBody:
-							"Make sure your email is an approved sender!",
-						recipient: userSettings.kindleEmailAddress,
-						attachmentData: file.data,
-						attachmentMimeType:
-							"application/epub+zip",
-						attachmentFileName: file.filename
-					)
-				}
-			#endif
-		}
-	}
-}
-
-#Preview {
-	List {
-		SearchResultView(
-			result: SearchResult(
-				from:
-					"!Dumbledore Julianna Keyes - (Big Friends 01) - Big Wild Love Adventure.epub"
-			)!,
-			downloader: nil)
-		SearchResultView(
-			result: SearchResult(
-				from: "!Dumbledore Julianna Keyes - Big Wild Love Adventure.epub")!,
-			downloader: nil)
+		}.exporter(
+			downloadedFile: downloadedFile,
+			kindleEmailAddress: userSettings.kindleEmailAddress,
+			isExportModalOpen: $isExportModalOpen,
+			isExported: $isExported
+		)
 	}
 }
