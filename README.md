@@ -1,28 +1,19 @@
-# kindling
-Download books to kindle from IRC.
+# Kindling
 
-## Requirements
-- node 20 definitely works, 16 probably works
+Kindling is a Swift-based IRC eBook downloader that connects to IRC channels, performs searches for eBooks, and downloads them via DCC. The app supports both iOS and macOS, using SwiftUI for the user interface and Combine for asynchronous programming.
 
-```
-corepack enable # corepack installs a shim for pnpm that will download it automatically when you use it
-pnpm install
-```
+Features
 
-## Run
-Set the following environment variables
-- `SENDER_EMAIL_ADDRESS`
-- `SENDER_EMAIL_PASSWORD`
-- `SENDER_NAME`
-- `SENDER_EMAIL_AS`
-- `SMTP_HOST`
-- `SMTP_PORT`
-- `IRC_NICK`
-- `KINDLE_EMAIL_ADDRESS`
-- `PORT`
-- `BASE_PATH`
-- `NODE_ENV`
+- IRC connection and registration management
+- Search for eBooks using customizable search bots
+- Real-time progress tracking for search and downloads
+- Downloaded files can be saved or emailed directly
+- Mac and iOS compatible
 
-```
-node index.js
-```
+Usage
+
+1. Enter your IRC settings (nickname, server, port, and channel) in the Settings screen.
+2. Search for an eBook by entering a query in the main search bar.
+3. Download the desired search result.
+4. Export the downloaded file to your desired location or send it via email.
+
