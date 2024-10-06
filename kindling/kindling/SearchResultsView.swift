@@ -8,6 +8,7 @@ extension SearchResult {
 }
 
 struct SearchResultsView: View {
+	let query: String
 	let searchResults: [SearchResult]
 	var downloader: EBookDownloader?
 
@@ -28,11 +29,14 @@ struct SearchResultsView: View {
 		List(smartSearchResults) { result in
 			SearchResultView(result: result, downloader: downloader)
 		}.overlay {
-			if smartSearchResults.isEmpty {
-				ContentUnavailableView {
-					Label("No search results", systemImage: "magnifyingglass")
-				} description: {
-					Text("\(searchResults.count) non-epub files omitted.")
+			if smartSearchResults.count == 0 {
+				VStack {
+					ContentUnavailableView.search(text: query)
+					if searchResults.count > 0 {
+						Text(
+							"\(searchResults.count) non-epub files omitted."
+						)
+					}
 				}
 			}
 		}
@@ -145,6 +149,7 @@ struct SearchResultsView: View {
 		!FWServer %GDF77BBF5C5D% Van Draanen, Wendelin - Sammy Keyes 11 - Sammy Keyes and the Wild Things - Audiobook.zip  ::INFO:: 393.46 MB
 		"""
 	return SearchResultsView(
+		query: "food",
 		searchResults: rawResults.components(separatedBy: .newlines)
 			.filter { $0.hasPrefix("!") }
 			.compactMap { SearchResult(from: $0) }

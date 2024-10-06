@@ -72,7 +72,6 @@ actor EBookDownloader {
 					|| msg.contains("NOTICE \(nickname)")
 				let isFromSearchBot = msg.contains(searchBot)
 				let isNoMatchesMsg = msg.contains(self.NO_MATCHES_MESSAGE)
-				print(isDccSend, isPM, isFromSearchBot, isNoMatchesMsg)
 				return isDccSend || isPM && isFromSearchBot && isNoMatchesMsg
 			}
 			.timeout(.seconds(30), scheduler: DispatchQueue.main)

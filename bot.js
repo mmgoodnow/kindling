@@ -92,14 +92,8 @@ client.on("message", async (nick, channel, message) => {
 		client.say(nick, "Search accepted");
 		await new Promise((r) => setTimeout(r, 1000));
 
-		sendFileHighLevel(
-			nick,
-			"***REMOVED***",
-		);
+		sendFileHighLevel(nick, process.env.SEARCH_RESULTS_FILE);
 	} else if (message.startsWith("!")) {
-		sendFileHighLevel(
-			nick,
-			"***REMOVED***",
-		);
+		sendFileHighLevel(nick, process.env.BOOK_FILE);
 	}
 });

@@ -8,6 +8,7 @@ struct SearchView: View {
 	@EnvironmentObject var userSettings: UserSettings
 
 	@State private var query: String = ""
+	@State private var searchedQuery: String = ""
 	@State private var searchResults: [SearchResult]? = nil
 	@State private var errorMessage: String?
 
@@ -25,6 +26,7 @@ struct SearchView: View {
 			}
 			if let searchResults = searchResults {
 				SearchResultsView(
+					query: searchedQuery,
 					searchResults: searchResults,
 					downloader: downloader
 				).backgroundStyle(.background)
@@ -62,6 +64,7 @@ struct SearchView: View {
 					nickname: userSettings.ircNick,
 					progressReporter: progressReporter
 				)
+				searchedQuery = query
 
 				try await Task.sleep(for: .seconds(0.5))
 				withAnimation {
