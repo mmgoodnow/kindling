@@ -27,7 +27,7 @@ struct ExportModifier: ViewModifier {
 			#if os(macOS)
 				.fileExporter(
 					isPresented: $isExportModalOpen,
-					document: downloadedFile?,
+					document: downloadedFile,
 					contentType: .epub,
 					defaultFilename: downloadedFile?.filename
 				) { result in
