@@ -41,5 +41,9 @@
 	</array>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.books</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<string>NO</string>
 </dict>
 </plist>
