@@ -116,5 +116,157 @@
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "3C97B533-1BE0-4A46-A12A-5F6D97E2F957"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "kindling/EBookDownloader.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "187"
+            endingLineNumber = "187"
+            landmarkName = "EBookDownloader"
+            landmarkType = "3">
+            <Locations>
+               <Location
+                  uuid = "3C97B533-1BE0-4A46-A12A-5F6D97E2F957 - b03ce8f0b92f06f5"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(5) suspend resume partial function for kindling.EBookDownloader.search(query: Swift.String, searchBot: Swift.String, nickname: Swift.String, progressReporter: kindling.ProgressReporter) async throws -&gt; Swift.Array&lt;kindling.SearchResult&gt;"
+                  moduleName = "kindling.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/EBookDownloader.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "187"
+                  endingLineNumber = "187">
+               </Location>
+               <Location
+                  uuid = "3C97B533-1BE0-4A46-A12A-5F6D97E2F957 - 780b80588f8602f3"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(7) suspend resume partial function for kindling.EBookDownloader.search(query: Swift.String, searchBot: Swift.String, nickname: Swift.String, progressReporter: kindling.ProgressReporter) async throws -&gt; Swift.Array&lt;kindling.SearchResult&gt;"
+                  moduleName = "kindling.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/EBookDownloader.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "187"
+                  endingLineNumber = "187">
+               </Location>
+               <Location
+                  uuid = "3C97B533-1BE0-4A46-A12A-5F6D97E2F957 - dce0d58cf6a97cf0"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(8) suspend resume partial function for kindling.EBookDownloader.search(query: Swift.String, searchBot: Swift.String, nickname: Swift.String, progressReporter: kindling.ProgressReporter) async throws -&gt; Swift.Array&lt;kindling.SearchResult&gt;"
+                  moduleName = "kindling.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/EBookDownloader.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "187"
+                  endingLineNumber = "187">
+               </Location>
+               <Location
+                  uuid = "3C97B533-1BE0-4A46-A12A-5F6D97E2F957 - c619c0ddfdfef1"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(9) suspend resume partial function for kindling.EBookDownloader.search(query: Swift.String, searchBot: Swift.String, nickname: Swift.String, progressReporter: kindling.ProgressReporter) async throws -&gt; Swift.Array&lt;kindling.SearchResult&gt;"
+                  moduleName = "kindling.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/EBookDownloader.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "187"
+                  endingLineNumber = "187">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "F23B2D44-1A08-435D-8D69-8CA1255D0434"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "kindling/EBookDownloader.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "178"
+            endingLineNumber = "178"
+            landmarkName = "EBookDownloader"
+            landmarkType = "3">
+            <Locations>
+               <Location
+                  uuid = "F23B2D44-1A08-435D-8D69-8CA1255D0434 - 780b80588f861dda"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(7) suspend resume partial function for kindling.EBookDownloader.search(query: Swift.String, searchBot: Swift.String, nickname: Swift.String, progressReporter: kindling.ProgressReporter) async throws -&gt; Swift.Array&lt;kindling.SearchResult&gt;"
+                  moduleName = "kindling.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/EBookDownloader.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "178"
+                  endingLineNumber = "178">
+               </Location>
+               <Location
+                  uuid = "F23B2D44-1A08-435D-8D69-8CA1255D0434 - c619c0ddfde1d8"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(9) suspend resume partial function for kindling.EBookDownloader.search(query: Swift.String, searchBot: Swift.String, nickname: Swift.String, progressReporter: kindling.ProgressReporter) async throws -&gt; Swift.Array&lt;kindling.SearchResult&gt;"
+                  moduleName = "kindling.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/mmgoodnow/Documents/Projects/kindling/kindling/EBookDownloader.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "178"
+                  endingLineNumber = "178">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "6E9E592A-A78E-4150-94B1-684946BF78D3"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "kindling/SearchResult.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "18"
+            endingLineNumber = "18"
+            landmarkName = "init?(from:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "86CFA5E5-A878-4C91-9BF1-C3E48FDD7236"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "kindling/SearchResult.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "24"
+            endingLineNumber = "24"
+            landmarkName = "init?(from:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
    </Breakpoints>
 </Bucket>

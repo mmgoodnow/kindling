@@ -50,7 +50,7 @@ struct SearchResult: Identifiable, Hashable {
 
 		if components.count == 3 {
 			let title = String(components[2])
-			let seriesRegex = /[\[(](?<series>([^ ]+ ?)+\d{0,3})[\])]/
+			let seriesRegex = /[\[(](?<series>[^\])\]]*\d[^\])\]]*)[\])]/
 
 			if let match = components[1].wholeMatch(of: seriesRegex) {
 				return ProbableMetadata(
