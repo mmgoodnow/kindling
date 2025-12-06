@@ -70,10 +70,13 @@ struct SearchView: View {
 				withAnimation {
 					progressReporter.reset()
 				}
-			} catch {
+			} catch let ebookError as EBookError {
 				progressReporter.reset()
 				errorMessage =
-					"Search failed: \((error as! EBookError).localizedDescription)"
+					"Search failed: \(ebookError.localizedDescription)"
+			} catch {
+				progressReporter.reset()
+				errorMessage = "Search failed: \(error.localizedDescription)"
 			}
 		}
 	}
