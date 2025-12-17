@@ -103,6 +103,15 @@ final class LazyLibrarianViewModel: ObservableObject {
 			!(isSkippedOrIgnored(item.status) && isSkippedOrIgnored(item.audioStatus))
 		}
 	}
+	
+    private func refreshRequestsSilently(using client: LazyLibrarianServing) async {
+        do {
+            let all = try await client.fetchRequests()
+            requests = filtered(all)
+        } catch {
+            // Ignore transient errors; this is a silent refresh during polling.
+        }
+    }
 
 	func shouldShowDownloadProgress(status: LazyLibrarianRequestStatus, audioStatus: LazyLibrarianRequestStatus?) -> Bool {
 		func isActive(_ s: LazyLibrarianRequestStatus?) -> Bool {
@@ -146,12 +155,34 @@ final class LazyLibrarianViewModel: ObservableObject {
 		downloadPollingTasks[bookID] = Task { [weak self] in
 			guard let self else { return }
 			let deadline = Date.now.addingTimeInterval(15 * 60)
+            var lastStatusRefresh = Date.distantPast
+            let statusRefreshInterval: TimeInterval = 3.0
 			while Task.isCancelled == false, Date.now < deadline {
 				do {
 					let active = try await client.fetchDownloadProgress(limit: 50)
 					self.mergeProgress(active, forBookID: bookID)
+					// If both tracks are finished, do a final status refresh and continue polling statuses briefly until they settle.
 					if let current = self.downloadProgressByBookID[bookID], current.ebookFinished, current.audiobookFinished {
-						break
+                        await self.refreshRequestsSilently(using: client)
+                        // Continue polling request statuses a bit longer until they settle to non-active, or timeout.
+                        let settleDeadline = deadline
+                        while Task.isCancelled == false, Date.now < settleDeadline {
+                            if let req = self.requests.first(where: { $0.id == bookID }) {
+                                if self.shouldShowDownloadProgress(status: req.status, audioStatus: req.audioStatus) == false {
+                                    break
+                                }
+                            }
+                            try? await Task.sleep(nanoseconds: self.downloadPollIntervalNanoseconds * 4)
+                            await self.refreshRequestsSilently(using: client)
+                        }
+                        // Clear progress so UI hides bars once statuses settle.
+                        self.downloadProgressByBookID[bookID] = nil
+                        break
+                    }
+					// Periodically refresh request statuses to reflect transitions (e.g., Snatched -> Downloaded)
+					if Date.now.timeIntervalSince(lastStatusRefresh) >= statusRefreshInterval {
+						await self.refreshRequestsSilently(using: client)
+						lastStatusRefresh = .now
 					}
 				} catch {
 					// Keep polling; transient failures are expected while downloads are being created.
