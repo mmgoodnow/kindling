@@ -24,6 +24,23 @@ struct SettingsView: View {
 					"Kindle Email Address",
 					text: userSettings.$kindleEmailAddress)
 			}
+
+			Section {
+				TextField("Base URL (e.g. http://localhost:5299)", text: userSettings.$lazyLibrarianURL)
+				#if os(iOS)
+					.textInputAutocapitalization(.never)
+					.keyboardType(.URL)
+				#endif
+				SecureField("API Key", text: userSettings.$lazyLibrarianAPIKey)
+					.textContentType(.password)
+				#if os(iOS)
+					.textInputAutocapitalization(.never)
+				#endif
+			} header: {
+				Text("LazyLibrarian")
+			} footer: {
+				Text("Enable the API in LazyLibrarian, generate a 32-character key, and paste it here.")
+			}
 		}.formStyle(.grouped)
 			.navigationTitle("Settings")
 	}

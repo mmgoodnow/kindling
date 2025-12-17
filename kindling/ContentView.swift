@@ -17,6 +17,15 @@ struct ContentView: View {
 	@State private var stateReporter = StateReporter()
 	@State private var downloaderID = UUID()
 	@State private var cancellables = Set<AnyCancellable>()
+	@State private var tab: Tab = .irc
+
+	enum Tab: String, CaseIterable, Identifiable {
+		case irc = "IRC"
+		case lazy = "LazyLibrarian"
+		case settings = "Settings"
+
+		var id: String { rawValue }
+	}
 
 	var registrationStatusDotColor: Color {
 		switch stateReporter.state {
@@ -28,37 +37,57 @@ struct ContentView: View {
 	}
 
 	var body: some View {
-		NavigationStack {
-			if let downloader = downloader {
-				SearchView(downloader: downloader)
-					.id(downloaderID)
-					.toolbar {
-						ToolbarItem {
-							Circle()
-								.fill(registrationStatusDotColor)
-								.frame(width: 10, height: 10)
-
-						}
-						ToolbarItem {
-							Button(
-								action: updateDownloader
-							) {
-								Image(systemName: "arrow.clockwise")
-							}
-						}
-						ToolbarItem {
-							NavigationLink(destination: SettingsView())
-							{
-								Image(systemName: "gear")
-							}
+		TabView(selection: $tab) {
+			NavigationStack {
+				Group {
+					if let downloader = downloader {
+						SearchView(downloader: downloader)
+							.id(downloaderID)
+					} else {
+						ProgressView()
+							.onAppear { updateDownloader() }
+					}
+				}
+				.toolbar {
+					ToolbarItem {
+						Circle()
+							.fill(registrationStatusDotColor)
+							.frame(width: 10, height: 10)
+					}
+					ToolbarItem {
+						Button(action: updateDownloader) {
+							Image(systemName: "arrow.clockwise")
 						}
 					}
-			} else {
-				ProgressView()
-					.onAppear { updateDownloader() }
+					ToolbarItem {
+						NavigationLink(destination: SettingsView())
+						{
+							Image(systemName: "gear")
+						}
+					}
+				}
 			}
-		}
+			.tabItem {
+				Label("IRC", systemImage: "text.bubble")
+			}
+			.tag(Tab.irc)
 
+			NavigationStack {
+				LazyLibrarianView()
+			}
+			.tabItem {
+				Label("LazyLibrarian", systemImage: "books.vertical")
+			}
+			.tag(Tab.lazy)
+
+			NavigationStack {
+				SettingsView()
+			}
+			.tabItem {
+				Label("Settings", systemImage: "gear")
+			}
+			.tag(Tab.settings)
+		}
 	}
 
 	private func updateDownloader() {
