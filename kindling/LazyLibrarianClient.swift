@@ -134,13 +134,22 @@ struct LazyLibrarianRequest: Identifiable, Hashable, Decodable {
 	let author: String
 	let status: LazyLibrarianRequestStatus
 	let audioStatus: LazyLibrarianRequestStatus?
+	let bookAdded: Date?
 
-	init(id: String, title: String, author: String, status: LazyLibrarianRequestStatus, audioStatus: LazyLibrarianRequestStatus? = nil) {
+	init(
+		id: String,
+		title: String,
+		author: String,
+		status: LazyLibrarianRequestStatus,
+		audioStatus: LazyLibrarianRequestStatus? = nil,
+		bookAdded: Date? = nil
+	) {
 		self.id = id
 		self.title = title
 		self.author = author
 		self.status = status
 		self.audioStatus = audioStatus
+		self.bookAdded = bookAdded
 	}
 
 	private enum CodingKeys: String, CodingKey {
@@ -154,6 +163,7 @@ struct LazyLibrarianRequest: Identifiable, Hashable, Decodable {
 		case status = "status"
 		case statusAlt = "Status"
 		case audioStatus = "AudioStatus"
+		case bookAdded = "BookAdded"
 	}
 
 	init(from decoder: Decoder) throws {
@@ -166,6 +176,31 @@ struct LazyLibrarianRequest: Identifiable, Hashable, Decodable {
 			?? (try? container.decode(LazyLibrarianRequestStatus.self, forKey: .audioStatus))
 			?? .unknown
 		audioStatus = (try? container.decode(LazyLibrarianRequestStatus.self, forKey: .audioStatus))
+		if let raw = try? container.decodeIfPresent(String.self, forKey: .bookAdded) {
+			bookAdded = LazyLibrarianDateParser.parse(raw)
+		} else {
+			bookAdded = nil
+		}
+	}
+}
+
+private enum LazyLibrarianDateParser {
+	private static let iso8601WithFractional: ISO8601DateFormatter = {
+		let formatter = ISO8601DateFormatter()
+		formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+		return formatter
+	}()
+
+	private static let iso8601: ISO8601DateFormatter = {
+		let formatter = ISO8601DateFormatter()
+		formatter.formatOptions = [.withInternetDateTime]
+		return formatter
+	}()
+
+	static func parse(_ string: String) -> Date? {
+		if let date = iso8601WithFractional.date(from: string) { return date }
+		if let date = iso8601.date(from: string) { return date }
+		return nil
 	}
 }
 
@@ -703,8 +738,8 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 // Preview/testing helper that simulates LazyLibrarian without network calls.
 final actor LazyLibrarianMockClient: LazyLibrarianServing {
 	private var requests: [LazyLibrarianRequest] = [
-		LazyLibrarianRequest(id: "1", title: "Project Hail Mary", author: "Andy Weir", status: .downloaded),
-		LazyLibrarianRequest(id: "2", title: "The City We Became", author: "N. K. Jemisin", status: .requested),
+		LazyLibrarianRequest(id: "1", title: "Project Hail Mary", author: "Andy Weir", status: .downloaded, bookAdded: Date().addingTimeInterval(-86_400 * 3)),
+		LazyLibrarianRequest(id: "2", title: "The City We Became", author: "N. K. Jemisin", status: .requested, bookAdded: Date().addingTimeInterval(-86_400 * 12)),
 	]
 	private var progress: [String: (ebook: Int, audio: Int)] = [:]
 
@@ -775,4 +810,3 @@ final actor LazyLibrarianMockClient: LazyLibrarianServing {
 		return items
 	}
 }
-

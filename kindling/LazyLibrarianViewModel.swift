@@ -99,8 +99,21 @@ final class LazyLibrarianViewModel: ObservableObject {
 			guard let status else { return true }
 			return status == .skipped || status == .ignored
 		}
-		return items.filter { item in
+		let filtered = items.filter { item in
 			!(isSkippedOrIgnored(item.status) && isSkippedOrIgnored(item.audioStatus))
+		}
+		return filtered.sorted { lhs, rhs in
+			switch (lhs.bookAdded, rhs.bookAdded) {
+			case let (l?, r?):
+				if l != r { return l > r }
+				return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+			case (_?, nil):
+				return true
+			case (nil, _?):
+				return false
+			case (nil, nil):
+				return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+			}
 		}
 	}
 	
