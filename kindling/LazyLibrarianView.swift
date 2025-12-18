@@ -173,9 +173,12 @@ private struct LazyLibrarianSearchResultsView: View {
 									Button {
 										Task { await viewModel.request(book, using: client) }
 									} label: {
-										Text(book.status == .requested || book.status == .wanted ? "Requested" : "Request")
+										Text("GET")
 									}
-									.buttonStyle(.borderedProminent)
+									.buttonStyle(.bordered)
+									.controlSize(.small)
+									.tint(.accentColor)
+									.clipShape(Capsule())
 									.disabled(book.status == .requested || book.status == .wanted)
 								}
 							}
@@ -211,16 +214,20 @@ fileprivate func lazyLibrarianStatusColor(_ status: LazyLibrarianRequestStatus) 
 
 @ViewBuilder
 fileprivate func lazyLibrarianStatusPills(status: LazyLibrarianRequestStatus, audioStatus: LazyLibrarianRequestStatus?) -> some View {
-	HStack(spacing: 8) {
-		if status != .unknown {
-			Label(status.rawValue, systemImage: "book.closed")
-				.font(.caption)
-				.foregroundStyle(lazyLibrarianStatusColor(status))
-		}
-		if let audioStatus, audioStatus != .unknown, audioStatus != status {
-			Label(audioStatus.rawValue, systemImage: "headphones")
-				.font(.caption)
-				.foregroundStyle(lazyLibrarianStatusColor(audioStatus))
+	if status == .open, let audioStatus, audioStatus == .open {
+		EmptyView()
+	} else {
+		HStack(spacing: 8) {
+			if status != .unknown {
+				Label(status.rawValue, systemImage: "book.closed")
+					.font(.caption)
+					.foregroundStyle(lazyLibrarianStatusColor(status))
+			}
+			if let audioStatus, audioStatus != .unknown, audioStatus != status {
+				Label(audioStatus.rawValue, systemImage: "headphones")
+					.font(.caption)
+					.foregroundStyle(lazyLibrarianStatusColor(audioStatus))
+			}
 		}
 	}
 }
