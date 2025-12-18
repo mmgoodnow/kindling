@@ -351,59 +351,103 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 		throw LazyLibrarianError.badResponse
 	}
 
-	func searchBooks(query: String) async throws -> [LazyLibrarianBook] {
-		// LL supports findBook via GoodReads/GoogleBooks
-		guard let url = apiURL(cmd: "findBook", queryItems: [
-			URLQueryItem(name: "name", value: query)
-		]) else {
-			throw LazyLibrarianError.badURL
-		}
-		let (data, response) = try await session.data(from: url)
-		guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-			throw LazyLibrarianError.badResponse
-		}
-		do {
-			return try decodeBooks(from: data)
-		} catch {
+	private func queueBookWithBackoff(id: String, library: LazyLibrarianLibrary, titleHint: String?, authorHint: String?, maxAttempts: Int = 5, initialDelayMS: UInt64 = 400) async throws -> LazyLibrarianRequest {
+		var attempt = 1
+		var delay = initialDelayMS
+		while true {
 			#if DEBUG
-			logResponse("booksearch decode failed", data: data)
+			print("[LazyLibrarian] queueBook attempt=\(attempt) id=\(id) type=\(library.rawValue)")
 			#endif
-			throw error
+			do {
+				let result = try await queueBook(id: id, library: library, titleHint: titleHint, authorHint: authorHint)
+				#if DEBUG
+				print("[LazyLibrarian] queueBook attempt=\(attempt) id=\(id) type=\(library.rawValue) succeeded")
+				#endif
+				return result
+			} catch {
+				let message = error.localizedDescription.lowercased()
+				let isInvalidID = message.contains("invalid id")
+				if attempt >= maxAttempts || isInvalidID == false {
+					throw error
+				}
+				#if DEBUG
+				print("[LazyLibrarian] queueBook backoff sleep start id=\(id) type=\(library.rawValue) duration=\(delay)ms")
+				#endif
+				try? await Task.sleep(nanoseconds: delay * 1_000_000)
+				#if DEBUG
+				print("[LazyLibrarian] queueBook backoff sleep done id=\(id) type=\(library.rawValue)")
+				#endif
+				delay = delay * 2
+				attempt += 1
+			}
 		}
 	}
 
+    func searchBooks(query: String) async throws -> [LazyLibrarianBook] {
+        // LL supports findBook via GoodReads/GoogleBooks
+        guard let url = apiURL(cmd: "findBook", queryItems: [
+            URLQueryItem(name: "name", value: query)
+        ]) else {
+            throw LazyLibrarianError.badURL
+        }
+        let (data, response) = try await session.data(from: url)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw LazyLibrarianError.badResponse
+        }
+        do {
+            return try decodeBooks(from: data)
+        } catch {
+            #if DEBUG
+            logResponse("booksearch decode failed", data: data)
+            #endif
+            throw error
+        }
+    }
+
 	func requestBook(id: String, titleHint: String? = nil, authorHint: String? = nil) async throws -> LazyLibrarianRequest {
-		// LL sometimes needs a beat between add and queue; retry with re-adds.
-		let retries = 4
-		var lastError: Error?
-		var ebookResult: LazyLibrarianRequest?
-		var audioResult: LazyLibrarianRequest?
-		for attempt in 1...retries {
-			do {
-				try await addBookIfNeeded(id: id)
-				if ebookResult == nil {
-					ebookResult = try await queueBook(id: id, library: .ebook, titleHint: titleHint, authorHint: authorHint)
-				}
-				if audioResult == nil {
-					audioResult = try await queueBook(id: id, library: .audio, titleHint: titleHint, authorHint: authorHint)
-				}
-				try await searchBook(id: id, library: .ebook)
-				try await searchBook(id: id, library: .audio)
-				break
-			} catch {
-				lastError = error
-				if attempt < retries {
-					try await Task.sleep(nanoseconds: 800_000_000) // backoff
-				}
-			}
-		}
-		guard let ebookResult else { throw lastError ?? LazyLibrarianError.badResponse }
+		#if DEBUG
+		print("[LazyLibrarian] requestBook start id=\(id) title=\(titleHint ?? "") author=\(authorHint ?? "")")
+		#endif
+
+		// Add book first
+		#if DEBUG
+		print("[LazyLibrarian] addBookIfNeeded id=\(id)")
+		#endif
+		try await addBookIfNeeded(id: id)
+
+		#if DEBUG
+		print("[LazyLibrarian] requestBook initial sleep start 2000ms id=\(id)")
+		#endif
+		// Give LL time to persist new author/book records
+		try? await Task.sleep(nanoseconds: 2_000_000_000)
+		#if DEBUG
+		print("[LazyLibrarian] requestBook initial sleep done id=\(id)")
+		#endif
+
+		// Queue with targeted retries on "Invalid id"
+		let ebookResult = try await queueBookWithBackoff(id: id, library: .ebook, titleHint: titleHint, authorHint: authorHint)
+		let audioResult = try await queueBookWithBackoff(id: id, library: .audio, titleHint: titleHint, authorHint: authorHint)
+
+		// Fire-and-forget searches (non-fatal)
+		#if DEBUG
+		print("[LazyLibrarian] searchBook eBook id=\(id)")
+		#endif
+		try? await searchBook(id: id, library: .ebook)
+		#if DEBUG
+		print("[LazyLibrarian] searchBook AudioBook id=\(id)")
+		#endif
+		try? await searchBook(id: id, library: .audio)
+
+		#if DEBUG
+		print("[LazyLibrarian] requestBook done id=\(id) -> status(eBook)=\(ebookResult.status.rawValue) status(Audio)=\(audioResult.status.rawValue)")
+		#endif
+
 		return LazyLibrarianRequest(
 			id: ebookResult.id,
 			title: ebookResult.title,
 			author: ebookResult.author,
 			status: ebookResult.status,
-			audioStatus: audioResult?.status ?? ebookResult.audioStatus ?? .requested
+			audioStatus: audioResult.status
 		)
 	}
 
@@ -439,6 +483,11 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 			throw LazyLibrarianError.badURL
 		}
 		let (data, response) = try await session.data(from: url)
+
+		#if DEBUG
+		print("[LazyLibrarian] queueBook response id=\(id) type=\(library.rawValue) status=\((response as? HTTPURLResponse)?.statusCode ?? -1)")
+		#endif
+
 		guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
 			#if DEBUG
 			logResponse("requestBook bad status \( (response as? HTTPURLResponse)?.statusCode ?? -1)", data: data)
@@ -466,13 +515,16 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 			}
 		} catch {
 			#if DEBUG
-			logResponse("requestBook decode failed", data: data)
+			logResponse("queueBook decode failed id=\(id) type=\(library.rawValue)", data: data)
 			#endif
 			throw error
 		}
 
 		if let raw = String(data: data, encoding: .utf8) {
 			let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+			#if DEBUG
+			print("[LazyLibrarian] queueBook raw id=\(id) type=\(library.rawValue) body=\(trimmed)")
+			#endif
 			if trimmed.uppercased() == "OK" {
 				return LazyLibrarianRequest(
 					id: id,
@@ -486,7 +538,7 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 				throw LazyLibrarianError.server(trimmed)
 			}
 			#if DEBUG
-			logResponse("requestBook unsupported response", data: data)
+			logResponse("queueBook unsupported response id=\(id) type=\(library.rawValue)", data: data)
 			#endif
 		}
 
@@ -520,8 +572,14 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 		]) else {
 			throw LazyLibrarianError.badURL
 		}
+		#if DEBUG
+		print("[LazyLibrarian] searchBook call id=\(id) type=\(library.rawValue)")
+		#endif
 		let (data, response) = try await session.data(from: url)
 		guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+			#if DEBUG
+			logResponse("searchBook bad status id=\(id) type=\(library.rawValue) \((response as? HTTPURLResponse)?.statusCode ?? -1)", data: data)
+			#endif
 			throw LazyLibrarianError.badResponse
 		}
 		#if DEBUG
