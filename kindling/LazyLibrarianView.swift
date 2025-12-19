@@ -1,9 +1,16 @@
+import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct LazyLibrarianView: View {
 	@EnvironmentObject var userSettings: UserSettings
 	@StateObject private var viewModel = LazyLibrarianViewModel()
 	@State private var isShowingSearchResults = false
+	@State private var isShowingPodibleExporter = false
+	@State private var podibleExportDocument: EpubDocument?
+	@State private var podibleExportFilename: String = "book.epub"
+	@State private var podibleErrorMessage: String?
+	@State private var isPodibleDownloading = false
 
 	let clientOverride: LazyLibrarianServing?
 
@@ -55,7 +62,17 @@ struct LazyLibrarianView: View {
 				}
 			}
 
-			Section("Requests") {
+			if let podibleError = podibleErrorMessage {
+				Section {
+					Text(podibleError)
+						.foregroundStyle(.red)
+						.font(.caption)
+				} header: {
+					Text("Podible")
+				}
+			}
+
+			Section("Library") {
 				if viewModel.requests.isEmpty {
 					Text("No requests yet.")
 						.foregroundStyle(.secondary)
@@ -76,6 +93,15 @@ struct LazyLibrarianView: View {
 								VStack(alignment: .trailing, spacing: 6) {
 									statusPills(status: request.status, audioStatus: request.audioStatus)
 										.lineLimit(1)
+									Button {
+										Task { await startPodibleDownload(author: request.author, title: request.title) }
+									} label: {
+										Image(systemName: "book.closed")
+									}
+									.buttonStyle(.bordered)
+									.controlSize(.small)
+									.clipShape(Capsule())
+									.disabled(isPodibleDownloading || podibleEpubURL(baseURLString: userSettings.podibleURL, author: request.author, title: request.title) == nil)
 									if request.status == .wanted || request.audioStatus == .wanted {
 										Button("Search") {
 											Task {
@@ -111,9 +137,11 @@ struct LazyLibrarianView: View {
 	#endif
 		.navigationTitle("Requests")
 		.onAppear {
-			Task { await viewModel.loadRequests(using: client) }
+			Task {
+				await viewModel.loadRequests(using: client)
+			}
 		}
-		.searchable(text: $viewModel.query, prompt: "Search LazyLibrarian")
+		.searchable(text: $viewModel.query, prompt: "Search")
 		.onSubmit(of: .search) {
 			Task {
 				await viewModel.search(using: client)
@@ -121,7 +149,18 @@ struct LazyLibrarianView: View {
 			}
 		}
 		.navigationDestination(isPresented: $isShowingSearchResults) {
-			LazyLibrarianSearchResultsView(viewModel: viewModel, client: client)
+			LazyLibrarianSearchResultsView(
+				viewModel: viewModel,
+				client: client
+			)
+		}
+		.fileExporter(
+			isPresented: $isShowingPodibleExporter,
+			document: podibleExportDocument,
+			contentType: .epub,
+			defaultFilename: podibleExportFilename
+		) { _ in
+			podibleExportDocument = nil
 		}
 	}
 
@@ -134,6 +173,26 @@ struct LazyLibrarianView: View {
 	private func downloadProgressBars(progress: LazyLibrarianViewModel.DownloadProgress) -> some View {
 		lazyLibrarianDownloadProgressBars(progress: progress)
 	}
+
+	private func startPodibleDownload(author: String, title: String) async {
+		guard let epubURL = podibleEpubURL(baseURLString: userSettings.podibleURL, author: author, title: title) else { return }
+		isPodibleDownloading = true
+		podibleErrorMessage = nil
+		do {
+			let localURL = try await PodibleClient(baseURLString: userSettings.podibleURL).downloadEpub(from: epubURL)
+			podibleExportFilename = sanitizeFilename(title).appending(".epub")
+			podibleExportDocument = EpubDocument(url: localURL)
+			isShowingPodibleExporter = true
+		} catch {
+			podibleErrorMessage = error.localizedDescription
+		}
+		isPodibleDownloading = false
+	}
+
+	private func sanitizeFilename(_ value: String) -> String {
+		podibleSanitizeFilename(value)
+	}
+
 }
 
 private struct LazyLibrarianSearchResultsView: View {
@@ -259,6 +318,50 @@ fileprivate func lazyLibrarianDownloadProgressBars(progress: LazyLibrarianViewMo
 				.foregroundStyle(.secondary)
 				.frame(width: 40, alignment: .trailing)
 		}
+	}
+}
+
+fileprivate func podibleSanitizeFilename(_ value: String) -> String {
+	let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+	if trimmed.isEmpty { return "book" }
+	let invalid = CharacterSet(charactersIn: "/\\:?%*|\"<>")
+	return trimmed.components(separatedBy: invalid).joined(separator: "-")
+}
+
+fileprivate func podibleEpubURL(baseURLString: String, author: String, title: String) -> URL? {
+	let slug = podibleSlugify("\(author) \(title)")
+	return PodibleClient(baseURLString: baseURLString).epubURL(slug: slug)
+}
+
+fileprivate func podibleSlugify(_ value: String) -> String {
+	let trimmed = value.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+	let dashed = trimmed.replacingOccurrences(of: "[^a-z0-9]+", with: "-", options: .regularExpression)
+	let collapsed = dashed.replacingOccurrences(of: "-{2,}", with: "-", options: .regularExpression)
+	return collapsed.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+}
+
+struct EpubDocument: FileDocument {
+	static var readableContentTypes: [UTType] { [.epub] }
+
+	let url: URL
+
+	init(url: URL) {
+		self.url = url
+	}
+
+	init(configuration: ReadConfiguration) throws {
+		throw CocoaError(.fileReadUnknown)
+	}
+
+	func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+		let data = try Data(contentsOf: url)
+		return FileWrapper(regularFileWithContents: data)
+	}
+}
+
+extension UTType {
+	static var epub: UTType {
+		UTType(filenameExtension: "epub") ?? .data
 	}
 }
 

@@ -810,3 +810,60 @@ final actor LazyLibrarianMockClient: LazyLibrarianServing {
 		return items
 	}
 }
+
+// MARK: - Podible
+
+enum PodibleError: LocalizedError {
+	case notConfigured
+	case badURL
+	case badResponse
+
+	var errorDescription: String? {
+		switch self {
+		case .notConfigured:
+			return "Podible is not configured."
+		case .badURL:
+			return "The Podible URL looks invalid."
+		case .badResponse:
+			return "Could not parse Podible's response."
+		}
+	}
+}
+
+struct PodibleClient {
+	let baseURLString: String
+	var session: URLSession = .shared
+
+	/// Builds `<base>/epubs/<slug>.epub` while preserving any existing query items (e.g. `?key=...`).
+	func epubURL(slug: String) -> URL? {
+		guard baseURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
+			return nil
+		}
+		guard let base = URL(string: baseURLString) else { return nil }
+		guard var components = URLComponents(url: base, resolvingAgainstBaseURL: false) else { return nil }
+
+		var path = components.path
+		if path.isEmpty { path = "/" }
+		if path.hasSuffix("/") == false { path.append("/") }
+		path.append("epubs/")
+		path.append("\(slug).epub")
+		components.path = path
+
+		return components.url
+	}
+
+	func downloadEpub(from url: URL) async throws -> URL {
+		let (tempURL, response) = try await session.download(from: url)
+		guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+			throw PodibleError.badResponse
+		}
+
+		let fm = FileManager.default
+		let folder = fm.temporaryDirectory.appendingPathComponent("podible", isDirectory: true)
+		try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
+		let destination = folder.appendingPathComponent(UUID().uuidString).appendingPathExtension("epub")
+		try? fm.removeItem(at: destination)
+		try fm.moveItem(at: tempURL, to: destination)
+		return destination
+	}
+}

@@ -35,7 +35,7 @@ struct SettingsView: View {
 						.keyboardType(.URL)
 					#endif
 			}
-t
+
 			Section("IRC") {
 				TextField("Server", text: userSettings.$ircServer)
 				TextField(
