@@ -32,10 +32,6 @@ struct LazyLibrarianView: View {
 		return LazyLibrarianClient(baseURL: url, apiKey: userSettings.lazyLibrarianAPIKey)
 	}
 
-	private func statusColor(_ status: LazyLibrarianRequestStatus) -> Color {
-		lazyLibrarianStatusColor(status)
-	}
-
 	var body: some View {
 		Group {
 			if let client = configuredClient {
@@ -109,16 +105,6 @@ struct LazyLibrarianView: View {
 		}
 	}
 
-	@ViewBuilder
-	private func statusPills(status: LazyLibrarianRequestStatus, audioStatus: LazyLibrarianRequestStatus?) -> some View {
-		lazyLibrarianStatusPills(status: status, audioStatus: audioStatus)
-	}
-
-	@ViewBuilder
-	private func downloadProgressBars(progress: LazyLibrarianViewModel.DownloadProgress) -> some View {
-		lazyLibrarianDownloadProgressBars(progress: progress)
-	}
-
 	private func startPodibleDownload(author: String, title: String) async {
 		guard let epubURL = podibleEpubURL(baseURLString: userSettings.podibleURL, author: author, title: title) else { return }
 		isPodibleDownloading = true
@@ -139,7 +125,13 @@ struct LazyLibrarianView: View {
 	}
 
 	private func requestRow(_ request: LazyLibrarianRequest, client: LazyLibrarianServing) -> some View {
-		VStack(alignment: .leading, spacing: 8) {
+		let progress = viewModel.progressForBookID(request.id)
+		let shouldShowProgress = viewModel.shouldShowDownloadProgress(
+			status: request.status,
+			audioStatus: request.audioStatus
+		) && progress != nil
+
+		return VStack(alignment: .leading, spacing: 8) {
 			HStack(alignment: .center, spacing: 12) {
 				podibleCoverView(
 					url: podibleCoverURL(
@@ -159,23 +151,32 @@ struct LazyLibrarianView: View {
 				}
 				Spacer(minLength: 8)
 				VStack(alignment: .trailing, spacing: 6) {
-					statusPills(status: request.status, audioStatus: request.audioStatus)
-						.lineLimit(1)
-					Button {
-						Task { await startPodibleDownload(author: request.author, title: request.title) }
-					} label: {
-						Image(systemName: "book.closed")
+					if let progress, shouldShowProgress {
+						lazyLibrarianProgressCircles(progress: progress)
+					} else {
+						Button {
+							Task {
+								await startPodibleDownload(
+									author: request.author,
+									title: request.title
+								)
+							}
+						} label: {
+							Image(systemName: "book.closed")
+						}
+						.buttonStyle(.bordered)
+						.controlSize(.small)
+						.clipShape(Capsule())
+						.disabled(
+							isPodibleDownloading
+								|| podibleEpubURL(
+									baseURLString: userSettings.podibleURL,
+									author: request.author,
+									title: request.title
+								) == nil
+						)
 					}
-					.buttonStyle(.bordered)
-					.controlSize(.small)
-					.clipShape(Capsule())
-					.disabled(isPodibleDownloading || podibleEpubURL(baseURLString: userSettings.podibleURL, author: request.author, title: request.title) == nil)
 				}
-			}
-
-			if viewModel.shouldShowDownloadProgress(status: request.status, audioStatus: request.audioStatus),
-			   let progress = viewModel.progressForBookID(request.id) {
-				downloadProgressBars(progress: progress)
 			}
 		}
 		.padding(.vertical, 4)
@@ -183,65 +184,30 @@ struct LazyLibrarianView: View {
 		.listRowInsets(EdgeInsets())
 		.alignmentGuide(.listRowSeparatorLeading) { _ in 56 }
 	}
-
-}
-
-func lazyLibrarianStatusColor(_ status: LazyLibrarianRequestStatus) -> Color {
-	switch status {
-	case .downloaded: return .green
-	case .snatched, .requested, .wanted, .seeding, .okay, .have: return .blue
-	case .failed, .skipped, .ignored: return .red
-	case .open, .processed: return .orange
-	case .unknown: return .gray
-	}
 }
 
 @ViewBuilder
-func lazyLibrarianStatusPills(status: LazyLibrarianRequestStatus, audioStatus: LazyLibrarianRequestStatus?) -> some View {
-	if status == .open, let audioStatus, audioStatus == .open {
-		EmptyView()
-	} else {
-		HStack(spacing: 8) {
-			if status != .unknown {
-				Label(status.rawValue, systemImage: "book.closed")
-					.font(.caption)
-					.foregroundStyle(lazyLibrarianStatusColor(status))
-			}
-			if let audioStatus, audioStatus != .unknown, audioStatus != status {
-				Label(audioStatus.rawValue, systemImage: "headphones")
-					.font(.caption)
-					.foregroundStyle(lazyLibrarianStatusColor(audioStatus))
-			}
-		}
-	}
-}
-
-@ViewBuilder
-func lazyLibrarianDownloadProgressBars(progress: LazyLibrarianViewModel.DownloadProgress) -> some View {
-	VStack(alignment: .leading, spacing: 6) {
-		HStack(spacing: 10) {
+func lazyLibrarianProgressCircles(progress: LazyLibrarianViewModel.DownloadProgress) -> some View {
+	VStack(alignment: .trailing, spacing: 6) {
+		HStack(spacing: 6) {
 			Text("eBook")
 				.font(.caption2)
 				.foregroundStyle(.secondary)
-				.frame(width: 50, alignment: .leading)
 			ProgressView(value: Double(progress.ebook), total: 100)
+				.progressViewStyle(.circular)
+				.controlSize(.small)
 				.tint(progress.ebookFinished ? .green : .blue)
-			Text("\(progress.ebook)%")
-				.font(.caption2)
-				.foregroundStyle(.secondary)
-				.frame(width: 40, alignment: .trailing)
+				.frame(width: 16, height: 16)
 		}
-		HStack(spacing: 10) {
+		HStack(spacing: 6) {
 			Text("Audio")
 				.font(.caption2)
 				.foregroundStyle(.secondary)
-				.frame(width: 50, alignment: .leading)
 			ProgressView(value: Double(progress.audiobook), total: 100)
+				.progressViewStyle(.circular)
+				.controlSize(.small)
 				.tint(progress.audiobookFinished ? .green : .blue)
-			Text("\(progress.audiobook)%")
-				.font(.caption2)
-				.foregroundStyle(.secondary)
-				.frame(width: 40, alignment: .trailing)
+				.frame(width: 16, height: 16)
 		}
 	}
 }
@@ -284,7 +250,7 @@ fileprivate func podibleSanitizeFilename(_ value: String) -> String {
 	return trimmed.components(separatedBy: invalid).joined(separator: "-")
 }
 
-fileprivate func podibleEpubURL(baseURLString: String, author: String, title: String) -> URL? {
+func podibleEpubURL(baseURLString: String, author: String, title: String) -> URL? {
 	let slug = podibleSlugify("\(author) \(title)")
 	return PodibleClient(baseURLString: baseURLString).epubURL(slug: slug)
 }

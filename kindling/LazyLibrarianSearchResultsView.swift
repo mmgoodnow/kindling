@@ -32,12 +32,13 @@ struct LazyLibrarianSearchResultsView: View {
 		let isPending =
 			pendingRequestIDs.contains(book.id)
 			&& viewModel.progressForBookID(book.id) == nil
-		let hasProgress = viewModel.progressForBookID(book.id) != nil
-		let shouldShowGetButton =
-			!(viewModel.shouldShowDownloadProgress(
+		let progress = viewModel.progressForBookID(book.id)
+		let shouldShowProgress =
+			viewModel.shouldShowDownloadProgress(
 				status: book.status,
 				audioStatus: book.audioStatus
-			) && hasProgress)
+			) && progress != nil
+		let shouldShowGetButton = !shouldShowProgress
 
 		return
 			VStack(alignment: .leading, spacing: 8) {
@@ -61,12 +62,9 @@ struct LazyLibrarianSearchResultsView: View {
 					}
 					Spacer(minLength: 8)
 					VStack(alignment: .trailing, spacing: 6) {
-						lazyLibrarianStatusPills(
-							status: book.status,
-							audioStatus: book.audioStatus
-						)
-						.lineLimit(1)
-						if shouldShowGetButton {
+						if let progress, shouldShowProgress {
+							lazyLibrarianProgressCircles(progress: progress)
+						} else if shouldShowGetButton {
 							Group {
 								if isPending {
 									Button {
@@ -128,15 +126,6 @@ struct LazyLibrarianSearchResultsView: View {
 							)
 						}
 					}
-				}
-
-				if viewModel.shouldShowDownloadProgress(
-					status: book.status,
-					audioStatus: book.audioStatus
-				),
-					let progress = viewModel.progressForBookID(book.id)
-				{
-					lazyLibrarianDownloadProgressBars(progress: progress)
 				}
 			}
 			.padding(.vertical, 4)
