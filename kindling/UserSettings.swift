@@ -9,4 +9,5 @@ class UserSettings: ObservableObject {
 	@AppStorage("kindleEmailAddress") var kindleEmailAddress: String = "example@kindle.com"
 	@AppStorage("lazyLibrarianURL") var lazyLibrarianURL: String = ""
 	@AppStorage("lazyLibrarianAPIKey") var lazyLibrarianAPIKey: String = ""
+	@AppStorage("podibleURL") var podibleURL: String = ""
 }

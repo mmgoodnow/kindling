@@ -13,6 +13,11 @@ struct ContentView: View {
 			LazyLibrarianView()
 				.toolbar {
 					ToolbarItem {
+						NavigationLink(destination: PodibleView()) {
+							Image(systemName: "headphones")
+						}
+					}
+					ToolbarItem {
 						NavigationLink(destination: SettingsView()) {
 							Image(systemName: "gear")
 						}
@@ -24,4 +29,5 @@ struct ContentView: View {
 
 #Preview {
 	ContentView()
+		.environmentObject(UserSettings())
 }

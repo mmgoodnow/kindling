@@ -5,10 +5,42 @@ struct SettingsView: View {
 
 	var body: some View {
 		Form {
+			Section("Email") {
+				TextField(
+					"Kindle Email Address",
+					text: userSettings.$kindleEmailAddress
+				)
+			}
+
+			Section("LazyLibrarian") {
+				TextField(
+					"Base URL (e.g. http://localhost:5299)",
+					text: userSettings.$lazyLibrarianURL
+				)
+				#if os(iOS)
+					.textInputAutocapitalization(.never)
+					.keyboardType(.URL)
+				#endif
+				SecureField("API Key", text: userSettings.$lazyLibrarianAPIKey)
+					.textContentType(.password)
+					#if os(iOS)
+						.textInputAutocapitalization(.never)
+					#endif
+			}
+
+			Section("Podible") {
+				TextField("Base URL", text: userSettings.$podibleURL)
+					#if os(iOS)
+						.textInputAutocapitalization(.never)
+						.keyboardType(.URL)
+					#endif
+			}
+t
 			Section("IRC") {
 				TextField("Server", text: userSettings.$ircServer)
 				TextField(
-					"Port", value: userSettings.$ircPort,
+					"Port",
+					value: userSettings.$ircPort,
 					formatter: portNumberFormatter
 				)
 				TextField("Channel", text: userSettings.$ircChannel)
@@ -17,29 +49,6 @@ struct SettingsView: View {
 					Text("Search").tag("Search")
 					Text("SearchOok").tag("SearchOok")
 				}.pickerStyle(.menu)
-			}
-
-			Section("Email") {
-				TextField(
-					"Kindle Email Address",
-					text: userSettings.$kindleEmailAddress)
-			}
-
-			Section {
-				TextField("Base URL (e.g. http://localhost:5299)", text: userSettings.$lazyLibrarianURL)
-				#if os(iOS)
-					.textInputAutocapitalization(.never)
-					.keyboardType(.URL)
-				#endif
-				SecureField("API Key", text: userSettings.$lazyLibrarianAPIKey)
-					.textContentType(.password)
-				#if os(iOS)
-					.textInputAutocapitalization(.never)
-				#endif
-			} header: {
-				Text("LazyLibrarian")
-			} footer: {
-				Text("Enable the API in LazyLibrarian, generate a 32-character key, and paste it here.")
 			}
 		}.formStyle(.grouped)
 			.navigationTitle("Settings")
@@ -56,4 +65,5 @@ struct SettingsView: View {
 
 #Preview {
 	SettingsView()
+		.environmentObject(UserSettings())
 }
