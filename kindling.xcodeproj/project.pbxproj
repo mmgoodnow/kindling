@@ -38,6 +38,7 @@
 		51A0C0012DCB12F800123456 /* LazyLibrarianClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51A0C0112DCB12F800123456 /* LazyLibrarianClient.swift */; };
 		51A0C0022DCB12F800123456 /* LazyLibrarianViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51A0C0122DCB12F800123456 /* LazyLibrarianViewModel.swift */; };
 		51A0C0032DCB12F800123456 /* LazyLibrarianView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51A0C0132DCB12F800123456 /* LazyLibrarianView.swift */; };
+		51A0C0102DCB12F800123456 /* LazyLibrarianSearchResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51A0C0202DCB12F800123456 /* LazyLibrarianSearchResultsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -111,6 +112,7 @@
 		51A0C0112DCB12F800123456 /* LazyLibrarianClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LazyLibrarianClient.swift; sourceTree = "<group>"; };
 		51A0C0122DCB12F800123456 /* LazyLibrarianViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LazyLibrarianViewModel.swift; sourceTree = "<group>"; };
 		51A0C0132DCB12F800123456 /* LazyLibrarianView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LazyLibrarianView.swift; sourceTree = "<group>"; };
+		51A0C0202DCB12F800123456 /* LazyLibrarianSearchResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LazyLibrarianSearchResultsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -186,6 +188,7 @@
 				51792F992C900EEB004B6E71 /* Preview Content */,
 				51929E252C9E511F00D77429 /* SearchView.swift */,
 				51A0C0132DCB12F800123456 /* LazyLibrarianView.swift */,
+				51A0C0202DCB12F800123456 /* LazyLibrarianSearchResultsView.swift */,
 				514A16B62CA78AD800B6F94E /* SettingsView.swift */,
 				51929E272C9FA70900D77429 /* SearchResultsView.swift */,
 				514A16BC2CAFB51800B6F94E /* SearchResultView.swift */,
@@ -410,6 +413,7 @@
 				51929E2C2CA007BC00D77429 /* MailView.swift in Sources */,
 				514A16B72CA78AD800B6F94E /* SettingsView.swift in Sources */,
 				51A0C0032DCB12F800123456 /* LazyLibrarianView.swift in Sources */,
+				51A0C0102DCB12F800123456 /* LazyLibrarianSearchResultsView.swift in Sources */,
 				51A0C0012DCB12F800123456 /* LazyLibrarianClient.swift in Sources */,
 				51A0C0022DCB12F800123456 /* LazyLibrarianViewModel.swift in Sources */,
 				514A16C42CB19C2300B6F94E /* ExportViewModifier.swift in Sources */,

@@ -63,6 +63,7 @@ struct LazyLibrarianBook: Identifiable, Hashable, Decodable {
 	let status: LazyLibrarianRequestStatus
 	let audioStatus: LazyLibrarianRequestStatus?
 	let coverURL: URL?
+	let coverImageURL: URL?
 	let rating: Double?
 	let ratingCount: Int?
 	let published: String?
@@ -71,7 +72,7 @@ struct LazyLibrarianBook: Identifiable, Hashable, Decodable {
 	init(
 		id: String, title: String, author: String, status: LazyLibrarianRequestStatus,
 		audioStatus: LazyLibrarianRequestStatus? = nil,
-		coverURL: URL? = nil, rating: Double? = nil, ratingCount: Int? = nil,
+		coverURL: URL? = nil, coverImageURL: URL? = nil, rating: Double? = nil, ratingCount: Int? = nil,
 		published: String? = nil, link: URL? = nil
 	) {
 		self.id = id
@@ -80,6 +81,7 @@ struct LazyLibrarianBook: Identifiable, Hashable, Decodable {
 		self.status = status
 		self.audioStatus = audioStatus
 		self.coverURL = coverURL
+		self.coverImageURL = coverImageURL
 		self.rating = rating
 		self.ratingCount = ratingCount
 		self.published = published
@@ -98,6 +100,7 @@ struct LazyLibrarianBook: Identifiable, Hashable, Decodable {
 		case status = "status"
 		case audioStatus = "AudioStatus"
 		case coverURL = "cover"
+		case coverImageURL = "bookimg"
 		case rating = "bookrate"
 		case ratingCountLower = "bookrate_count"
 		case ratingCountUpper = "BookRate"
@@ -117,6 +120,7 @@ struct LazyLibrarianBook: Identifiable, Hashable, Decodable {
 			?? .unknown
 		audioStatus = (try? container.decode(LazyLibrarianRequestStatus.self, forKey: .audioStatus))
 		coverURL = try? container.decodeIfPresent(URL.self, forKey: .coverURL)
+		coverImageURL = try? container.decodeIfPresent(URL.self, forKey: .coverImageURL)
 		rating = try? container.decodeIfPresent(Double.self, forKey: .rating)
 		ratingCount =
 			(try? container.decodeIfPresent(Int.self, forKey: .ratingCountLower))
@@ -847,6 +851,24 @@ struct PodibleClient {
 		if path.hasSuffix("/") == false { path.append("/") }
 		path.append("epubs/")
 		path.append("\(slug).epub")
+		components.path = path
+
+		return components.url
+	}
+
+	/// Builds `<base>/covers/<slug>.jpg` while preserving any existing query items (e.g. `?key=...`).
+	func coverURL(slug: String) -> URL? {
+		guard baseURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
+			return nil
+		}
+		guard let base = URL(string: baseURLString) else { return nil }
+		guard var components = URLComponents(url: base, resolvingAgainstBaseURL: false) else { return nil }
+
+		var path = components.path
+		if path.isEmpty { path = "/" }
+		if path.hasSuffix("/") == false { path.append("/") }
+		path.append("covers/")
+		path.append("\(slug).jpg")
 		components.path = path
 
 		return components.url

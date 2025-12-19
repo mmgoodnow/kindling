@@ -69,7 +69,8 @@ final class LazyLibrarianViewModel: ObservableObject {
 					title: requested.title,
 					author: requested.author,
 					status: requested.status,
-					audioStatus: requested.audioStatus
+					audioStatus: requested.audioStatus,
+					coverImageURL: searchResults[searchIndex].coverImageURL
 				)
 				searchResults[searchIndex] = updated
 			}
