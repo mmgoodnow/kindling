@@ -1,4 +1,5 @@
 import Foundation
+import Kingfisher
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -211,21 +212,16 @@ func lazyLibrarianProgressCircles(progress: LazyLibrarianViewModel.DownloadProgr
 	}
 }
 
+@MainActor
 @ViewBuilder
 func podibleCoverView(url: URL?) -> some View {
 	if let url {
-		AsyncImage(url: url) { phase in
-			switch phase {
-			case .empty:
-				podibleCoverPlaceholder()
-			case .success(let image):
-				image
-					.resizable()
-					.scaledToFill()
-			default:
+		KFImage(url)
+			.placeholder {
 				podibleCoverPlaceholder()
 			}
-		}
+			.resizable()
+			.scaledToFill()
 		.frame(width: 44, height: 64)
 		.clipShape(RoundedRectangle(cornerRadius: 6))
 	}
