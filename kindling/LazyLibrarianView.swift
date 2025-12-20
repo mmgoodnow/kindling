@@ -134,10 +134,9 @@ struct LazyLibrarianView: View {
 		return VStack(alignment: .leading, spacing: 8) {
 			HStack(alignment: .center, spacing: 12) {
 				podibleCoverView(
-					url: podibleCoverURL(
-						baseURLString: userSettings.podibleURL,
-						author: request.author,
-						title: request.title
+					url: lazyLibrarianAssetURL(
+						baseURLString: userSettings.lazyLibrarianURL,
+						path: request.bookImagePath
 					)
 				)
 				VStack(alignment: .leading, spacing: 4) {
@@ -258,6 +257,19 @@ func podibleEpubURL(baseURLString: String, author: String, title: String) -> URL
 func podibleCoverURL(baseURLString: String, author: String, title: String) -> URL? {
 	let slug = podibleSlugify("\(author) \(title)")
 	return PodibleClient(baseURLString: baseURLString).coverURL(slug: slug)
+}
+
+func lazyLibrarianAssetURL(baseURLString: String, path: String?) -> URL? {
+	guard let path, let baseURL = URL(string: baseURLString) else { return nil }
+	var base = baseURL
+	if base.path.hasSuffix("/api") {
+		base.deleteLastPathComponent()
+	}
+	if base.path.hasSuffix("/") == false {
+		base.appendPathComponent("")
+	}
+	guard let url = URL(string: path, relativeTo: base)?.absoluteURL else { return nil }
+	return url
 }
 
 fileprivate func podibleSlugify(_ value: String) -> String {
