@@ -139,6 +139,9 @@ struct LazyLibrarianRequest: Identifiable, Hashable, Decodable {
 	let status: LazyLibrarianRequestStatus
 	let audioStatus: LazyLibrarianRequestStatus?
 	let bookAdded: Date?
+	let bookLibrary: Date?
+	let audioLibrary: Date?
+	let bookImagePath: String?
 
 	init(
 		id: String,
@@ -146,7 +149,10 @@ struct LazyLibrarianRequest: Identifiable, Hashable, Decodable {
 		author: String,
 		status: LazyLibrarianRequestStatus,
 		audioStatus: LazyLibrarianRequestStatus? = nil,
-		bookAdded: Date? = nil
+		bookAdded: Date? = nil,
+		bookLibrary: Date? = nil,
+		audioLibrary: Date? = nil,
+		bookImagePath: String? = nil
 	) {
 		self.id = id
 		self.title = title
@@ -154,6 +160,9 @@ struct LazyLibrarianRequest: Identifiable, Hashable, Decodable {
 		self.status = status
 		self.audioStatus = audioStatus
 		self.bookAdded = bookAdded
+		self.bookLibrary = bookLibrary
+		self.audioLibrary = audioLibrary
+		self.bookImagePath = bookImagePath
 	}
 
 	private enum CodingKeys: String, CodingKey {
@@ -168,6 +177,10 @@ struct LazyLibrarianRequest: Identifiable, Hashable, Decodable {
 		case statusAlt = "Status"
 		case audioStatus = "AudioStatus"
 		case bookAdded = "BookAdded"
+		case bookLibrary = "BookLibrary"
+		case audioLibrary = "AudioLibrary"
+		case bookImageUpper = "BookImg"
+		case bookImageLower = "bookimg"
 	}
 
 	init(from decoder: Decoder) throws {
@@ -180,10 +193,30 @@ struct LazyLibrarianRequest: Identifiable, Hashable, Decodable {
 			?? (try? container.decode(LazyLibrarianRequestStatus.self, forKey: .audioStatus))
 			?? .unknown
 		audioStatus = (try? container.decode(LazyLibrarianRequestStatus.self, forKey: .audioStatus))
-		if let raw = try? container.decodeIfPresent(String.self, forKey: .bookAdded) {
-			bookAdded = LazyLibrarianDateParser.parse(raw)
+		bookImagePath = try? container.decodeIfPresent(String.self, forKeys: [.bookImageUpper, .bookImageLower])
+		if let raw = try? container.decodeIfPresent(String.self, forKey: .bookLibrary) {
+			bookLibrary = LazyLibrarianDateParser.parse(raw)
 		} else {
-			bookAdded = nil
+			bookLibrary = nil
+		}
+		if let raw = try? container.decodeIfPresent(String.self, forKey: .audioLibrary) {
+			audioLibrary = LazyLibrarianDateParser.parse(raw)
+		} else {
+			audioLibrary = nil
+		}
+		switch (bookLibrary, audioLibrary) {
+		case let (b?, a?):
+			bookAdded = min(b, a)
+		case let (b?, nil):
+			bookAdded = b
+		case let (nil, a?):
+			bookAdded = a
+		case (nil, nil):
+			if let raw = try? container.decodeIfPresent(String.self, forKey: .bookAdded) {
+				bookAdded = LazyLibrarianDateParser.parse(raw)
+			} else {
+				bookAdded = nil
+			}
 		}
 	}
 }
