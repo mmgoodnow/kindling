@@ -32,3 +32,4 @@ separarr.db.json
 DerivedData
 llapi
 SourcePackages
+*.xcuserstate
