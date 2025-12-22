@@ -128,10 +128,6 @@ struct LazyLibrarianSearchResultsView: View {
 					}
 				}
 			}
-			.padding(.vertical, 4)
-			.listRowSeparator(.visible)
-			.listRowInsets(EdgeInsets())
-			.alignmentGuide(.listRowSeparatorLeading) { _ in 56 }
 			.onChange(of: viewModel.progressForBookID(book.id)?.updatedAt) {
 				_ in
 				pendingRequestIDs.remove(book.id)

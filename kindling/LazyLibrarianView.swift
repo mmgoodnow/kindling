@@ -30,21 +30,24 @@ struct LazyLibrarianView: View {
 		else {
 			return nil
 		}
-		return LazyLibrarianClient(baseURL: url, apiKey: userSettings.lazyLibrarianAPIKey)
+		return LazyLibrarianClient(
+			baseURL: url,
+			apiKey: userSettings.lazyLibrarianAPIKey
+		)
 	}
 
 	var body: some View {
-		Group {
-			if let client = configuredClient {
-				content(client: client)
-			} else {
-				ContentUnavailableView {
-					Label("LazyLibrarian", systemImage: "books.vertical")
-				} description: {
-					Text("Add your LazyLibrarian URL and API key in Settings to request books and see request status.")
-				}
-				.navigationTitle("Library")
+		if let client = configuredClient {
+			content(client: client)
+		} else {
+			ContentUnavailableView {
+				Label("LazyLibrarian", systemImage: "books.vertical")
+			} description: {
+				Text(
+					"Add your LazyLibrarian URL and API key in Settings to request books and see request status."
+				)
 			}
+			.navigationTitle("Library")
 		}
 	}
 
@@ -72,11 +75,6 @@ struct LazyLibrarianView: View {
 				}
 			}
 		}
-		#if os(iOS)
-			.listStyle(.insetGrouped)
-	#else
-			.listStyle(.inset)
-	#endif
 		.navigationTitle("Library")
 		.onAppear {
 			Task {
@@ -110,11 +108,19 @@ struct LazyLibrarianView: View {
 	}
 
 	private func startPodibleDownload(author: String, title: String) async {
-		guard let epubURL = podibleEpubURL(baseURLString: userSettings.podibleURL, author: author, title: title) else { return }
+		guard
+			let epubURL = podibleEpubURL(
+				baseURLString: userSettings.podibleURL,
+				author: author,
+				title: title
+			)
+		else { return }
 		isPodibleDownloading = true
 		podibleErrorMessage = nil
 		do {
-			let localURL = try await PodibleClient(baseURLString: userSettings.podibleURL).downloadEpub(from: epubURL)
+			let localURL = try await PodibleClient(
+				baseURLString: userSettings.podibleURL
+			).downloadEpub(from: epubURL)
 			podibleExportFilename = sanitizeFilename(title).appending(".epub")
 			podibleExportDocument = EpubDocument(url: localURL)
 			isShowingPodibleExporter = true
@@ -128,7 +134,10 @@ struct LazyLibrarianView: View {
 		podibleSanitizeFilename(value)
 	}
 
-	private func requestRow(_ request: LazyLibrarianRequest, client: LazyLibrarianServing) -> some View {
+	private func requestRow(
+		_ request: LazyLibrarianRequest,
+		client: LazyLibrarianServing
+	) -> some View {
 		let progress = viewModel.progressForBookID(request.id)
 
 		return VStack(alignment: .leading, spacing: 8) {
@@ -159,7 +168,9 @@ struct LazyLibrarianView: View {
 							bookID: request.id,
 							library: .ebook
 						),
-						shouldOfferSearch: viewModel.shouldOfferSearch(status: request.status),
+						shouldOfferSearch: viewModel.shouldOfferSearch(
+							status: request.status
+						),
 						searchAction: {
 							Task {
 								await viewModel.triggerSearch(
@@ -193,7 +204,9 @@ struct LazyLibrarianView: View {
 							bookID: request.id,
 							library: .audio
 						),
-						shouldOfferSearch: viewModel.shouldOfferSearch(status: request.audioStatus),
+						shouldOfferSearch: viewModel.shouldOfferSearch(
+							status: request.audioStatus
+						),
 						searchAction: {
 							Task {
 								await viewModel.triggerSearch(
@@ -207,10 +220,6 @@ struct LazyLibrarianView: View {
 				}
 			}
 		}
-		.padding(.vertical, 4)
-		.listRowSeparator(.visible)
-		.listRowInsets(EdgeInsets())
-		.alignmentGuide(.listRowSeparatorLeading) { _ in 56 }
 	}
 }
 
@@ -288,7 +297,9 @@ func lazyLibrarianAudioStatusRow(
 }
 
 @ViewBuilder
-func lazyLibrarianProgressCircles(progress: LazyLibrarianViewModel.DownloadProgress) -> some View {
+func lazyLibrarianProgressCircles(
+	progress: LazyLibrarianViewModel.DownloadProgress
+) -> some View {
 	VStack(alignment: .trailing, spacing: 6) {
 		HStack(spacing: 6) {
 			Text("eBook")
@@ -329,8 +340,8 @@ func podibleCoverView(url: URL?) -> some View {
 			}
 			.resizable()
 			.scaledToFill()
-		.frame(width: 44, height: 64)
-		.clipShape(RoundedRectangle(cornerRadius: 6))
+			.frame(width: 44, height: 64)
+			.clipShape(RoundedRectangle(cornerRadius: 6))
 	}
 }
 
@@ -345,19 +356,23 @@ func podibleCoverPlaceholder() -> some View {
 		)
 }
 
-fileprivate func podibleSanitizeFilename(_ value: String) -> String {
+private func podibleSanitizeFilename(_ value: String) -> String {
 	let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
 	if trimmed.isEmpty { return "book" }
 	let invalid = CharacterSet(charactersIn: "/\\:?%*|\"<>")
 	return trimmed.components(separatedBy: invalid).joined(separator: "-")
 }
 
-func podibleEpubURL(baseURLString: String, author: String, title: String) -> URL? {
+func podibleEpubURL(baseURLString: String, author: String, title: String)
+	-> URL?
+{
 	let slug = podibleSlugify("\(author) \(title)")
 	return PodibleClient(baseURLString: baseURLString).epubURL(slug: slug)
 }
 
-func podibleCoverURL(baseURLString: String, author: String, title: String) -> URL? {
+func podibleCoverURL(baseURLString: String, author: String, title: String)
+	-> URL?
+{
 	let slug = podibleSlugify("\(author) \(title)")
 	return PodibleClient(baseURLString: baseURLString).coverURL(slug: slug)
 }
@@ -371,14 +386,26 @@ func lazyLibrarianAssetURL(baseURLString: String, path: String?) -> URL? {
 	if base.path.hasSuffix("/") == false {
 		base.appendPathComponent("")
 	}
-	guard let url = URL(string: path, relativeTo: base)?.absoluteURL else { return nil }
+	guard let url = URL(string: path, relativeTo: base)?.absoluteURL else {
+		return nil
+	}
 	return url
 }
 
-fileprivate func podibleSlugify(_ value: String) -> String {
-	let trimmed = value.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-	let dashed = trimmed.replacingOccurrences(of: "[^a-z0-9]+", with: "-", options: .regularExpression)
-	let collapsed = dashed.replacingOccurrences(of: "-{2,}", with: "-", options: .regularExpression)
+private func podibleSlugify(_ value: String) -> String {
+	let trimmed = value.lowercased().trimmingCharacters(
+		in: .whitespacesAndNewlines
+	)
+	let dashed = trimmed.replacingOccurrences(
+		of: "[^a-z0-9]+",
+		with: "-",
+		options: .regularExpression
+	)
+	let collapsed = dashed.replacingOccurrences(
+		of: "-{2,}",
+		with: "-",
+		options: .regularExpression
+	)
 	return collapsed.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
 }
 
