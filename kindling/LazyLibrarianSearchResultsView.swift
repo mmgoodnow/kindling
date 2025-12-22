@@ -166,6 +166,8 @@ struct LazyLibrarianSearchResultsView: View {
 			audiobook: 18,
 			ebookFinished: false,
 			audiobookFinished: false,
+			ebookSeen: true,
+			audiobookSeen: true,
 			updatedAt: .now
 		)
 

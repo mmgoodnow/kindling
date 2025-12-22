@@ -7,6 +7,8 @@ final class LazyLibrarianViewModel: ObservableObject {
 		var audiobook: Int
 		var ebookFinished: Bool
 		var audiobookFinished: Bool
+		var ebookSeen: Bool
+		var audiobookSeen: Bool
 		var updatedAt: Date
 	}
 
@@ -19,6 +21,13 @@ final class LazyLibrarianViewModel: ObservableObject {
 
 	private var downloadPollingTasks: [String: Task<Void, Never>] = [:]
 	private let downloadPollIntervalNanoseconds: UInt64 = 500_000_000
+	private let searchCooldownInterval: TimeInterval = 20
+	private var lastSearchByKey: [SearchCooldownKey: Date] = [:]
+
+	private struct SearchCooldownKey: Hashable {
+		let bookID: String
+		let library: LazyLibrarianLibrary
+	}
 
 	deinit {
 		for task in downloadPollingTasks.values {
@@ -57,6 +66,8 @@ final class LazyLibrarianViewModel: ObservableObject {
 		errorMessage = nil
 		do {
 			let requested = try await client.requestBook(id: book.id, titleHint: book.title, authorHint: book.author)
+			markSearchTriggered(bookID: requested.id, library: .ebook)
+			markSearchTriggered(bookID: requested.id, library: .audio)
 			// Update the request list and the search results with the new status.
 			if let existingIndex = requests.firstIndex(where: { $0.id == requested.id }) {
 				requests[existingIndex] = requested
@@ -89,10 +100,22 @@ final class LazyLibrarianViewModel: ObservableObject {
 		do {
 			try await client.searchBook(id: book.id, library: .ebook)
 			try await client.searchBook(id: book.id, library: .audio)
+			markSearchTriggered(bookID: book.id, library: .ebook)
+			markSearchTriggered(bookID: book.id, library: .audio)
 		} catch {
 			self.errorMessage = error.localizedDescription
 		}
 		isLoading = false
+	}
+
+	func triggerSearch(bookID: String, library: LazyLibrarianLibrary, using client: LazyLibrarianServing) async {
+		guard canTriggerSearch(bookID: bookID, library: library) else { return }
+		do {
+			try await client.searchBook(id: bookID, library: library)
+			markSearchTriggered(bookID: bookID, library: library)
+		} catch {
+			self.errorMessage = error.localizedDescription
+		}
 	}
 
 	private func filtered(_ items: [LazyLibrarianRequest]) -> [LazyLibrarianRequest] {
@@ -128,20 +151,27 @@ final class LazyLibrarianViewModel: ObservableObject {
     }
 
 	func shouldShowDownloadProgress(status: LazyLibrarianRequestStatus, audioStatus: LazyLibrarianRequestStatus?) -> Bool {
-		func isActive(_ s: LazyLibrarianRequestStatus?) -> Bool {
-			guard let s else { return false }
-			switch s {
-			case .requested, .wanted, .snatched, .seeding:
-				return true
-			case .downloaded, .failed, .have, .skipped, .open, .processed, .ignored, .okay, .unknown:
-				return false
-			}
-		}
-		return isActive(status) || isActive(audioStatus)
+		isActive(status) || isActive(audioStatus)
 	}
 
 	func progressForBookID(_ id: String) -> DownloadProgress? {
 		downloadProgressByBookID[id]
+	}
+
+	func shouldOfferSearch(status: LazyLibrarianRequestStatus?) -> Bool {
+		isActive(status)
+	}
+
+	func canTriggerSearch(bookID: String, library: LazyLibrarianLibrary) -> Bool {
+		let key = SearchCooldownKey(bookID: bookID, library: library)
+		if let last = lastSearchByKey[key] {
+			return Date.now.timeIntervalSince(last) >= searchCooldownInterval
+		}
+		return true
+	}
+
+	private func markSearchTriggered(bookID: String, library: LazyLibrarianLibrary) {
+		lastSearchByKey[SearchCooldownKey(bookID: bookID, library: library)] = .now
 	}
 
 	private func startPollingIfNeeded(for items: [LazyLibrarianRequest], client: LazyLibrarianServing) {
@@ -162,6 +192,8 @@ final class LazyLibrarianViewModel: ObservableObject {
 				audiobook: 0,
 				ebookFinished: false,
 				audiobookFinished: false,
+				ebookSeen: false,
+				audiobookSeen: false,
 				updatedAt: .now
 			)
 		}
@@ -210,7 +242,15 @@ final class LazyLibrarianViewModel: ObservableObject {
 
 	private func mergeProgress(_ items: [LazyLibrarianDownloadProgressItem], forBookID bookID: String) {
 		var current = downloadProgressByBookID[bookID]
-			?? DownloadProgress(ebook: 0, audiobook: 0, ebookFinished: false, audiobookFinished: false, updatedAt: .now)
+			?? DownloadProgress(
+				ebook: 0,
+				audiobook: 0,
+				ebookFinished: false,
+				audiobookFinished: false,
+				ebookSeen: false,
+				audiobookSeen: false,
+				updatedAt: .now
+			)
 
 		for item in items where item.bookID == bookID {
 			let library = item.auxInfo
@@ -219,12 +259,24 @@ final class LazyLibrarianViewModel: ObservableObject {
 			if library == LazyLibrarianLibrary.ebook.rawValue {
 				current.ebook = value
 				current.ebookFinished = finished
+				current.ebookSeen = true
 			} else if library == LazyLibrarianLibrary.audio.rawValue {
 				current.audiobook = value
 				current.audiobookFinished = finished
+				current.audiobookSeen = true
 			}
 		}
 		current.updatedAt = .now
 		downloadProgressByBookID[bookID] = current
+	}
+
+	private func isActive(_ status: LazyLibrarianRequestStatus?) -> Bool {
+		guard let status else { return false }
+		switch status {
+		case .requested, .wanted, .snatched, .seeding:
+			return true
+		case .downloaded, .failed, .have, .skipped, .open, .processed, .ignored, .okay, .unknown:
+			return false
+		}
 	}
 }

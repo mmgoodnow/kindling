@@ -83,6 +83,9 @@ struct LazyLibrarianView: View {
 				await viewModel.loadRequests(using: client)
 			}
 		}
+		.refreshable {
+			await viewModel.loadRequests(using: client)
+		}
 		.searchable(text: $viewModel.query, prompt: "Search")
 		.onSubmit(of: .search) {
 			Task {
@@ -127,10 +130,6 @@ struct LazyLibrarianView: View {
 
 	private func requestRow(_ request: LazyLibrarianRequest, client: LazyLibrarianServing) -> some View {
 		let progress = viewModel.progressForBookID(request.id)
-		let shouldShowProgress = viewModel.shouldShowDownloadProgress(
-			status: request.status,
-			audioStatus: request.audioStatus
-		) && progress != nil
 
 		return VStack(alignment: .leading, spacing: 8) {
 			HStack(alignment: .center, spacing: 12) {
@@ -150,32 +149,61 @@ struct LazyLibrarianView: View {
 						.lineLimit(1)
 				}
 				Spacer(minLength: 8)
-				VStack(alignment: .trailing, spacing: 6) {
-					if let progress, shouldShowProgress {
-						lazyLibrarianProgressCircles(progress: progress)
-					} else {
-						Button {
+				HStack(spacing: 10) {
+					lazyLibrarianEbookStatusRow(
+						status: request.status,
+						progressValue: progress?.ebook,
+						progressFinished: progress?.ebookFinished ?? false,
+						progressSeen: progress?.ebookSeen ?? false,
+						canTriggerSearch: viewModel.canTriggerSearch(
+							bookID: request.id,
+							library: .ebook
+						),
+						shouldOfferSearch: viewModel.shouldOfferSearch(status: request.status),
+						searchAction: {
+							Task {
+								await viewModel.triggerSearch(
+									bookID: request.id,
+									library: .ebook,
+									using: client
+								)
+							}
+						},
+						downloadAction: {
 							Task {
 								await startPodibleDownload(
 									author: request.author,
 									title: request.title
 								)
 							}
-						} label: {
-							Image(systemName: "book.closed")
+						},
+						canDownload: isPodibleDownloading == false
+							&& podibleEpubURL(
+								baseURLString: userSettings.podibleURL,
+								author: request.author,
+								title: request.title
+							) != nil
+					)
+					lazyLibrarianAudioStatusRow(
+						status: request.audioStatus,
+						progressValue: progress?.audiobook,
+						progressFinished: progress?.audiobookFinished ?? false,
+						progressSeen: progress?.audiobookSeen ?? false,
+						canTriggerSearch: viewModel.canTriggerSearch(
+							bookID: request.id,
+							library: .audio
+						),
+						shouldOfferSearch: viewModel.shouldOfferSearch(status: request.audioStatus),
+						searchAction: {
+							Task {
+								await viewModel.triggerSearch(
+									bookID: request.id,
+									library: .audio,
+									using: client
+								)
+							}
 						}
-						.buttonStyle(.bordered)
-						.controlSize(.small)
-						.clipShape(Capsule())
-						.disabled(
-							isPodibleDownloading
-								|| podibleEpubURL(
-									baseURLString: userSettings.podibleURL,
-									author: request.author,
-									title: request.title
-								) == nil
-						)
-					}
+					)
 				}
 			}
 		}
@@ -186,6 +214,79 @@ struct LazyLibrarianView: View {
 	}
 }
 
+func lazyLibrarianEbookStatusRow(
+	status: LazyLibrarianRequestStatus?,
+	progressValue: Int?,
+	progressFinished: Bool,
+	progressSeen: Bool,
+	canTriggerSearch: Bool,
+	shouldOfferSearch: Bool,
+	searchAction: @escaping () -> Void,
+	downloadAction: @escaping () -> Void,
+	canDownload: Bool
+) -> some View {
+	HStack(spacing: 6) {
+		if status == .open {
+			Button(action: downloadAction) {
+				Image(systemName: "book.closed")
+			}
+			.buttonStyle(.plain)
+			.controlSize(.regular)
+			.foregroundStyle(Color.accentColor)
+			.disabled(canDownload == false)
+		} else if progressSeen {
+			lazyLibrarianProgressCircle(
+				value: progressValue ?? 0,
+				tint: progressFinished ? .green : .blue
+			)
+		} else if shouldOfferSearch {
+			Button(action: searchAction) {
+				Image(systemName: "magnifyingglass")
+			}
+			.buttonStyle(.borderless)
+			.controlSize(.small)
+			.disabled(canTriggerSearch == false)
+		} else {
+			Color.clear
+				.frame(width: 22, height: 22)
+		}
+	}
+}
+
+func lazyLibrarianAudioStatusRow(
+	status: LazyLibrarianRequestStatus?,
+	progressValue: Int?,
+	progressFinished: Bool,
+	progressSeen: Bool,
+	canTriggerSearch: Bool,
+	shouldOfferSearch: Bool,
+	searchAction: @escaping () -> Void
+) -> some View {
+	HStack(spacing: 6) {
+		if status == .open {
+			Image(systemName: "headphones")
+				.font(.body)
+				.foregroundStyle(.secondary)
+				.frame(width: 28, height: 28)
+		} else if progressSeen {
+			lazyLibrarianProgressCircle(
+				value: progressValue ?? 0,
+				tint: progressFinished ? .green : .blue
+			)
+		} else if shouldOfferSearch {
+			Button(action: searchAction) {
+				Image(systemName: "magnifyingglass")
+			}
+			.buttonStyle(.borderless)
+			.controlSize(.small)
+			.disabled(canTriggerSearch == false)
+		} else {
+			Color.clear
+				.frame(width: 22, height: 22)
+		}
+	}
+}
+
 @ViewBuilder
 func lazyLibrarianProgressCircles(progress: LazyLibrarianViewModel.DownloadProgress) -> some View {
 	VStack(alignment: .trailing, spacing: 6) {
@@ -193,23 +294,29 @@ func lazyLibrarianProgressCircles(progress: LazyLibrarianViewModel.DownloadProgr
 			Text("eBook")
 				.font(.caption2)
 				.foregroundStyle(.secondary)
-			ProgressView(value: Double(progress.ebook), total: 100)
-				.progressViewStyle(.circular)
-				.controlSize(.small)
-				.tint(progress.ebookFinished ? .green : .blue)
-				.frame(width: 16, height: 16)
+			lazyLibrarianProgressCircle(
+				value: progress.ebook,
+				tint: progress.ebookFinished ? .green : .blue
+			)
 		}
 		HStack(spacing: 6) {
 			Text("Audio")
 				.font(.caption2)
 				.foregroundStyle(.secondary)
-			ProgressView(value: Double(progress.audiobook), total: 100)
-				.progressViewStyle(.circular)
-				.controlSize(.small)
-				.tint(progress.audiobookFinished ? .green : .blue)
-				.frame(width: 16, height: 16)
+			lazyLibrarianProgressCircle(
+				value: progress.audiobook,
+				tint: progress.audiobookFinished ? .green : .blue
+			)
 		}
 	}
+}
+
+func lazyLibrarianProgressCircle(value: Int, tint: Color) -> some View {
+	ProgressView(value: Double(value), total: 100)
+		.progressViewStyle(.circular)
+		.controlSize(.small)
+		.tint(tint)
+		.frame(width: 16, height: 16)
 }
 
 @MainActor
