@@ -39,7 +39,11 @@ final class LazyLibrarianViewModel: ObservableObject {
 		isLoading = true
 		errorMessage = nil
 		do {
-			let all = try await client.fetchRequests()
+			var all = try await client.fetchRequests()
+			if needsCoverRefresh(all) {
+				try? await client.fetchBookCovers(wait: true)
+				all = try await client.fetchRequests()
+			}
 			let filteredRequests = filtered(all)
 			requests = filteredRequests
 			startPollingIfNeeded(for: filteredRequests, client: client)
@@ -139,6 +143,20 @@ final class LazyLibrarianViewModel: ObservableObject {
 				return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
 			}
 		}
+	}
+
+	private func needsCoverRefresh(_ items: [LazyLibrarianRequest]) -> Bool {
+		for item in items {
+			let rawPath = item.bookImagePath?.trimmingCharacters(in: .whitespacesAndNewlines)
+			if rawPath == nil || rawPath?.isEmpty == true {
+				return true
+			}
+			let normalized = rawPath?.lowercased() ?? ""
+			if normalized == "images/nocover.png" || normalized == "/images/nocover.png" {
+				return true
+			}
+		}
+		return false
 	}
 	
     private func refreshRequestsSilently(using client: LazyLibrarianServing) async {

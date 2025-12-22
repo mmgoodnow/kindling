@@ -256,6 +256,7 @@ protocol LazyLibrarianServing {
 	func searchBooks(query: String) async throws -> [LazyLibrarianBook]
 	func requestBook(id: String, titleHint: String?, authorHint: String?) async throws -> LazyLibrarianRequest
 	func fetchRequests() async throws -> [LazyLibrarianRequest]
+	func fetchBookCovers(wait: Bool) async throws
 	func searchBook(id: String, library: LazyLibrarianLibrary) async throws
 	func fetchDownloadProgress(limit: Int?) async throws -> [LazyLibrarianDownloadProgressItem]
 }
@@ -423,7 +424,7 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 		throw LazyLibrarianError.badResponse
 	}
 
-	private func queueBookWithBackoff(id: String, library: LazyLibrarianLibrary, titleHint: String?, authorHint: String?, maxAttempts: Int = 5, initialDelayMS: UInt64 = 400) async throws -> LazyLibrarianRequest {
+	private func queueBookWithBackoff(id: String, library: LazyLibrarianLibrary, titleHint: String?, authorHint: String?, maxAttempts: Int = 5, initialDelayMS: UInt64 = 1000) async throws -> LazyLibrarianRequest {
 		var attempt = 1
 		var delay = initialDelayMS
 		while true {
@@ -636,6 +637,20 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 		}
 	}
 
+	func fetchBookCovers(wait: Bool = false) async throws {
+		var items: [URLQueryItem] = []
+		if wait {
+			items.append(URLQueryItem(name: "wait", value: "1"))
+		}
+		guard let url = apiURL(cmd: "getBookCovers", queryItems: items) else {
+			throw LazyLibrarianError.badURL
+		}
+		let (_, response) = try await session.data(from: url)
+		guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+			throw LazyLibrarianError.badResponse
+		}
+	}
+
 	func searchBook(id: String, library: LazyLibrarianLibrary) async throws {
 		let typeItem = URLQueryItem(name: "type", value: library.rawValue)
 		guard let url = apiURL(cmd: "searchBook", queryItems: [
@@ -810,6 +825,10 @@ final actor LazyLibrarianMockClient: LazyLibrarianServing {
 
 	func fetchRequests() async throws -> [LazyLibrarianRequest] {
 		return requests
+	}
+
+	func fetchBookCovers(wait: Bool = false) async throws {
+		// no-op for mock
 	}
 
 	func searchBook(id: String, library: LazyLibrarianLibrary) async throws {
