@@ -216,24 +216,15 @@ final class LazyLibrarianViewModel: ObservableObject {
 			}
 			merged.append(pending)
 		}
-		#if DEBUG
-		print("[LazyLibrarian] mergePending ids=\(pendingRequestsByID.keys.sorted()) items=\(items.count) merged=\(merged.count)")
-		#endif
 		return filtered(merged)
 	}
 
 	private func prunePendingRequests(matching items: [LazyLibrarianRequest]) {
 		guard pendingRequestsByID.isEmpty == false else { return }
 		let existingIDs = Set(items.map(\.id))
-		#if DEBUG
-		print("[LazyLibrarian] prunePending start pending=\(pendingRequestsByID.keys.sorted()) existing=\(existingIDs.sorted())")
-		#endif
 		for id in existingIDs {
 			pendingRequestsByID[id] = nil
 		}
-		#if DEBUG
-		print("[LazyLibrarian] prunePending done pending=\(pendingRequestsByID.keys.sorted())")
-		#endif
 	}
 	
     private func refreshRequestsSilently(using client: LazyLibrarianServing) async {
