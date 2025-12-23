@@ -253,24 +253,11 @@ struct LazyLibrarianView: View {
     .padding(.vertical, 10)
     .padding(.horizontal, 12)
     .background(
-      RoundedRectangle(cornerRadius: 12, style: .continuous)
+      RoundedRectangle(cornerRadius: 20, style: .continuous)
         .fill(Color(.tertiarySystemFill))
     )
-    .overlay(
-      RoundedRectangle(cornerRadius: 12, style: .continuous)
-        .stroke(
-          LinearGradient(
-            colors: [
-              Color.white.opacity(0.12),
-              Color.black.opacity(0.25),
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-          ),
-          lineWidth: 1
-        )
-    )
-    .shadow(color: Color.black.opacity(0.25), radius: 6, x: 0, y: 2)
+    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 3)
   }
 }
 
