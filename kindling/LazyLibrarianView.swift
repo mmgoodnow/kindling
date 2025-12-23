@@ -233,28 +233,28 @@ struct LazyLibrarianView: View {
 
   @ViewBuilder
   private func selectionTray(for item: LazyLibrarianLibraryItem) -> some View {
-    let trayContent = HStack(spacing: 10) {
-      Button {
-      } label: {
-        Image(systemName: "square.and.arrow.up")
-          .font(.title)
-          .frame(minWidth: 48, minHeight: 48)
-      }
-      Button {
-      } label: {
-        Image(systemName: "bookmark")
-          .font(.title)
-          .frame(minWidth: 48, minHeight: 48)
-      }
-      Button {
-      } label: {
-        Image(systemName: "ellipsis")
-          .font(.title)
-          .frame(minWidth: 48, minHeight: 48)
+    let trayContent = HStack {
+      ControlGroup {
+        Button {
+        } label: {
+          Image(systemName: "square.and.arrow.up")
+        }
+        Button {
+        } label: {
+          Image(systemName: "bookmark")
+        }
+        Button {
+        } label: {
+          Image(systemName: "ellipsis")
+        }
       }
       Spacer(minLength: 0)
     }
-    .buttonStyle(.plain)
+    #if os(iOS)
+      .controlGroupStyle(.toolbar)
+    #else
+      .controlGroupStyle(.automatic)
+    #endif
     .padding()
     .frame(maxWidth: .infinity, alignment: .leading)
 
