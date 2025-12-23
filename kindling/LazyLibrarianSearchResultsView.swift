@@ -113,6 +113,7 @@ struct LazyLibrarianSearchResultsView: View {
 									Button {
 										Task {
 											pendingRequestIDs.insert(book.id)
+											viewModel.beginOptimisticRequest(for: book)
 											await viewModel.request(
 												book,
 												using: client

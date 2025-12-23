@@ -163,6 +163,10 @@ final class LazyLibrarianViewModel: ObservableObject {
 		return false
 	}
 
+	func beginOptimisticRequest(for book: LazyLibrarianBook) {
+		addPendingRequestIfNeeded(for: book)
+	}
+
 	private func addPendingRequestIfNeeded(for book: LazyLibrarianBook) {
 		guard pendingRequestsByID[book.id] == nil else { return }
 		if requests.contains(where: { $0.id == book.id }) { return }
