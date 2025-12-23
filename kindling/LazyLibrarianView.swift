@@ -151,6 +151,7 @@ struct LazyLibrarianView: View {
 		client: LazyLibrarianServing
 	) -> some View {
 		let progress = viewModel.progressForBookID(request.id)
+		let isDownloadingThisBook = podibleDownloadingBookID == request.id
 
 		return VStack(alignment: .leading, spacing: 8) {
 			HStack(alignment: .center, spacing: 12) {
@@ -200,8 +201,7 @@ struct LazyLibrarianView: View {
 								)
 							}
 						},
-						canDownload: podibleDownloadingBookID == nil
-							|| podibleDownloadingBookID == request.id
+						canDownload: isDownloadingThisBook == false
 							&& podibleEpubURL(
 								baseURLString: userSettings.podibleURL,
 								author: request.author,
