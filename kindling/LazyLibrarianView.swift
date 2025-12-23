@@ -262,7 +262,7 @@ func lazyLibrarianAudioStatusRow(
 ) -> some View {
 	HStack(spacing: 6) {
 		if status == .open {
-			Image(systemName: "headphones")
+			Image(systemName: "waveform.mid")
 				.font(.system(size: 16, weight: .semibold))
 				.foregroundStyle(.secondary)
 				.frame(width: 28, height: 28)
@@ -302,7 +302,7 @@ func lazyLibrarianProgressCircles(
 			lazyLibrarianProgressCircle(
 				value: progress.audiobook,
 				tint: progress.audiobookFinished ? .green : .blue,
-				icon: "headphones"
+				icon: "waveform.mid"
 			)
 		}
 	}
