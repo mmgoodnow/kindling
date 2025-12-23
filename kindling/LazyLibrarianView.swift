@@ -253,10 +253,10 @@ struct LazyLibrarianView: View {
     .padding(.vertical, 10)
     .padding(.horizontal, 12)
     .background(
-      RoundedRectangle(cornerRadius: 999, style: .continuous)
+      Capsule()
         .fill(Color(.tertiarySystemFill))
     )
-    .clipShape(RoundedRectangle(cornerRadius: 999, style: .continuous))
+    .clipShape(Capsule())
     .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 3)
   }
 }
