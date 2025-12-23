@@ -74,7 +74,16 @@ final class LazyLibrarianViewModel: ObservableObject {
 		do {
 			addPendingRequestIfNeeded(for: book)
 			let requested = try await client.requestBook(id: book.id, titleHint: book.title, authorHint: book.author)
-			pendingRequestsByID[requested.id] = requested
+			let pendingImagePath = pendingRequestsByID[requested.id]?.bookImagePath
+			let mergedRequest = LazyLibrarianRequest(
+				id: requested.id,
+				title: requested.title,
+				author: requested.author,
+				status: requested.status,
+				audioStatus: requested.audioStatus,
+				bookImagePath: pendingImagePath
+			)
+			pendingRequestsByID[requested.id] = mergedRequest
 			markSearchTriggered(bookID: requested.id, library: .ebook)
 			markSearchTriggered(bookID: requested.id, library: .audio)
 			// Update the request list and the search results with the new status.
@@ -172,13 +181,15 @@ final class LazyLibrarianViewModel: ObservableObject {
 	private func addPendingRequestIfNeeded(for book: LazyLibrarianBook) {
 		guard pendingRequestsByID[book.id] == nil else { return }
 		if requests.contains(where: { $0.id == book.id }) { return }
+		let coverPath = book.coverImageURL?.absoluteString ?? book.coverURL?.absoluteString
 		let placeholder = LazyLibrarianRequest(
 			id: book.id,
 			title: book.title,
 			author: book.author,
 			status: .requested,
 			audioStatus: .requested,
-			bookAdded: .now
+			bookAdded: .now,
+			bookImagePath: coverPath
 		)
 		pendingRequestsByID[book.id] = placeholder
 		requests.append(placeholder)
