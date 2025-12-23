@@ -427,6 +427,10 @@ func podibleCoverURL(baseURLString: String, author: String, title: String)
 
 func lazyLibrarianAssetURL(baseURLString: String, path: String?) -> URL? {
 	guard let path, let baseURL = URL(string: baseURLString) else { return nil }
+	let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+	if trimmed.lowercased().hasSuffix("nocover.png") {
+		return nil
+	}
 	var base = baseURL
 	if base.path.hasSuffix("/api") {
 		base.deleteLastPathComponent()
