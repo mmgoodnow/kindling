@@ -67,7 +67,7 @@ struct LazyLibrarianView: View {
 			}
 
 			if viewModel.requests.isEmpty {
-				Text("No requests yet.")
+				Text("No books yet.")
 					.foregroundStyle(.secondary)
 			} else {
 				ForEach(viewModel.requests) { request in
