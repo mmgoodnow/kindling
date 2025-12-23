@@ -217,19 +217,14 @@ struct LazyLibrarianView: View {
       }
       selectionTray(for: item)
         .frame(maxHeight: isSelected ? trayHeight : 0)
-        .scaleEffect(y: isSelected ? 1 : 0, anchor: .top)
-        .opacity(isSelected ? 1 : 0)
         .clipped()
         .allowsHitTesting(isSelected)
         .accessibilityHidden(isSelected == false)
     }
     .contentShape(Rectangle())
     .onTapGesture {
-      withAnimation(.snappy) {
-        selectedItemID = (selectedItemID == item.id) ? nil : item.id
-      }
+      selectedItemID = (selectedItemID == item.id) ? nil : item.id
     }
-    .animation(.snappy, value: selectedItemID)
   }
 
   private func selectionTray(for item: LazyLibrarianLibraryItem) -> some View {
