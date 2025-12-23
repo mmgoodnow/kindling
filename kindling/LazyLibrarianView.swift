@@ -11,7 +11,7 @@ struct LazyLibrarianView: View {
 	@State private var podibleExportDocument: EpubDocument?
 	@State private var podibleExportFilename: String = "book.epub"
 	@State private var podibleErrorMessage: String?
-	@State private var isPodibleDownloading = false
+	@State private var podibleDownloadingBookID: String?
 
 	let clientOverride: LazyLibrarianServing?
 
@@ -119,7 +119,7 @@ struct LazyLibrarianView: View {
 		}
 	}
 
-	private func startPodibleDownload(author: String, title: String) async {
+	private func startPodibleDownload(bookID: String, author: String, title: String) async {
 		guard
 			let epubURL = podibleEpubURL(
 				baseURLString: userSettings.podibleURL,
@@ -127,7 +127,7 @@ struct LazyLibrarianView: View {
 				title: title
 			)
 		else { return }
-		isPodibleDownloading = true
+		podibleDownloadingBookID = bookID
 		podibleErrorMessage = nil
 		do {
 			let localURL = try await PodibleClient(
@@ -139,7 +139,7 @@ struct LazyLibrarianView: View {
 		} catch {
 			podibleErrorMessage = error.localizedDescription
 		}
-		isPodibleDownloading = false
+		podibleDownloadingBookID = nil
 	}
 
 	private func sanitizeFilename(_ value: String) -> String {
@@ -191,18 +191,20 @@ struct LazyLibrarianView: View {
 							)
 						}
 					},
-					downloadAction: {
-						Task {
-							await startPodibleDownload(
+						downloadAction: {
+							Task {
+								await startPodibleDownload(
+									bookID: request.id,
+									author: request.author,
+									title: request.title
+								)
+							}
+						},
+						canDownload: podibleDownloadingBookID == nil
+							|| podibleDownloadingBookID == request.id
+							&& podibleEpubURL(
+								baseURLString: userSettings.podibleURL,
 								author: request.author,
-								title: request.title
-							)
-						}
-					},
-					canDownload: isPodibleDownloading == false
-						&& podibleEpubURL(
-							baseURLString: userSettings.podibleURL,
-							author: request.author,
 							title: request.title
 						) != nil
 				)
