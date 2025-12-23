@@ -234,21 +234,18 @@ struct LazyLibrarianView: View {
         Image(systemName: "square.and.arrow.up")
           .font(.headline)
           .frame(minWidth: 44, minHeight: 44)
-          .background(.thinMaterial, in: Circle())
       }
       Button {
       } label: {
         Image(systemName: "bookmark")
           .font(.headline)
           .frame(minWidth: 44, minHeight: 44)
-          .background(.thinMaterial, in: Circle())
       }
       Button {
       } label: {
         Image(systemName: "ellipsis")
           .font(.headline)
           .frame(minWidth: 44, minHeight: 44)
-          .background(.thinMaterial, in: Circle())
       }
       Spacer()
     }
@@ -257,12 +254,23 @@ struct LazyLibrarianView: View {
     .padding(.horizontal, 12)
     .background(
       RoundedRectangle(cornerRadius: 12, style: .continuous)
-        .fill(.regularMaterial)
+        .fill(Color(.tertiarySystemFill))
     )
     .overlay(
       RoundedRectangle(cornerRadius: 12, style: .continuous)
-        .strokeBorder(.quaternary.opacity(0.6), lineWidth: 1)
+        .stroke(
+          LinearGradient(
+            colors: [
+              Color.white.opacity(0.12),
+              Color.black.opacity(0.25),
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+          ),
+          lineWidth: 1
+        )
     )
+    .shadow(color: Color.black.opacity(0.25), radius: 6, x: 0, y: 2)
   }
 }
 
