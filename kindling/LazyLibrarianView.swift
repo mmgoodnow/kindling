@@ -273,7 +273,7 @@ func lazyLibrarianAudioStatusRow(
 			lazyLibrarianProgressCircle(
 				value: progressValue ?? 0,
 				tint: progressFinished ? .green : .blue,
-				icon: "headphones"
+				icon: "waveform.mid"
 			)
 		} else if shouldOfferSearch {
 			Button(action: searchAction) {
