@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
-.PHONY: mac
-mac:
+.PHONY: run
+run:
 	@osascript -e 'tell application "System Events" to set frontApp to name of first application process whose frontmost is true' \
 		-e 'tell application "Xcode" to activate' \
 		-e 'tell application "System Events" to keystroke "r" using {command down}' \
