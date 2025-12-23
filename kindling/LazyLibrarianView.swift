@@ -232,6 +232,7 @@ func lazyLibrarianEbookStatusRow(
 			}
 			.buttonStyle(.plain)
 			.foregroundStyle(Color.accentColor)
+			.frame(width: 22, height: 22)
 			.disabled(canDownload == false)
 		} else if progressSeen {
 			lazyLibrarianProgressCircle(
@@ -246,6 +247,7 @@ func lazyLibrarianEbookStatusRow(
 			}
 			.buttonStyle(.borderless)
 			.controlSize(.small)
+			.frame(width: 22, height: 22)
 			.disabled(canTriggerSearch == false)
 		} else {
 			Color.clear
@@ -268,7 +270,7 @@ func lazyLibrarianAudioStatusRow(
 			Image(systemName: "waveform.mid")
 				.font(.system(size: 16, weight: .semibold))
 				.foregroundStyle(.secondary)
-				.frame(width: 28, height: 28)
+				.frame(width: 22, height: 22)
 		} else if progressSeen {
 			lazyLibrarianProgressCircle(
 				value: progressValue ?? 0,
@@ -282,6 +284,7 @@ func lazyLibrarianAudioStatusRow(
 			}
 			.buttonStyle(.borderless)
 			.controlSize(.small)
+			.frame(width: 22, height: 22)
 			.disabled(canTriggerSearch == false)
 		} else {
 			Color.clear
@@ -368,7 +371,7 @@ func lazyLibrarianProgressCircle(value: Int, tint: Color, icon: String?) -> some
 				.foregroundStyle(.secondary)
 		}
 	}
-	.frame(width: 18, height: 18)
+	.frame(width: 22, height: 22)
 }
 
 @MainActor
