@@ -213,7 +213,11 @@ struct LazyLibrarianRequest: Identifiable, Hashable, Decodable {
 			bookAdded = a
 		case (nil, nil):
 			if let raw = try? container.decodeIfPresent(String.self, forKey: .bookAdded) {
-				bookAdded = LazyLibrarianDateParser.parse(raw)
+				if let parsed = LazyLibrarianDateParser.parse(raw) {
+					bookAdded = LazyLibrarianDateParser.endOfDay(parsed)
+				} else {
+					bookAdded = nil
+				}
 			} else {
 				bookAdded = nil
 			}
@@ -222,6 +226,12 @@ struct LazyLibrarianRequest: Identifiable, Hashable, Decodable {
 }
 
 private enum LazyLibrarianDateParser {
+	private static let utcCalendar: Calendar = {
+		var calendar = Calendar(identifier: .gregorian)
+		calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
+		return calendar
+	}()
+
 	private static let iso8601WithFractional: ISO8601DateFormatter = {
 		let formatter = ISO8601DateFormatter()
 		formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -238,6 +248,15 @@ private enum LazyLibrarianDateParser {
 		if let date = iso8601WithFractional.date(from: string) { return date }
 		if let date = iso8601.date(from: string) { return date }
 		return nil
+	}
+
+	static func endOfDay(_ date: Date) -> Date {
+		let start = utcCalendar.startOfDay(for: date)
+		guard let nextDay = utcCalendar.date(byAdding: .day, value: 1, to: start),
+		      let end = utcCalendar.date(byAdding: .second, value: -1, to: nextDay) else {
+			return date
+		}
+		return end
 	}
 }
 
