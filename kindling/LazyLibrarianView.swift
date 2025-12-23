@@ -225,28 +225,37 @@ struct LazyLibrarianView: View {
         selectedItemID = (selectedItemID == item.id) ? nil : item.id
       }
     }
-    .animation(.snappy, value: selectedItemID)
+    .animation(.snappy, value: isSelected)
   }
 
   private func selectionTray(for item: LazyLibrarianLibraryItem) -> some View {
-    HStack(spacing: 12) {
+    HStack(spacing: 10) {
       Button {
       } label: {
         Image(systemName: "square.and.arrow.up")
+          .font(.headline)
+          .frame(minWidth: 44, minHeight: 44)
+          .background(.thinMaterial, in: Circle())
       }
       Button {
       } label: {
         Image(systemName: "bookmark")
+          .font(.headline)
+          .frame(minWidth: 44, minHeight: 44)
+          .background(.thinMaterial, in: Circle())
       }
       Button {
       } label: {
         Image(systemName: "ellipsis")
+          .font(.headline)
+          .frame(minWidth: 44, minHeight: 44)
+          .background(.thinMaterial, in: Circle())
       }
       Spacer()
     }
-    .buttonStyle(.borderless)
-    .padding(.vertical, 6)
-    .padding(.horizontal, 10)
+    .buttonStyle(.plain)
+    .padding(.vertical, 10)
+    .padding(.horizontal, 12)
     .background(
       RoundedRectangle(cornerRadius: 10, style: .continuous)
         .fill(.quaternary)
