@@ -74,21 +74,30 @@ final class LazyLibrarianViewModel: ObservableObject {
 		do {
 			addPendingRequestIfNeeded(for: book)
 			let requested = try await client.requestBook(id: book.id, titleHint: book.title, authorHint: book.author)
-			let pendingImagePath = pendingRequestsByID[requested.id]?.bookImagePath
-			let mergedRequest = LazyLibrarianRequest(
-				id: requested.id,
-				title: requested.title,
-				author: requested.author,
-				status: requested.status,
-				audioStatus: requested.audioStatus,
-				bookImagePath: pendingImagePath
-			)
-			pendingRequestsByID[requested.id] = mergedRequest
+			if let pending = pendingRequestsByID[requested.id] {
+				if requested.bookImagePath != nil {
+					pendingRequestsByID[requested.id] = requested
+				} else {
+					pendingRequestsByID[requested.id] = pending
+				}
+			}
 			markSearchTriggered(bookID: requested.id, library: .ebook)
 			markSearchTriggered(bookID: requested.id, library: .audio)
 			// Update the request list and the search results with the new status.
 			if let existingIndex = requests.firstIndex(where: { $0.id == requested.id }) {
-				requests[existingIndex] = requested
+				let existing = requests[existingIndex]
+				let updated = LazyLibrarianRequest(
+					id: requested.id,
+					title: requested.title,
+					author: requested.author,
+					status: requested.status,
+					audioStatus: requested.audioStatus,
+					bookAdded: requested.bookAdded ?? existing.bookAdded,
+					bookLibrary: requested.bookLibrary ?? existing.bookLibrary,
+					audioLibrary: requested.audioLibrary ?? existing.audioLibrary,
+					bookImagePath: requested.bookImagePath ?? existing.bookImagePath
+				)
+				requests[existingIndex] = updated
 			} else {
 				requests.append(requested)
 			}
