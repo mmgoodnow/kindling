@@ -25,7 +25,6 @@ struct LazyLibrarianSearchResultsView: View {
 				}
 			}
 		}
-		.listStyle(.grouped)
 		.navigationTitle("Search")
 	}
 
@@ -50,7 +49,7 @@ struct LazyLibrarianSearchResultsView: View {
 
 		return
 			VStack(alignment: .leading, spacing: 8) {
-				HStack(alignment: .center, spacing: 12) {
+				HStack(alignment: .center, spacing: 8) {
 					podibleCoverView(
 						url: book.coverImageURL
 							?? podibleCoverURL(

@@ -75,7 +75,9 @@ struct LazyLibrarianView: View {
 				}
 			}
 		}
+		#if os(iOS)
 		.listStyle(.grouped)
+		#endif
 		.navigationTitle("Library")
 		.onAppear {
 			Task {
@@ -155,7 +157,7 @@ struct LazyLibrarianView: View {
 		let isDownloadingThisBook = podibleDownloadingBookID == request.id
 
 		return VStack(alignment: .leading, spacing: 8) {
-			HStack(alignment: .center, spacing: 12) {
+			HStack(alignment: .center, spacing: 8) {
 				podibleCoverView(
 					url: lazyLibrarianAssetURL(
 						baseURLString: userSettings.lazyLibrarianURL,
@@ -389,7 +391,7 @@ func podibleCoverView(url: URL?) -> some View {
 			}
 			.resizable()
 			.scaledToFill()
-			.frame(width: 44, height: 64)
+			.frame(width: 48, height: 70)
 			.clipShape(RoundedRectangle(cornerRadius: 6))
 	} else {
 		podibleCoverPlaceholder()
@@ -399,7 +401,7 @@ func podibleCoverView(url: URL?) -> some View {
 func podibleCoverPlaceholder() -> some View {
 	RoundedRectangle(cornerRadius: 6)
 		.fill(.quaternary)
-		.frame(width: 44, height: 64)
+		.frame(width: 48, height: 70)
 		.overlay(
 			Image(systemName: "book.closed")
 				.font(.caption)
