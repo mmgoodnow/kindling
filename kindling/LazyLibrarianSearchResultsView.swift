@@ -34,7 +34,18 @@ struct LazyLibrarianSearchResultsView: View {
 			&& viewModel.progressForBookID(book.id) == nil
 		let progress = viewModel.progressForBookID(book.id)
 		let matchingRequest = viewModel.requests.first(where: { $0.id == book.id })
-		let shouldShowGetButton = matchingRequest == nil
+		let effectiveRequest = matchingRequest
+			?? (isPending
+				? LazyLibrarianRequest(
+					id: book.id,
+					title: book.title,
+					author: book.author,
+					status: .requested,
+					audioStatus: .requested,
+					bookAdded: .now
+				)
+				: nil)
+		let shouldShowGetButton = effectiveRequest == nil
 
 		return
 			VStack(alignment: .leading, spacing: 8) {
@@ -58,7 +69,7 @@ struct LazyLibrarianSearchResultsView: View {
 					}
 					Spacer(minLength: 8)
 					VStack(alignment: .trailing, spacing: 6) {
-						if let request = matchingRequest {
+						if let request = effectiveRequest {
 							lazyLibrarianStatusCluster(
 								request: request,
 								progress: progress,
