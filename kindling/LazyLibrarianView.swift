@@ -83,10 +83,12 @@ struct LazyLibrarianView: View {
 		}
 		.toolbar {
 			ToolbarItem {
-				Button("Refresh") {
+				Button {
 					Task {
 						await viewModel.loadRequests(using: client)
 					}
+				} label: {
+					Image(systemName: "arrow.clockwise")
 				}
 				.keyboardShortcut("r", modifiers: [.command])
 			}
