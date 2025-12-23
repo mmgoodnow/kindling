@@ -220,7 +220,6 @@ struct LazyLibrarianView: View {
         .clipped()
         .allowsHitTesting(isSelected)
         .accessibilityHidden(isSelected == false)
-        .padding(.horizontal, 4)
     }
     .contentShape(Rectangle())
     .onTapGesture {
