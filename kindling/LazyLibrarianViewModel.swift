@@ -228,7 +228,8 @@ final class LazyLibrarianViewModel: ObservableObject {
     private func refreshRequestsSilently(using client: LazyLibrarianServing) async {
         do {
             let all = try await client.fetchRequests()
-            requests = filtered(all)
+			prunePendingRequests(matching: all)
+            requests = mergePending(into: filtered(all))
         } catch {
             // Ignore transient errors; this is a silent refresh during polling.
         }
