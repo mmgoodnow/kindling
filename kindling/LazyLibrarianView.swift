@@ -123,7 +123,11 @@ struct LazyLibrarianView: View {
     }
   }
 
-  private func startPodibleDownload(bookID: String, author: String, title: String) async {
+  private func startPodibleDownload(
+    bookID: String,
+    author: String,
+    title: String
+  ) async {
     guard
       let epubURL = podibleEpubURL(
         baseURLString: userSettings.podibleURL,
@@ -157,7 +161,6 @@ struct LazyLibrarianView: View {
     let progress = viewModel.progressForBookID(item.id)
     let isDownloadingThisBook = podibleDownloadingBookID == item.id
     let isSelected = selectedItemID == item.id
-    let trayHeight: CGFloat = 56
 
     return VStack(alignment: .leading, spacing: 8) {
       HStack(alignment: .center, spacing: 8) {
@@ -215,11 +218,9 @@ struct LazyLibrarianView: View {
             ) != nil
         )
       }
-      selectionTray(for: item)
-        .frame(maxHeight: isSelected ? trayHeight : 0)
-        .clipped()
-        .allowsHitTesting(isSelected)
-        .accessibilityHidden(isSelected == false)
+      if isSelected {
+        selectionTray(for: item)
+      }
     }
     .contentShape(Rectangle())
     .onTapGesture {
@@ -235,31 +236,31 @@ struct LazyLibrarianView: View {
       Button {
       } label: {
         Image(systemName: "square.and.arrow.up")
-          .font(.headline)
-          .frame(minWidth: 44, minHeight: 44)
+          .font(.title)
+          .frame(minWidth: 48, minHeight: 48)
       }
       Button {
       } label: {
         Image(systemName: "bookmark")
-          .font(.headline)
-          .frame(minWidth: 44, minHeight: 44)
+          .font(.title)
+          .frame(minWidth: 48, minHeight: 48)
       }
       Button {
       } label: {
         Image(systemName: "ellipsis")
-          .font(.headline)
-          .frame(minWidth: 44, minHeight: 44)
+          .font(.title)
+          .frame(minWidth: 48, minHeight: 48)
       }
-      Spacer()
+      Spacer(minLength: 0)
     }
     .buttonStyle(.plain)
-    .padding(.vertical, 10)
-    .padding(.horizontal, 12)
+    .padding()
+    .frame(maxWidth: .infinity, alignment: .leading)
     .background(
-      Capsule()
+      Capsule(style: .continuous)
         .fill(Color(.tertiarySystemFill))
+
     )
-    .clipShape(Capsule())
   }
 }
 
