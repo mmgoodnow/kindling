@@ -361,12 +361,12 @@ func lazyLibrarianProgressCircle(
 	let progress = Double(clamped) / 100.0
 	return ZStack {
 		Circle()
-			.stroke(.quaternary, lineWidth: 2)
+			.stroke(.quaternary, lineWidth: 1.5)
 		Circle()
 			.trim(from: 0, to: progress)
 			.stroke(
 				tint,
-				style: StrokeStyle(lineWidth: 2, lineCap: .round)
+				style: StrokeStyle(lineWidth: 1.5, lineCap: .round)
 			)
 			.rotationEffect(.degrees(-90))
 		if let icon {
