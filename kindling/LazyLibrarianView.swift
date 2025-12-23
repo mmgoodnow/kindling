@@ -180,97 +180,98 @@ struct LazyLibrarianView: View {
             .lineLimit(1)
         }
         Spacer(minLength: 8)
-        lazyLibrarianStatusCluster(
-          item: item,
-          progress: progress,
-          canTriggerSearch: { library in
-            viewModel.canTriggerSearch(
-              bookID: item.id,
-              library: library
-            )
-          },
-          shouldOfferSearch: { status in
-            viewModel.shouldOfferSearch(status: status)
-          },
-          triggerSearch: { library in
-            Task {
-              await viewModel.triggerSearch(
+        ZStack(alignment: .trailing) {
+          trailingControls()
+            .opacity(isSelected ? 1 : 0)
+            .offset(x: isSelected ? 0 : 24)
+            .allowsHitTesting(isSelected)
+          lazyLibrarianStatusCluster(
+            item: item,
+            progress: progress,
+            canTriggerSearch: { library in
+              viewModel.canTriggerSearch(
                 bookID: item.id,
-                library: library,
-                using: client
+                library: library
               )
-            }
-          },
-          downloadAction: {
-            Task {
-              await startPodibleDownload(
-                bookID: item.id,
+            },
+            shouldOfferSearch: { status in
+              viewModel.shouldOfferSearch(status: status)
+            },
+            triggerSearch: { library in
+              Task {
+                await viewModel.triggerSearch(
+                  bookID: item.id,
+                  library: library,
+                  using: client
+                )
+              }
+            },
+            downloadAction: {
+              Task {
+                await startPodibleDownload(
+                  bookID: item.id,
+                  author: item.author,
+                  title: item.title
+                )
+              }
+            },
+            canDownload: isDownloadingThisBook == false
+              && podibleEpubURL(
+                baseURLString: userSettings.podibleURL,
                 author: item.author,
                 title: item.title
-              )
-            }
-          },
-          canDownload: isDownloadingThisBook == false
-            && podibleEpubURL(
-              baseURLString: userSettings.podibleURL,
-              author: item.author,
-              title: item.title
-            ) != nil
-        )
-      }
-      if isSelected {
-        selectionTray(for: item)
+              ) != nil
+          )
+          .opacity(isSelected ? 0 : 1)
+          .offset(x: isSelected ? -24 : 0)
+          .allowsHitTesting(!isSelected)
+        }
       }
     }
     .contentShape(Rectangle())
     .onTapGesture {
-      selectedItemID = (selectedItemID == item.id) ? nil : item.id
+      withAnimation(.snappy) {
+        selectedItemID = (selectedItemID == item.id) ? nil : item.id
+      }
     }
     .listRowBackground(
       isSelected ? Color(.secondarySystemFill) : Color.clear
     )
+    .animation(.snappy, value: isSelected)
   }
 
   @ViewBuilder
-  private func selectionTray(for item: LazyLibrarianLibraryItem) -> some View {
-    let trayContent = HStack {
-      ControlGroup {
-        Button {
-        } label: {
-          Image(systemName: "square.and.arrow.up").imageScale(.large)
-        }
-        Button {
-        } label: {
-          Image(systemName: "bookmark").imageScale(.large)
-        }
-        Button {
-        } label: {
-          Image(systemName: "ellipsis").imageScale(.large)
-        }
-      }
+  private func trailingControls() -> some View {
+    let controls = HStack(spacing: 0) {
+      trailingControlButton(systemName: "square.and.arrow.up")
+      trailingControlButton(systemName: "bookmark")
+      trailingControlButton(systemName: "ellipsis")
     }
-    .padding()
+    .frame(alignment: .trailing)
+    .frame(height: 44)
 
     #if os(iOS)
       if #available(iOS 26.0, *) {
         GlassEffectContainer {
-          trayContent
+          controls
+            .glassEffect()
         }
-        .glassEffect()
       } else {
-        trayContent
-          .background(
-            Capsule(style: .continuous)
-              .fill(Color(.tertiarySystemFill))
-          )
+        controls
       }
     #else
-      trayContent
-        .background(
-          Capsule(style: .continuous)
-            .fill(Color(.tertiarySystemFill))
-        )
+      controls
     #endif
+  }
+
+  private func trailingControlButton(systemName: String) -> some View {
+    Button {
+    } label: {
+      Image(systemName: systemName)
+        .imageScale(.large)
+        .frame(width: 48, height: 48)
+    }
+    .buttonStyle(.borderless)
   }
 }
 
