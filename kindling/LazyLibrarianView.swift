@@ -226,9 +226,9 @@ func lazyLibrarianEbookStatusRow(
 		if status == .open {
 			Button(action: downloadAction) {
 				Image(systemName: "book.closed")
+					.font(.system(size: 14, weight: .semibold))
 			}
 			.buttonStyle(.plain)
-			.controlSize(.regular)
 			.foregroundStyle(Color.accentColor)
 			.disabled(canDownload == false)
 		} else if progressSeen {
@@ -263,7 +263,7 @@ func lazyLibrarianAudioStatusRow(
 	HStack(spacing: 6) {
 		if status == .open {
 			Image(systemName: "headphones")
-				.font(.body)
+				.font(.system(size: 14, weight: .semibold))
 				.foregroundStyle(.secondary)
 				.frame(width: 28, height: 28)
 		} else if progressSeen {
