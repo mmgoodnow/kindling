@@ -237,26 +237,19 @@ struct LazyLibrarianView: View {
       ControlGroup {
         Button {
         } label: {
-          Image(systemName: "square.and.arrow.up")
+          Image(systemName: "square.and.arrow.up").imageScale(.large)
         }
         Button {
         } label: {
-          Image(systemName: "bookmark")
+          Image(systemName: "bookmark").imageScale(.large)
         }
         Button {
         } label: {
-          Image(systemName: "ellipsis")
+          Image(systemName: "ellipsis").imageScale(.large)
         }
       }
-      Spacer(minLength: 0)
     }
-    #if os(iOS)
-      .controlGroupStyle(.toolbar)
-    #else
-      .controlGroupStyle(.automatic)
-    #endif
     .padding()
-    .frame(maxWidth: .infinity, alignment: .leading)
 
     #if os(iOS)
       if #available(iOS 26.0, *) {
