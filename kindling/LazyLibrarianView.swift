@@ -81,6 +81,16 @@ struct LazyLibrarianView: View {
 				await viewModel.loadRequests(using: client)
 			}
 		}
+		.toolbar {
+			ToolbarItem {
+				Button("Refresh") {
+					Task {
+						await viewModel.loadRequests(using: client)
+					}
+				}
+				.keyboardShortcut("r", modifiers: [.command])
+			}
+		}
 		.refreshable {
 			await viewModel.loadRequests(using: client)
 		}
