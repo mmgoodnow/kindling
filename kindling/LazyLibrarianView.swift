@@ -390,6 +390,8 @@ func podibleCoverView(url: URL?) -> some View {
 			.scaledToFill()
 			.frame(width: 44, height: 64)
 			.clipShape(RoundedRectangle(cornerRadius: 6))
+	} else {
+		podibleCoverPlaceholder()
 	}
 }
 
