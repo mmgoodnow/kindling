@@ -225,6 +225,9 @@ struct LazyLibrarianView: View {
     .onTapGesture {
       selectedItemID = (selectedItemID == item.id) ? nil : item.id
     }
+    .listRowBackground(
+      isSelected ? Color(.secondarySystemFill) : Color.clear
+    )
   }
 
   private func selectionTray(for item: LazyLibrarianLibraryItem) -> some View {
@@ -257,7 +260,6 @@ struct LazyLibrarianView: View {
         .fill(Color(.tertiarySystemFill))
     )
     .clipShape(Capsule())
-    .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 3)
   }
 }
 
