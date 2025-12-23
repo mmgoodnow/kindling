@@ -225,7 +225,7 @@ func lazyLibrarianEbookStatusRow(
 	HStack(spacing: 6) {
 		if status == .open {
 			Button(action: downloadAction) {
-				Image(systemName: "book.closed")
+				Image(systemName: "book")
 					.font(.system(size: 16, weight: .semibold))
 			}
 			.buttonStyle(.plain)
@@ -235,7 +235,7 @@ func lazyLibrarianEbookStatusRow(
 			lazyLibrarianProgressCircle(
 				value: progressValue ?? 0,
 				tint: progressFinished ? .green : .blue,
-				icon: "book.closed"
+				icon: "book"
 			)
 		} else if shouldOfferSearch {
 			Button(action: searchAction) {
@@ -295,7 +295,7 @@ func lazyLibrarianProgressCircles(
 			lazyLibrarianProgressCircle(
 				value: progress.ebook,
 				tint: progress.ebookFinished ? .green : .blue,
-				icon: "book.closed"
+				icon: "book"
 			)
 		}
 		HStack(spacing: 6) {
