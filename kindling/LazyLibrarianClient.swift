@@ -477,6 +477,7 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 		print("[LazyLibrarian] searchBook AudioBook id=\(id)")
 		#endif
 		try? await searchBook(id: id, library: .audio)
+		try? await fetchBookCovers(wait: true)
 
 		#if DEBUG
 		print("[LazyLibrarian] requestBook done id=\(id) -> status(eBook)=\(ebookResult.status.rawValue) status(Audio)=\(audioResult.status.rawValue)")
