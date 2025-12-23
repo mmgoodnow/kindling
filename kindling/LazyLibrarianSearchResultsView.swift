@@ -25,6 +25,7 @@ struct LazyLibrarianSearchResultsView: View {
 				}
 			}
 		}
+		.listStyle(.grouped)
 		.navigationTitle("Search")
 	}
 

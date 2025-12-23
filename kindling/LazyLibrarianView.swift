@@ -75,6 +75,7 @@ struct LazyLibrarianView: View {
 				}
 			}
 		}
+		.listStyle(.grouped)
 		.navigationTitle("Library")
 		.onAppear {
 			Task {
