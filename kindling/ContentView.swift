@@ -8,21 +8,21 @@
 import SwiftUI
 
 struct ContentView: View {
-	var body: some View {
-		NavigationStack {
-			LazyLibrarianView()
-				.toolbar {
-					ToolbarItem {
-						NavigationLink(destination: SettingsView()) {
-							Image(systemName: "gear")
-						}
-					}
-				}
-		}
-	}
+  var body: some View {
+    NavigationStack {
+      LazyLibrarianView()
+        .toolbar {
+          ToolbarItem {
+            NavigationLink(destination: SettingsView()) {
+              Image(systemName: "gear")
+            }
+          }
+        }
+    }
+  }
 }
 
 #Preview {
-	ContentView()
-		.environmentObject(UserSettings())
+  ContentView()
+    .environmentObject(UserSettings())
 }
