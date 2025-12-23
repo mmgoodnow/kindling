@@ -4,7 +4,7 @@ struct LazyLibrarianSearchResultsView: View {
 	@ObservedObject var viewModel: LazyLibrarianViewModel
 	@EnvironmentObject var userSettings: UserSettings
 	let client: LazyLibrarianServing
-	@State private var pendingRequestIDs: Set<String> = []
+	@State private var pendingItemIDs: Set<String> = []
 
 	var body: some View {
 		List {
@@ -25,18 +25,19 @@ struct LazyLibrarianSearchResultsView: View {
 				}
 			}
 		}
+		.listStyle(.grouped)
 		.navigationTitle("Search")
 	}
 
 	private func searchRow(for book: LazyLibrarianBook) -> some View {
 		let isPending =
-			pendingRequestIDs.contains(book.id)
+			pendingItemIDs.contains(book.id)
 			&& viewModel.progressForBookID(book.id) == nil
 		let progress = viewModel.progressForBookID(book.id)
-		let matchingRequest = viewModel.requests.first(where: { $0.id == book.id })
-		let effectiveRequest = matchingRequest
+		let matchingItem = viewModel.libraryItems.first(where: { $0.id == book.id })
+		let effectiveItem = matchingItem
 			?? (isPending
-				? LazyLibrarianRequest(
+				? LazyLibrarianLibraryItem(
 					id: book.id,
 					title: book.title,
 					author: book.author,
@@ -45,7 +46,7 @@ struct LazyLibrarianSearchResultsView: View {
 					bookAdded: .now
 				)
 				: nil)
-		let shouldShowGetButton = effectiveRequest == nil
+		let shouldShowGetButton = effectiveItem == nil
 
 		return
 			VStack(alignment: .leading, spacing: 8) {
@@ -69,13 +70,13 @@ struct LazyLibrarianSearchResultsView: View {
 					}
 					Spacer(minLength: 8)
 					VStack(alignment: .trailing, spacing: 6) {
-						if let request = effectiveRequest {
+						if let item = effectiveItem {
 							lazyLibrarianStatusCluster(
-								request: request,
+								item: item,
 								progress: progress,
 								canTriggerSearch: { library in
 									viewModel.canTriggerSearch(
-										bookID: request.id,
+										bookID: item.id,
 										library: library
 									)
 								},
@@ -85,7 +86,7 @@ struct LazyLibrarianSearchResultsView: View {
 								triggerSearch: { library in
 									Task {
 										await viewModel.triggerSearch(
-											bookID: request.id,
+											bookID: item.id,
 											library: library,
 											using: client
 										)
@@ -111,7 +112,7 @@ struct LazyLibrarianSearchResultsView: View {
 									.foregroundStyle(.secondary)
 								} else {
 									Button {
-										pendingRequestIDs.insert(book.id)
+										pendingItemIDs.insert(book.id)
 										viewModel.beginOptimisticRequest(for: book)
 										Task {
 											await viewModel.request(
@@ -137,7 +138,7 @@ struct LazyLibrarianSearchResultsView: View {
 													book.id
 												) != nil
 											{
-												pendingRequestIDs.remove(
+												pendingItemIDs.remove(
 													book.id
 												)
 											}
@@ -160,7 +161,7 @@ struct LazyLibrarianSearchResultsView: View {
 				}
 			}
 			.onChange(of: viewModel.progressForBookID(book.id)?.updatedAt) { _, _ in
-				pendingRequestIDs.remove(book.id)
+				pendingItemIDs.remove(book.id)
 			}
 	}
 }

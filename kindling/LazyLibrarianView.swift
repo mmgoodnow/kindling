@@ -66,12 +66,12 @@ struct LazyLibrarianView: View {
 					.font(.caption)
 			}
 
-			if viewModel.requests.isEmpty {
+			if viewModel.libraryItems.isEmpty {
 				Text("No books yet.")
 					.foregroundStyle(.secondary)
 			} else {
-				ForEach(viewModel.requests) { request in
-					requestRow(request, client: client)
+				ForEach(viewModel.libraryItems) { item in
+					libraryRow(item, client: client)
 				}
 			}
 		}
@@ -81,14 +81,14 @@ struct LazyLibrarianView: View {
 		.navigationTitle("Library")
 		.onAppear {
 			Task {
-				await viewModel.loadRequests(using: client)
+				await viewModel.loadLibraryItems(using: client)
 			}
 		}
 		.toolbar {
 			ToolbarItem {
 				Button {
 					Task {
-						await viewModel.loadRequests(using: client)
+						await viewModel.loadLibraryItems(using: client)
 					}
 				} label: {
 					Image(systemName: "arrow.clockwise")
@@ -97,7 +97,7 @@ struct LazyLibrarianView: View {
 			}
 		}
 		.refreshable {
-			await viewModel.loadRequests(using: client)
+			await viewModel.loadLibraryItems(using: client)
 		}
 		.searchable(text: $viewModel.query, prompt: "Search")
 		.onSubmit(of: .search) {
@@ -149,37 +149,37 @@ struct LazyLibrarianView: View {
 		podibleSanitizeFilename(value)
 	}
 
-	private func requestRow(
-		_ request: LazyLibrarianRequest,
+	private func libraryRow(
+		_ item: LazyLibrarianLibraryItem,
 		client: LazyLibrarianServing
 	) -> some View {
-		let progress = viewModel.progressForBookID(request.id)
-		let isDownloadingThisBook = podibleDownloadingBookID == request.id
+		let progress = viewModel.progressForBookID(item.id)
+		let isDownloadingThisBook = podibleDownloadingBookID == item.id
 
 		return VStack(alignment: .leading, spacing: 8) {
 			HStack(alignment: .center, spacing: 8) {
 				podibleCoverView(
 					url: lazyLibrarianAssetURL(
 						baseURLString: userSettings.lazyLibrarianURL,
-						path: request.bookImagePath
+						path: item.bookImagePath
 					)
 				)
 				VStack(alignment: .leading, spacing: 4) {
-					Text(request.title)
+					Text(item.title)
 						.font(.headline)
 						.lineLimit(2)
-					Text(request.author)
+					Text(item.author)
 						.font(.subheadline)
 						.foregroundStyle(.secondary)
 						.lineLimit(1)
 				}
 				Spacer(minLength: 8)
 				lazyLibrarianStatusCluster(
-					request: request,
+					item: item,
 					progress: progress,
 					canTriggerSearch: { library in
 						viewModel.canTriggerSearch(
-							bookID: request.id,
+							bookID: item.id,
 							library: library
 						)
 					},
@@ -189,7 +189,7 @@ struct LazyLibrarianView: View {
 					triggerSearch: { library in
 						Task {
 							await viewModel.triggerSearch(
-								bookID: request.id,
+								bookID: item.id,
 								library: library,
 								using: client
 							)
@@ -198,17 +198,17 @@ struct LazyLibrarianView: View {
 						downloadAction: {
 							Task {
 								await startPodibleDownload(
-									bookID: request.id,
-									author: request.author,
-									title: request.title
+									bookID: item.id,
+									author: item.author,
+									title: item.title
 								)
 							}
 						},
 						canDownload: isDownloadingThisBook == false
 							&& podibleEpubURL(
 								baseURLString: userSettings.podibleURL,
-								author: request.author,
-							title: request.title
+								author: item.author,
+							title: item.title
 						) != nil
 				)
 			}
@@ -217,7 +217,7 @@ struct LazyLibrarianView: View {
 }
 
 func lazyLibrarianEbookStatusRow(
-	status: LazyLibrarianRequestStatus?,
+	status: LazyLibrarianLibraryItemStatus?,
 	progressValue: Int?,
 	progressFinished: Bool,
 	progressSeen: Bool,
@@ -260,7 +260,7 @@ func lazyLibrarianEbookStatusRow(
 }
 
 func lazyLibrarianAudioStatusRow(
-	status: LazyLibrarianRequestStatus?,
+	status: LazyLibrarianLibraryItemStatus?,
 	progressValue: Int?,
 	progressFinished: Bool,
 	progressSeen: Bool,
@@ -319,22 +319,22 @@ func lazyLibrarianProgressCircles(
 }
 
 func lazyLibrarianStatusCluster(
-	request: LazyLibrarianRequest,
+	item: LazyLibrarianLibraryItem,
 	progress: LazyLibrarianViewModel.DownloadProgress?,
 	canTriggerSearch: (LazyLibrarianLibrary) -> Bool,
-	shouldOfferSearch: (LazyLibrarianRequestStatus?) -> Bool,
+	shouldOfferSearch: (LazyLibrarianLibraryItemStatus?) -> Bool,
 	triggerSearch: @escaping (LazyLibrarianLibrary) -> Void,
 	downloadAction: @escaping () -> Void,
 	canDownload: Bool
 ) -> some View {
 	HStack(spacing: 10) {
 		lazyLibrarianEbookStatusRow(
-			status: request.status,
+			status: item.status,
 			progressValue: progress?.ebook,
 			progressFinished: progress?.ebookFinished ?? false,
 			progressSeen: progress?.ebookSeen ?? false,
 			canTriggerSearch: canTriggerSearch(.ebook),
-			shouldOfferSearch: shouldOfferSearch(request.status),
+			shouldOfferSearch: shouldOfferSearch(item.status),
 			searchAction: {
 				triggerSearch(.ebook)
 			},
@@ -342,12 +342,12 @@ func lazyLibrarianStatusCluster(
 			canDownload: canDownload
 		)
 		lazyLibrarianAudioStatusRow(
-			status: request.audioStatus,
+			status: item.audioStatus,
 			progressValue: progress?.audiobook,
 			progressFinished: progress?.audiobookFinished ?? false,
 			progressSeen: progress?.audiobookSeen ?? false,
 			canTriggerSearch: canTriggerSearch(.audio),
-			shouldOfferSearch: shouldOfferSearch(request.audioStatus),
+			shouldOfferSearch: shouldOfferSearch(item.audioStatus),
 			searchAction: {
 				triggerSearch(.audio)
 			}

@@ -26,7 +26,7 @@ enum LazyLibrarianError: LocalizedError {
 	}
 }
 
-enum LazyLibrarianRequestStatus: String, Decodable {
+enum LazyLibrarianLibraryItemStatus: String, Decodable {
 	case requested = "Requested"
 	case wanted = "Wanted"
 	case snatched = "Snatched"
@@ -43,7 +43,7 @@ enum LazyLibrarianRequestStatus: String, Decodable {
 
 	init(from decoder: Decoder) throws {
 		let raw = try decoder.singleValueContainer().decode(String.self)
-		self = LazyLibrarianRequestStatus(rawValue: raw) ?? .unknown
+		self = LazyLibrarianLibraryItemStatus(rawValue: raw) ?? .unknown
 	}
 
 	var isComplete: Bool {
@@ -60,8 +60,8 @@ struct LazyLibrarianBook: Identifiable, Hashable, Decodable {
 	let id: String
 	let title: String
 	let author: String
-	let status: LazyLibrarianRequestStatus
-	let audioStatus: LazyLibrarianRequestStatus?
+	let status: LazyLibrarianLibraryItemStatus
+	let audioStatus: LazyLibrarianLibraryItemStatus?
 	let coverURL: URL?
 	let coverImageURL: URL?
 	let rating: Double?
@@ -70,8 +70,8 @@ struct LazyLibrarianBook: Identifiable, Hashable, Decodable {
 	let link: URL?
 
 	init(
-		id: String, title: String, author: String, status: LazyLibrarianRequestStatus,
-		audioStatus: LazyLibrarianRequestStatus? = nil,
+		id: String, title: String, author: String, status: LazyLibrarianLibraryItemStatus,
+		audioStatus: LazyLibrarianLibraryItemStatus? = nil,
 		coverURL: URL? = nil, coverImageURL: URL? = nil, rating: Double? = nil, ratingCount: Int? = nil,
 		published: String? = nil, link: URL? = nil
 	) {
@@ -114,11 +114,11 @@ struct LazyLibrarianBook: Identifiable, Hashable, Decodable {
 		id = try container.decodeIfPresent(String.self, forKeys: [.idLower, .idUpper, .idPlain])
 		title = try container.decodeIfPresent(String.self, forKeys: [.titleLower, .titleUpper])
 		author = try container.decodeIfPresent(String.self, forKeys: [.authorLower, .authorUpper])
-		status = (try? container.decode(LazyLibrarianRequestStatus.self, forKey: .status))
-			?? (try? container.decode(LazyLibrarianRequestStatus.self, forKey: .statusAlt))
-			?? (try? container.decode(LazyLibrarianRequestStatus.self, forKey: .audioStatus))
+		status = (try? container.decode(LazyLibrarianLibraryItemStatus.self, forKey: .status))
+			?? (try? container.decode(LazyLibrarianLibraryItemStatus.self, forKey: .statusAlt))
+			?? (try? container.decode(LazyLibrarianLibraryItemStatus.self, forKey: .audioStatus))
 			?? .unknown
-		audioStatus = (try? container.decode(LazyLibrarianRequestStatus.self, forKey: .audioStatus))
+		audioStatus = (try? container.decode(LazyLibrarianLibraryItemStatus.self, forKey: .audioStatus))
 		coverURL = try? container.decodeIfPresent(URL.self, forKey: .coverURL)
 		coverImageURL = try? container.decodeIfPresent(URL.self, forKey: .coverImageURL)
 		rating = try? container.decodeIfPresent(Double.self, forKey: .rating)
@@ -132,12 +132,12 @@ struct LazyLibrarianBook: Identifiable, Hashable, Decodable {
 	}
 }
 
-struct LazyLibrarianRequest: Identifiable, Hashable, Decodable {
+struct LazyLibrarianLibraryItem: Identifiable, Hashable, Decodable {
 	let id: String
 	let title: String
 	let author: String
-	let status: LazyLibrarianRequestStatus
-	let audioStatus: LazyLibrarianRequestStatus?
+	let status: LazyLibrarianLibraryItemStatus
+	let audioStatus: LazyLibrarianLibraryItemStatus?
 	let bookAdded: Date?
 	let bookLibrary: Date?
 	let audioLibrary: Date?
@@ -147,8 +147,8 @@ struct LazyLibrarianRequest: Identifiable, Hashable, Decodable {
 		id: String,
 		title: String,
 		author: String,
-		status: LazyLibrarianRequestStatus,
-		audioStatus: LazyLibrarianRequestStatus? = nil,
+		status: LazyLibrarianLibraryItemStatus,
+		audioStatus: LazyLibrarianLibraryItemStatus? = nil,
 		bookAdded: Date? = nil,
 		bookLibrary: Date? = nil,
 		audioLibrary: Date? = nil,
@@ -188,11 +188,11 @@ struct LazyLibrarianRequest: Identifiable, Hashable, Decodable {
 		id = try container.decodeIfPresent(String.self, forKeys: [.idLower, .idUpper, .idPlain])
 		title = try container.decodeIfPresent(String.self, forKeys: [.titleLower, .titleUpper])
 		author = try container.decodeIfPresent(String.self, forKeys: [.authorLower, .authorUpper])
-		status = (try? container.decode(LazyLibrarianRequestStatus.self, forKey: .status))
-			?? (try? container.decode(LazyLibrarianRequestStatus.self, forKey: .statusAlt))
-			?? (try? container.decode(LazyLibrarianRequestStatus.self, forKey: .audioStatus))
+		status = (try? container.decode(LazyLibrarianLibraryItemStatus.self, forKey: .status))
+			?? (try? container.decode(LazyLibrarianLibraryItemStatus.self, forKey: .statusAlt))
+			?? (try? container.decode(LazyLibrarianLibraryItemStatus.self, forKey: .audioStatus))
 			?? .unknown
-		audioStatus = (try? container.decode(LazyLibrarianRequestStatus.self, forKey: .audioStatus))
+		audioStatus = (try? container.decode(LazyLibrarianLibraryItemStatus.self, forKey: .audioStatus))
 		bookImagePath = try? container.decodeIfPresent(String.self, forKeys: [.bookImageUpper, .bookImageLower])
 		if let raw = try? container.decodeIfPresent(String.self, forKey: .bookLibrary) {
 			bookLibrary = LazyLibrarianDateParser.parse(raw)
@@ -273,8 +273,8 @@ private extension KeyedDecodingContainer {
 
 protocol LazyLibrarianServing {
 	func searchBooks(query: String) async throws -> [LazyLibrarianBook]
-	func requestBook(id: String, titleHint: String?, authorHint: String?) async throws -> LazyLibrarianRequest
-	func fetchRequests() async throws -> [LazyLibrarianRequest]
+	func requestBook(id: String, titleHint: String?, authorHint: String?) async throws -> LazyLibrarianLibraryItem
+	func fetchLibraryItems() async throws -> [LazyLibrarianLibraryItem]
 	func fetchBookCovers(wait: Bool) async throws
 	func searchBook(id: String, library: LazyLibrarianLibrary) async throws
 	func fetchDownloadProgress(limit: Int?) async throws -> [LazyLibrarianDownloadProgressItem]
@@ -401,7 +401,7 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 		throw LazyLibrarianError.badResponse
 	}
 
-	private func decodeRequests(from data: Data) throws -> [LazyLibrarianRequest] {
+	private func decodeLibraryItems(from data: Data) throws -> [LazyLibrarianLibraryItem] {
 		let decoder = JSONDecoder()
 		decoder.keyDecodingStrategy = .useDefaultKeys
 
@@ -411,34 +411,48 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 		}
 		struct APIEnvelope: Decodable {
 			let success: Bool?
-			let data: [LazyLibrarianRequest]?
+			let data: [LazyLibrarianLibraryItem]?
 			let error: APIError?
-			let books: [LazyLibrarianRequest]?
-			let requests: [LazyLibrarianRequest]?
+			let books: [LazyLibrarianLibraryItem]?
+			let libraryItems: [LazyLibrarianLibraryItem]?
+
+			private enum CodingKeys: String, CodingKey {
+				case success
+				case data
+				case error
+				case books
+				case libraryItems = "requests"
+			}
 		}
 
 		struct Envelope: Decodable {
-			let requests: [LazyLibrarianRequest]?
-			let books: [LazyLibrarianRequest]?
-			let data: [LazyLibrarianRequest]?
+			let libraryItems: [LazyLibrarianLibraryItem]?
+			let books: [LazyLibrarianLibraryItem]?
+			let data: [LazyLibrarianLibraryItem]?
+
+			private enum CodingKeys: String, CodingKey {
+				case libraryItems = "requests"
+				case books
+				case data
+			}
 		}
 
 		if let wrapper = try? decoder.decode(APIEnvelope.self, from: data) {
 			if let success = wrapper.success, success == false {
 				throw LazyLibrarianError.api(wrapper.error?.message ?? "LazyLibrarian error")
 			}
-			if let reqs = wrapper.data ?? wrapper.requests ?? wrapper.books {
-				return reqs
+			if let items = wrapper.data ?? wrapper.libraryItems ?? wrapper.books {
+				return items
 			}
 		}
 
 		if let envelope = try? decoder.decode(Envelope.self, from: data) {
-			if let requests = envelope.requests ?? envelope.books ?? envelope.data {
-				return requests
+			if let items = envelope.libraryItems ?? envelope.books ?? envelope.data {
+				return items
 			}
 		}
-		if let requests = try? decoder.decode([LazyLibrarianRequest].self, from: data) {
-			return requests
+		if let items = try? decoder.decode([LazyLibrarianLibraryItem].self, from: data) {
+			return items
 		}
 		throw LazyLibrarianError.badResponse
 	}
@@ -464,7 +478,7 @@ struct LazyLibrarianClient: LazyLibrarianServing {
         }
     }
 
-	func requestBook(id: String, titleHint: String? = nil, authorHint: String? = nil) async throws -> LazyLibrarianRequest {
+	func requestBook(id: String, titleHint: String? = nil, authorHint: String? = nil) async throws -> LazyLibrarianLibraryItem {
 		#if DEBUG
 		print("[LazyLibrarian] requestBook start id=\(id) title=\(titleHint ?? "") author=\(authorHint ?? "")")
 		#endif
@@ -502,7 +516,7 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 		print("[LazyLibrarian] requestBook done id=\(id) -> status(eBook)=\(ebookResult.status.rawValue) status(Audio)=\(audioResult.status.rawValue)")
 		#endif
 
-		return LazyLibrarianRequest(
+		return LazyLibrarianLibraryItem(
 			id: ebookResult.id,
 			title: ebookResult.title,
 			author: ebookResult.author,
@@ -535,7 +549,7 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 		#endif
 	}
 
-	private func queueBook(id: String, library: LazyLibrarianLibrary, titleHint: String?, authorHint: String?) async throws -> LazyLibrarianRequest {
+	private func queueBook(id: String, library: LazyLibrarianLibrary, titleHint: String?, authorHint: String?) async throws -> LazyLibrarianLibraryItem {
 		guard let url = apiURL(
 			cmd: "queueBook",
 			queryItems: [
@@ -562,7 +576,7 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 		do {
 			let decoder = JSONDecoder()
 			decoder.keyDecodingStrategy = .convertFromSnakeCase
-			if let wrapper = try? decoder.decode(APIResponseWrapper<LazyLibrarianRequest>.self, from: data) {
+			if let wrapper = try? decoder.decode(APIResponseWrapper<LazyLibrarianLibraryItem>.self, from: data) {
 				if let success = wrapper.success, success == false {
 					throw LazyLibrarianError.api(wrapper.error?.message ?? "LazyLibrarian error")
 				}
@@ -570,10 +584,10 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 					return result
 				}
 			}
-			if let requested = try? decoder.decode(LazyLibrarianRequest.self, from: data) {
+			if let requested = try? decoder.decode(LazyLibrarianLibraryItem.self, from: data) {
 				return requested
 			}
-			if let requests = try? decodeRequests(from: data), let first = requests.first(where: { $0.id == id }) {
+			if let items = try? decodeLibraryItems(from: data), let first = items.first(where: { $0.id == id }) {
 				return first
 			}
 		} catch {
@@ -589,7 +603,7 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 			print("[LazyLibrarian] queueBook raw id=\(id) type=\(library.rawValue) body=\(trimmed)")
 			#endif
 			if trimmed.uppercased() == "OK" {
-				return LazyLibrarianRequest(
+				return LazyLibrarianLibraryItem(
 					id: id,
 					title: titleHint ?? "Book \(id)",
 					author: authorHint ?? "",
@@ -608,7 +622,7 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 		throw LazyLibrarianError.badResponse
 	}
 
-	func fetchRequests() async throws -> [LazyLibrarianRequest] {
+	func fetchLibraryItems() async throws -> [LazyLibrarianLibraryItem] {
 		// getAllBooks gives us current library + statuses so the list isn't empty on launch.
 		guard let url = apiURL(cmd: "getAllBooks", queryItems: []) else {
 			throw LazyLibrarianError.badURL
@@ -618,10 +632,10 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 			throw LazyLibrarianError.badResponse
 		}
 		do {
-			return try decodeRequests(from: data)
+			return try decodeLibraryItems(from: data)
 		} catch {
 			#if DEBUG
-			logResponse("getrequests decode failed", data: data)
+			logResponse("library decode failed", data: data)
 			#endif
 			throw error
 		}
@@ -779,9 +793,9 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 
 // Preview/testing helper that simulates LazyLibrarian without network calls.
 final actor LazyLibrarianMockClient: LazyLibrarianServing {
-	private var requests: [LazyLibrarianRequest] = [
-		LazyLibrarianRequest(id: "1", title: "Project Hail Mary", author: "Andy Weir", status: .downloaded, bookAdded: Date().addingTimeInterval(-86_400 * 3)),
-		LazyLibrarianRequest(id: "2", title: "The City We Became", author: "N. K. Jemisin", status: .requested, bookAdded: Date().addingTimeInterval(-86_400 * 12)),
+	private var libraryItems: [LazyLibrarianLibraryItem] = [
+		LazyLibrarianLibraryItem(id: "1", title: "Project Hail Mary", author: "Andy Weir", status: .downloaded, bookAdded: Date().addingTimeInterval(-86_400 * 3)),
+		LazyLibrarianLibraryItem(id: "2", title: "The City We Became", author: "N. K. Jemisin", status: .requested, bookAdded: Date().addingTimeInterval(-86_400 * 12)),
 	]
 	private var progress: [String: (ebook: Int, audio: Int)] = [:]
 
@@ -798,23 +812,23 @@ final actor LazyLibrarianMockClient: LazyLibrarianServing {
 		}
 	}
 
-	func requestBook(id: String, titleHint: String? = nil, authorHint: String? = nil) async throws -> LazyLibrarianRequest {
-		if let existing = requests.first(where: { $0.id == id }) {
+	func requestBook(id: String, titleHint: String? = nil, authorHint: String? = nil) async throws -> LazyLibrarianLibraryItem {
+		if let existing = libraryItems.first(where: { $0.id == id }) {
 			return existing
 		}
-		let new = LazyLibrarianRequest(
+		let new = LazyLibrarianLibraryItem(
 			id: id,
 			title: titleHint ?? "Requested \(id)",
 			author: authorHint ?? "Unknown",
 			status: .requested
 		)
-		requests.append(new)
+		libraryItems.append(new)
 		progress[id] = (ebook: 0, audio: 0)
 		return new
 	}
 
-	func fetchRequests() async throws -> [LazyLibrarianRequest] {
-		return requests
+	func fetchLibraryItems() async throws -> [LazyLibrarianLibraryItem] {
+		return libraryItems
 	}
 
 	func fetchBookCovers(wait: Bool = false) async throws {

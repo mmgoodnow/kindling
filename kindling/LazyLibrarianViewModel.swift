@@ -14,11 +14,11 @@ final class LazyLibrarianViewModel: ObservableObject {
 
 	@Published var query: String = ""
 	@Published var searchResults: [LazyLibrarianBook] = []
-	@Published var requests: [LazyLibrarianRequest] = []
+	@Published var libraryItems: [LazyLibrarianLibraryItem] = []
 	@Published var isLoading: Bool = false
 	@Published var errorMessage: String?
 	@Published var downloadProgressByBookID: [String: DownloadProgress] = [:]
-	@Published private var pendingRequestsByID: [String: LazyLibrarianRequest] = [:]
+	@Published private var pendingItemsByID: [String: LazyLibrarianLibraryItem] = [:]
 
 	private var downloadPollingTasks: [String: Task<Void, Never>] = [:]
 	private let downloadPollIntervalNanoseconds: UInt64 = 500_000_000
@@ -36,22 +36,22 @@ final class LazyLibrarianViewModel: ObservableObject {
 		}
 	}
 
-	func loadRequests(using client: LazyLibrarianServing) async {
+	func loadLibraryItems(using client: LazyLibrarianServing) async {
 		isLoading = true
 		errorMessage = nil
 		do {
-			var all = try await client.fetchRequests()
+			var all = try await client.fetchLibraryItems()
 			var filteredAll = filtered(all)
-			prunePendingRequests(matching: filteredAll)
+			prunePendingItems(matching: filteredAll)
 			if needsCoverRefresh(all) {
 				try? await client.fetchBookCovers(wait: true)
-				all = try await client.fetchRequests()
+				all = try await client.fetchLibraryItems()
 				filteredAll = filtered(all)
-				prunePendingRequests(matching: filteredAll)
+				prunePendingItems(matching: filteredAll)
 			}
-			let filteredRequests = mergePending(into: filteredAll)
-			requests = filteredRequests
-			startPollingIfNeeded(for: filteredRequests, client: client)
+			let filteredItems = mergePending(into: filteredAll)
+			libraryItems = filteredItems
+			startPollingIfNeeded(for: filteredItems, client: client)
 		} catch {
 			errorMessage = error.localizedDescription
 		}
@@ -76,19 +76,19 @@ final class LazyLibrarianViewModel: ObservableObject {
 		do {
 			addPendingRequestIfNeeded(for: book)
 			let requested = try await client.requestBook(id: book.id, titleHint: book.title, authorHint: book.author)
-			if let pending = pendingRequestsByID[requested.id] {
+			if let pending = pendingItemsByID[requested.id] {
 				if requested.bookImagePath != nil {
-					pendingRequestsByID[requested.id] = requested
+					pendingItemsByID[requested.id] = requested
 				} else {
-					pendingRequestsByID[requested.id] = pending
+					pendingItemsByID[requested.id] = pending
 				}
 			}
 			markSearchTriggered(bookID: requested.id, library: .ebook)
 			markSearchTriggered(bookID: requested.id, library: .audio)
-			// Update the request list and the search results with the new status.
-			if let existingIndex = requests.firstIndex(where: { $0.id == requested.id }) {
-				let existing = requests[existingIndex]
-				let updated = LazyLibrarianRequest(
+			// Update the library list and the search results with the new status.
+			if let existingIndex = libraryItems.firstIndex(where: { $0.id == requested.id }) {
+				let existing = libraryItems[existingIndex]
+				let updated = LazyLibrarianLibraryItem(
 					id: requested.id,
 					title: requested.title,
 					author: requested.author,
@@ -99,9 +99,9 @@ final class LazyLibrarianViewModel: ObservableObject {
 					audioLibrary: requested.audioLibrary ?? existing.audioLibrary,
 					bookImagePath: requested.bookImagePath ?? existing.bookImagePath
 				)
-				requests[existingIndex] = updated
+				libraryItems[existingIndex] = updated
 			} else {
-				requests.append(requested)
+				libraryItems.append(requested)
 			}
 			if let searchIndex = searchResults.firstIndex(where: { $0.id == requested.id }) {
 				let updated = LazyLibrarianBook(
@@ -114,8 +114,8 @@ final class LazyLibrarianViewModel: ObservableObject {
 				)
 				searchResults[searchIndex] = updated
 			}
-			requests = filtered(requests)
-			requests = mergePending(into: requests)
+			libraryItems = filtered(libraryItems)
+			libraryItems = mergePending(into: libraryItems)
 			startPolling(bookID: requested.id, client: client)
 		} catch {
 			self.errorMessage = error.localizedDescription
@@ -148,8 +148,8 @@ final class LazyLibrarianViewModel: ObservableObject {
 		}
 	}
 
-	private func filtered(_ items: [LazyLibrarianRequest]) -> [LazyLibrarianRequest] {
-		func isSkippedOrIgnored(_ status: LazyLibrarianRequestStatus?) -> Bool {
+	private func filtered(_ items: [LazyLibrarianLibraryItem]) -> [LazyLibrarianLibraryItem] {
+		func isSkippedOrIgnored(_ status: LazyLibrarianLibraryItemStatus?) -> Bool {
 			guard let status else { return true }
 			return status == .skipped || status == .ignored
 		}
@@ -171,7 +171,7 @@ final class LazyLibrarianViewModel: ObservableObject {
 		}
 	}
 
-	private func needsCoverRefresh(_ items: [LazyLibrarianRequest]) -> Bool {
+	private func needsCoverRefresh(_ items: [LazyLibrarianLibraryItem]) -> Bool {
 		for item in items {
 			let rawPath = item.bookImagePath?.trimmingCharacters(in: .whitespacesAndNewlines)
 			if rawPath == nil || rawPath?.isEmpty == true {
@@ -190,10 +190,10 @@ final class LazyLibrarianViewModel: ObservableObject {
 	}
 
 	private func addPendingRequestIfNeeded(for book: LazyLibrarianBook) {
-		guard pendingRequestsByID[book.id] == nil else { return }
-		if requests.contains(where: { $0.id == book.id }) { return }
+		guard pendingItemsByID[book.id] == nil else { return }
+		if libraryItems.contains(where: { $0.id == book.id }) { return }
 		let coverPath = book.coverImageURL?.absoluteString ?? book.coverURL?.absoluteString
-		let placeholder = LazyLibrarianRequest(
+		let placeholder = LazyLibrarianLibraryItem(
 			id: book.id,
 			title: book.title,
 			author: book.author,
@@ -202,15 +202,15 @@ final class LazyLibrarianViewModel: ObservableObject {
 			bookAdded: .now,
 			bookImagePath: coverPath
 		)
-		pendingRequestsByID[book.id] = placeholder
-		requests.append(placeholder)
-		requests = filtered(requests)
+		pendingItemsByID[book.id] = placeholder
+		libraryItems.append(placeholder)
+		libraryItems = filtered(libraryItems)
 	}
 
-	private func mergePending(into items: [LazyLibrarianRequest]) -> [LazyLibrarianRequest] {
-		guard pendingRequestsByID.isEmpty == false else { return items }
+	private func mergePending(into items: [LazyLibrarianLibraryItem]) -> [LazyLibrarianLibraryItem] {
+		guard pendingItemsByID.isEmpty == false else { return items }
 		var merged = items
-		for (id, pending) in pendingRequestsByID {
+		for (id, pending) in pendingItemsByID {
 			guard merged.contains(where: { $0.id == id }) == false else {
 				continue
 			}
@@ -219,26 +219,26 @@ final class LazyLibrarianViewModel: ObservableObject {
 		return filtered(merged)
 	}
 
-	private func prunePendingRequests(matching items: [LazyLibrarianRequest]) {
-		guard pendingRequestsByID.isEmpty == false else { return }
+	private func prunePendingItems(matching items: [LazyLibrarianLibraryItem]) {
+		guard pendingItemsByID.isEmpty == false else { return }
 		let existingIDs = Set(items.map(\.id))
 		for id in existingIDs {
-			pendingRequestsByID[id] = nil
+			pendingItemsByID[id] = nil
 		}
 	}
 	
-    private func refreshRequestsSilently(using client: LazyLibrarianServing) async {
+    private func refreshLibrarySilently(using client: LazyLibrarianServing) async {
         do {
-            let all = try await client.fetchRequests()
+            let all = try await client.fetchLibraryItems()
 			let filteredAll = filtered(all)
-			prunePendingRequests(matching: filteredAll)
-            requests = mergePending(into: filteredAll)
+			prunePendingItems(matching: filteredAll)
+            libraryItems = mergePending(into: filteredAll)
         } catch {
             // Ignore transient errors; this is a silent refresh during polling.
         }
     }
 
-	func shouldShowDownloadProgress(status: LazyLibrarianRequestStatus, audioStatus: LazyLibrarianRequestStatus?) -> Bool {
+	func shouldShowDownloadProgress(status: LazyLibrarianLibraryItemStatus, audioStatus: LazyLibrarianLibraryItemStatus?) -> Bool {
 		isActive(status) || isActive(audioStatus)
 	}
 
@@ -246,7 +246,7 @@ final class LazyLibrarianViewModel: ObservableObject {
 		downloadProgressByBookID[id]
 	}
 
-	func shouldOfferSearch(status: LazyLibrarianRequestStatus?) -> Bool {
+	func shouldOfferSearch(status: LazyLibrarianLibraryItemStatus?) -> Bool {
 		isActive(status)
 	}
 
@@ -262,7 +262,7 @@ final class LazyLibrarianViewModel: ObservableObject {
 		lastSearchByKey[SearchCooldownKey(bookID: bookID, library: library)] = .now
 	}
 
-	private func startPollingIfNeeded(for items: [LazyLibrarianRequest], client: LazyLibrarianServing) {
+	private func startPollingIfNeeded(for items: [LazyLibrarianLibraryItem], client: LazyLibrarianServing) {
 		for item in items where shouldShowDownloadProgress(status: item.status, audioStatus: item.audioStatus) {
 			startPolling(bookID: item.id, client: client)
 		}
@@ -297,17 +297,17 @@ final class LazyLibrarianViewModel: ObservableObject {
 					self.mergeProgress(active, forBookID: bookID)
 					// If both tracks are finished, do a final status refresh and continue polling statuses briefly until they settle.
 					if let current = self.downloadProgressByBookID[bookID], current.ebookFinished, current.audiobookFinished {
-                        await self.refreshRequestsSilently(using: client)
+                        await self.refreshLibrarySilently(using: client)
                         // Continue polling request statuses a bit longer until they settle to non-active, or timeout.
                         let settleDeadline = deadline
                         while Task.isCancelled == false, Date.now < settleDeadline {
-                            if let req = self.requests.first(where: { $0.id == bookID }) {
-                                if self.shouldShowDownloadProgress(status: req.status, audioStatus: req.audioStatus) == false {
+                            if let item = self.libraryItems.first(where: { $0.id == bookID }) {
+                                if self.shouldShowDownloadProgress(status: item.status, audioStatus: item.audioStatus) == false {
                                     break
                                 }
                             }
                             try? await Task.sleep(nanoseconds: self.downloadPollIntervalNanoseconds * 4)
-                            await self.refreshRequestsSilently(using: client)
+                            await self.refreshLibrarySilently(using: client)
                         }
                         // Clear progress so UI hides bars once statuses settle.
                         self.downloadProgressByBookID[bookID] = nil
@@ -315,7 +315,7 @@ final class LazyLibrarianViewModel: ObservableObject {
                     }
 					// Periodically refresh request statuses to reflect transitions (e.g., Snatched -> Downloaded)
 					if Date.now.timeIntervalSince(lastStatusRefresh) >= statusRefreshInterval {
-						await self.refreshRequestsSilently(using: client)
+						await self.refreshLibrarySilently(using: client)
 						lastStatusRefresh = .now
 					}
 				} catch {
@@ -358,7 +358,7 @@ final class LazyLibrarianViewModel: ObservableObject {
 		downloadProgressByBookID[bookID] = current
 	}
 
-	private func isActive(_ status: LazyLibrarianRequestStatus?) -> Bool {
+	private func isActive(_ status: LazyLibrarianLibraryItemStatus?) -> Bool {
 		guard let status else { return false }
 		switch status {
 		case .requested, .wanted, .snatched, .seeding:
