@@ -2,9 +2,10 @@ SHELL := /bin/bash
 
 .PHONY: mac
 mac:
-	@xcodebuild -project kindling.xcodeproj -scheme kindling -destination 'platform=macOS' build
-	@killall kindling >/dev/null 2>&1 || true
-	@open -a ~/Library/Developer/Xcode/DerivedData/kindling-*/Build/Products/Debug/kindling.app
+	@osascript -e 'tell application "System Events" to set frontApp to name of first application process whose frontmost is true' \
+		-e 'tell application "Xcode" to activate' \
+		-e 'tell application "System Events" to keystroke "r" using {command down}' \
+		-e 'tell application frontApp to activate'
 
 .PHONY: sim
 sim:
