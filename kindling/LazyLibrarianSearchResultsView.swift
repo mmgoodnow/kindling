@@ -128,8 +128,7 @@ struct LazyLibrarianSearchResultsView: View {
 					}
 				}
 			}
-			.onChange(of: viewModel.progressForBookID(book.id)?.updatedAt) {
-				_ in
+			.onChange(of: viewModel.progressForBookID(book.id)?.updatedAt) { _, _ in
 				pendingRequestIDs.remove(book.id)
 			}
 	}

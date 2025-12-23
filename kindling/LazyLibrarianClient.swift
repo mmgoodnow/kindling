@@ -424,38 +424,6 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 		throw LazyLibrarianError.badResponse
 	}
 
-	private func queueBookWithBackoff(id: String, library: LazyLibrarianLibrary, titleHint: String?, authorHint: String?, maxAttempts: Int = 5, initialDelayMS: UInt64 = 1000) async throws -> LazyLibrarianRequest {
-		var attempt = 1
-		var delay = initialDelayMS
-		while true {
-			#if DEBUG
-			print("[LazyLibrarian] queueBook attempt=\(attempt) id=\(id) type=\(library.rawValue)")
-			#endif
-			do {
-				let result = try await queueBook(id: id, library: library, titleHint: titleHint, authorHint: authorHint)
-				#if DEBUG
-				print("[LazyLibrarian] queueBook attempt=\(attempt) id=\(id) type=\(library.rawValue) succeeded")
-				#endif
-				return result
-			} catch {
-				let message = error.localizedDescription.lowercased()
-				let isInvalidID = message.contains("invalid id")
-				if attempt >= maxAttempts || isInvalidID == false {
-					throw error
-				}
-				#if DEBUG
-				print("[LazyLibrarian] queueBook backoff sleep start id=\(id) type=\(library.rawValue) duration=\(delay)ms")
-				#endif
-				try? await Task.sleep(nanoseconds: delay * 1_000_000)
-				#if DEBUG
-				print("[LazyLibrarian] queueBook backoff sleep done id=\(id) type=\(library.rawValue)")
-				#endif
-				delay = delay * 2
-				attempt += 1
-			}
-		}
-	}
-
     func searchBooks(query: String) async throws -> [LazyLibrarianBook] {
         // LL supports findBook via GoodReads/GoogleBooks
         guard let url = apiURL(cmd: "findBook", queryItems: [
@@ -497,9 +465,8 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 		print("[LazyLibrarian] requestBook initial sleep done id=\(id)")
 		#endif
 
-		// Queue with targeted retries on "Invalid id"
-		let ebookResult = try await queueBookWithBackoff(id: id, library: .ebook, titleHint: titleHint, authorHint: authorHint)
-		let audioResult = try await queueBookWithBackoff(id: id, library: .audio, titleHint: titleHint, authorHint: authorHint)
+		let ebookResult = try await queueBook(id: id, library: .ebook, titleHint: titleHint, authorHint: authorHint)
+		let audioResult = try await queueBook(id: id, library: .audio, titleHint: titleHint, authorHint: authorHint)
 
 		// Fire-and-forget searches (non-fatal)
 		#if DEBUG
@@ -527,7 +494,10 @@ struct LazyLibrarianClient: LazyLibrarianServing {
 	private func addBookIfNeeded(id: String) async throws {
 		guard let url = apiURL(
 			cmd: "addBook",
-			queryItems: [URLQueryItem(name: "id", value: id)]
+			queryItems: [
+				URLQueryItem(name: "id", value: id),
+				URLQueryItem(name: "wait", value: "1")
+			]
 		) else {
 			throw LazyLibrarianError.badURL
 		}
