@@ -352,7 +352,11 @@ func lazyLibrarianStatusCluster(
 	}
 }
 
-func lazyLibrarianProgressCircle(value: Int, tint: Color, icon: String?) -> some View {
+func lazyLibrarianProgressCircle(
+	value: Int,
+	tint: Color,
+	icon: String?
+) -> some View {
 	let clamped = max(0, min(100, value))
 	let progress = Double(clamped) / 100.0
 	return ZStack {
@@ -367,7 +371,7 @@ func lazyLibrarianProgressCircle(value: Int, tint: Color, icon: String?) -> some
 			.rotationEffect(.degrees(-90))
 		if let icon {
 			Image(systemName: icon)
-				.font(.system(size: 9, weight: .bold))
+				.font(.system(size: 11, weight: .bold))
 				.foregroundStyle(.secondary)
 		}
 	}
