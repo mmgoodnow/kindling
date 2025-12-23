@@ -12,6 +12,7 @@ struct LazyLibrarianView: View {
   @State private var podibleExportFilename: String = "book.epub"
   @State private var podibleErrorMessage: String?
   @State private var podibleDownloadingBookID: String?
+  @State private var selectedItemID: LazyLibrarianLibraryItem.ID?
 
   let clientOverride: LazyLibrarianServing?
 
@@ -155,6 +156,7 @@ struct LazyLibrarianView: View {
   ) -> some View {
     let progress = viewModel.progressForBookID(item.id)
     let isDownloadingThisBook = podibleDownloadingBookID == item.id
+    let isSelected = selectedItemID == item.id
 
     return VStack(alignment: .leading, spacing: 8) {
       HStack(alignment: .center, spacing: 8) {
@@ -212,7 +214,43 @@ struct LazyLibrarianView: View {
             ) != nil
         )
       }
+      if isSelected {
+        selectionTray(for: item)
+          .transition(.move(edge: .bottom).combined(with: .opacity))
+      }
     }
+    .contentShape(Rectangle())
+    .onTapGesture {
+      withAnimation(.snappy) {
+        selectedItemID = (selectedItemID == item.id) ? nil : item.id
+      }
+    }
+    .animation(.snappy, value: selectedItemID)
+  }
+
+  private func selectionTray(for item: LazyLibrarianLibraryItem) -> some View {
+    HStack(spacing: 12) {
+      Button {
+      } label: {
+        Image(systemName: "square.and.arrow.up")
+      }
+      Button {
+      } label: {
+        Image(systemName: "bookmark")
+      }
+      Button {
+      } label: {
+        Image(systemName: "ellipsis")
+      }
+      Spacer()
+    }
+    .buttonStyle(.borderless)
+    .padding(.vertical, 6)
+    .padding(.horizontal, 10)
+    .background(
+      RoundedRectangle(cornerRadius: 10, style: .continuous)
+        .fill(.quaternary)
+    )
   }
 }
 
