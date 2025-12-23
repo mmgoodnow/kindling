@@ -111,9 +111,9 @@ struct LazyLibrarianSearchResultsView: View {
 									.foregroundStyle(.secondary)
 								} else {
 									Button {
+										pendingRequestIDs.insert(book.id)
+										viewModel.beginOptimisticRequest(for: book)
 										Task {
-											pendingRequestIDs.insert(book.id)
-											viewModel.beginOptimisticRequest(for: book)
 											await viewModel.request(
 												book,
 												using: client

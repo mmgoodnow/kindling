@@ -41,9 +41,11 @@ final class LazyLibrarianViewModel: ObservableObject {
 		errorMessage = nil
 		do {
 			var all = try await client.fetchRequests()
+			prunePendingRequests(matching: all)
 			if needsCoverRefresh(all) {
 				try? await client.fetchBookCovers(wait: true)
 				all = try await client.fetchRequests()
+				prunePendingRequests(matching: all)
 			}
 			let filteredRequests = mergePending(into: filtered(all))
 			requests = filteredRequests
@@ -72,7 +74,7 @@ final class LazyLibrarianViewModel: ObservableObject {
 		do {
 			addPendingRequestIfNeeded(for: book)
 			let requested = try await client.requestBook(id: book.id, titleHint: book.title, authorHint: book.author)
-			pendingRequestsByID[requested.id] = nil
+			pendingRequestsByID[requested.id] = requested
 			markSearchTriggered(bookID: requested.id, library: .ebook)
 			markSearchTriggered(bookID: requested.id, library: .audio)
 			// Update the request list and the search results with the new status.
@@ -193,6 +195,14 @@ final class LazyLibrarianViewModel: ObservableObject {
 			merged.append(pending)
 		}
 		return filtered(merged)
+	}
+
+	private func prunePendingRequests(matching items: [LazyLibrarianRequest]) {
+		guard pendingRequestsByID.isEmpty == false else { return }
+		let existingIDs = Set(items.map(\.id))
+		for id in existingIDs {
+			pendingRequestsByID[id] = nil
+		}
 	}
 	
     private func refreshRequestsSilently(using client: LazyLibrarianServing) async {
