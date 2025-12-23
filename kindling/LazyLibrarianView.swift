@@ -258,7 +258,8 @@ func lazyLibrarianEbookStatusRow(
 		} else if progressSeen {
 			lazyLibrarianProgressCircle(
 				value: progressValue ?? 0,
-				tint: progressFinished ? .green : .blue
+				tint: progressFinished ? .green : .blue,
+				icon: "book.closed"
 			)
 		} else if shouldOfferSearch {
 			Button(action: searchAction) {
@@ -292,7 +293,8 @@ func lazyLibrarianAudioStatusRow(
 		} else if progressSeen {
 			lazyLibrarianProgressCircle(
 				value: progressValue ?? 0,
-				tint: progressFinished ? .green : .blue
+				tint: progressFinished ? .green : .blue,
+				icon: "headphones"
 			)
 		} else if shouldOfferSearch {
 			Button(action: searchAction) {
@@ -310,36 +312,57 @@ func lazyLibrarianAudioStatusRow(
 
 @ViewBuilder
 func lazyLibrarianProgressCircles(
-	progress: LazyLibrarianViewModel.DownloadProgress
+	progress: LazyLibrarianViewModel.DownloadProgress,
+	showLabels: Bool = true
 ) -> some View {
 	VStack(alignment: .trailing, spacing: 6) {
 		HStack(spacing: 6) {
-			Text("eBook")
-				.font(.caption2)
-				.foregroundStyle(.secondary)
+			if showLabels {
+				Text("eBook")
+					.font(.caption2)
+					.foregroundStyle(.secondary)
+			}
 			lazyLibrarianProgressCircle(
 				value: progress.ebook,
-				tint: progress.ebookFinished ? .green : .blue
+				tint: progress.ebookFinished ? .green : .blue,
+				icon: "book.closed"
 			)
 		}
 		HStack(spacing: 6) {
-			Text("Audio")
-				.font(.caption2)
-				.foregroundStyle(.secondary)
+			if showLabels {
+				Text("Audio")
+					.font(.caption2)
+					.foregroundStyle(.secondary)
+			}
 			lazyLibrarianProgressCircle(
 				value: progress.audiobook,
-				tint: progress.audiobookFinished ? .green : .blue
+				tint: progress.audiobookFinished ? .green : .blue,
+				icon: "headphones"
 			)
 		}
 	}
 }
 
-func lazyLibrarianProgressCircle(value: Int, tint: Color) -> some View {
-	ProgressView(value: Double(value), total: 100)
-		.progressViewStyle(.circular)
-		.controlSize(.small)
-		.tint(tint)
-		.frame(width: 16, height: 16)
+func lazyLibrarianProgressCircle(value: Int, tint: Color, icon: String?) -> some View {
+	let clamped = max(0, min(100, value))
+	let progress = Double(clamped) / 100.0
+	return ZStack {
+		Circle()
+			.stroke(.quaternary, lineWidth: 2)
+		Circle()
+			.trim(from: 0, to: progress)
+			.stroke(
+				tint,
+				style: StrokeStyle(lineWidth: 2, lineCap: .round)
+			)
+			.rotationEffect(.degrees(-90))
+		if let icon {
+			Image(systemName: icon)
+				.font(.system(size: 8, weight: .semibold))
+				.foregroundStyle(.secondary)
+		}
+	}
+	.frame(width: 18, height: 18)
 }
 
 @MainActor

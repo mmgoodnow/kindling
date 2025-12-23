@@ -63,7 +63,10 @@ struct LazyLibrarianSearchResultsView: View {
 					Spacer(minLength: 8)
 					VStack(alignment: .trailing, spacing: 6) {
 						if let progress, shouldShowProgress {
-							lazyLibrarianProgressCircles(progress: progress)
+							lazyLibrarianProgressCircles(
+								progress: progress,
+								showLabels: false
+							)
 						} else if shouldShowGetButton {
 							Group {
 								if isPending {
