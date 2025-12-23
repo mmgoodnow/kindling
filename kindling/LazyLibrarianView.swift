@@ -157,6 +157,7 @@ struct LazyLibrarianView: View {
     let progress = viewModel.progressForBookID(item.id)
     let isDownloadingThisBook = podibleDownloadingBookID == item.id
     let isSelected = selectedItemID == item.id
+    let trayHeight: CGFloat = 56
 
     return VStack(alignment: .leading, spacing: 8) {
       HStack(alignment: .center, spacing: 8) {
@@ -214,10 +215,13 @@ struct LazyLibrarianView: View {
             ) != nil
         )
       }
-      if isSelected {
-        selectionTray(for: item)
-          .transition(.move(edge: .bottom).combined(with: .opacity))
-      }
+      selectionTray(for: item)
+        .frame(height: isSelected ? trayHeight : 0)
+        .opacity(isSelected ? 1 : 0)
+        .clipped()
+        .allowsHitTesting(isSelected)
+        .accessibilityHidden(isSelected == false)
+        .animation(.snappy, value: isSelected)
     }
     .contentShape(Rectangle())
     .onTapGesture {
