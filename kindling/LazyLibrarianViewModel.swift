@@ -183,7 +183,7 @@ final class LazyLibrarianViewModel: ObservableObject {
 		guard pendingRequestsByID.isEmpty == false else { return items }
 		var merged = items
 		for (id, pending) in pendingRequestsByID {
-			guard let pending, merged.contains(where: { $0.id == id }) == false else {
+			guard merged.contains(where: { $0.id == id }) == false else {
 				continue
 			}
 			merged.append(pending)
