@@ -360,7 +360,7 @@ func lazyLibrarianProgressCircle(value: Int, tint: Color, icon: String?) -> some
 			.rotationEffect(.degrees(-90))
 		if let icon {
 			Image(systemName: icon)
-				.font(.system(size: 8, weight: .semibold))
+				.font(.system(size: 9, weight: .bold))
 				.foregroundStyle(.secondary)
 		}
 	}
