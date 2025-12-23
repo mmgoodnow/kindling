@@ -41,13 +41,15 @@ final class LazyLibrarianViewModel: ObservableObject {
 		errorMessage = nil
 		do {
 			var all = try await client.fetchRequests()
-			prunePendingRequests(matching: all)
+			var filteredAll = filtered(all)
+			prunePendingRequests(matching: filteredAll)
 			if needsCoverRefresh(all) {
 				try? await client.fetchBookCovers(wait: true)
 				all = try await client.fetchRequests()
-				prunePendingRequests(matching: all)
+				filteredAll = filtered(all)
+				prunePendingRequests(matching: filteredAll)
 			}
-			let filteredRequests = mergePending(into: filtered(all))
+			let filteredRequests = mergePending(into: filteredAll)
 			requests = filteredRequests
 			startPollingIfNeeded(for: filteredRequests, client: client)
 		} catch {
@@ -214,22 +216,32 @@ final class LazyLibrarianViewModel: ObservableObject {
 			}
 			merged.append(pending)
 		}
+		#if DEBUG
+		print("[LazyLibrarian] mergePending ids=\(pendingRequestsByID.keys.sorted()) items=\(items.count) merged=\(merged.count)")
+		#endif
 		return filtered(merged)
 	}
 
 	private func prunePendingRequests(matching items: [LazyLibrarianRequest]) {
 		guard pendingRequestsByID.isEmpty == false else { return }
 		let existingIDs = Set(items.map(\.id))
+		#if DEBUG
+		print("[LazyLibrarian] prunePending start pending=\(pendingRequestsByID.keys.sorted()) existing=\(existingIDs.sorted())")
+		#endif
 		for id in existingIDs {
 			pendingRequestsByID[id] = nil
 		}
+		#if DEBUG
+		print("[LazyLibrarian] prunePending done pending=\(pendingRequestsByID.keys.sorted())")
+		#endif
 	}
 	
     private func refreshRequestsSilently(using client: LazyLibrarianServing) async {
         do {
             let all = try await client.fetchRequests()
-			prunePendingRequests(matching: all)
-            requests = mergePending(into: filtered(all))
+			let filteredAll = filtered(all)
+			prunePendingRequests(matching: filteredAll)
+            requests = mergePending(into: filteredAll)
         } catch {
             // Ignore transient errors; this is a silent refresh during polling.
         }
