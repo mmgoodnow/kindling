@@ -242,6 +242,7 @@ func lazyLibrarianEbookStatusRow(
 		} else if shouldOfferSearch {
 			Button(action: searchAction) {
 				Image(systemName: "magnifyingglass")
+					.font(.system(size: 16, weight: .semibold))
 			}
 			.buttonStyle(.borderless)
 			.controlSize(.small)
@@ -277,6 +278,7 @@ func lazyLibrarianAudioStatusRow(
 		} else if shouldOfferSearch {
 			Button(action: searchAction) {
 				Image(systemName: "magnifyingglass")
+					.font(.system(size: 16, weight: .semibold))
 			}
 			.buttonStyle(.borderless)
 			.controlSize(.small)
