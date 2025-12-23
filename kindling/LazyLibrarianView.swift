@@ -170,66 +170,42 @@ struct LazyLibrarianView: View {
 						.lineLimit(1)
 				}
 				Spacer(minLength: 8)
-				HStack(spacing: 10) {
-					lazyLibrarianEbookStatusRow(
-						status: request.status,
-						progressValue: progress?.ebook,
-						progressFinished: progress?.ebookFinished ?? false,
-						progressSeen: progress?.ebookSeen ?? false,
-						canTriggerSearch: viewModel.canTriggerSearch(
+				lazyLibrarianStatusCluster(
+					request: request,
+					progress: progress,
+					canTriggerSearch: { library in
+						viewModel.canTriggerSearch(
 							bookID: request.id,
-							library: .ebook
-						),
-						shouldOfferSearch: viewModel.shouldOfferSearch(
-							status: request.status
-						),
-						searchAction: {
-							Task {
-								await viewModel.triggerSearch(
-									bookID: request.id,
-									library: .ebook,
-									using: client
-								)
-							}
-						},
-						downloadAction: {
-							Task {
-								await startPodibleDownload(
-									author: request.author,
-									title: request.title
-								)
-							}
-						},
-						canDownload: isPodibleDownloading == false
-							&& podibleEpubURL(
-								baseURLString: userSettings.podibleURL,
+							library: library
+						)
+					},
+					shouldOfferSearch: { status in
+						viewModel.shouldOfferSearch(status: status)
+					},
+					triggerSearch: { library in
+						Task {
+							await viewModel.triggerSearch(
+								bookID: request.id,
+								library: library,
+								using: client
+							)
+						}
+					},
+					downloadAction: {
+						Task {
+							await startPodibleDownload(
 								author: request.author,
 								title: request.title
-							) != nil
-					)
-					lazyLibrarianAudioStatusRow(
-						status: request.audioStatus,
-						progressValue: progress?.audiobook,
-						progressFinished: progress?.audiobookFinished ?? false,
-						progressSeen: progress?.audiobookSeen ?? false,
-						canTriggerSearch: viewModel.canTriggerSearch(
-							bookID: request.id,
-							library: .audio
-						),
-						shouldOfferSearch: viewModel.shouldOfferSearch(
-							status: request.audioStatus
-						),
-						searchAction: {
-							Task {
-								await viewModel.triggerSearch(
-									bookID: request.id,
-									library: .audio,
-									using: client
-								)
-							}
+							)
 						}
-					)
-				}
+					},
+					canDownload: isPodibleDownloading == false
+						&& podibleEpubURL(
+							baseURLString: userSettings.podibleURL,
+							author: request.author,
+							title: request.title
+						) != nil
+				)
 			}
 		}
 	}
@@ -329,6 +305,43 @@ func lazyLibrarianProgressCircles(
 				icon: "headphones"
 			)
 		}
+	}
+}
+
+func lazyLibrarianStatusCluster(
+	request: LazyLibrarianRequest,
+	progress: LazyLibrarianViewModel.DownloadProgress?,
+	canTriggerSearch: (LazyLibrarianLibrary) -> Bool,
+	shouldOfferSearch: (LazyLibrarianRequestStatus?) -> Bool,
+	triggerSearch: @escaping (LazyLibrarianLibrary) -> Void,
+	downloadAction: @escaping () -> Void,
+	canDownload: Bool
+) -> some View {
+	HStack(spacing: 10) {
+		lazyLibrarianEbookStatusRow(
+			status: request.status,
+			progressValue: progress?.ebook,
+			progressFinished: progress?.ebookFinished ?? false,
+			progressSeen: progress?.ebookSeen ?? false,
+			canTriggerSearch: canTriggerSearch(.ebook),
+			shouldOfferSearch: shouldOfferSearch(request.status),
+			searchAction: {
+				triggerSearch(.ebook)
+			},
+			downloadAction: downloadAction,
+			canDownload: canDownload
+		)
+		lazyLibrarianAudioStatusRow(
+			status: request.audioStatus,
+			progressValue: progress?.audiobook,
+			progressFinished: progress?.audiobookFinished ?? false,
+			progressSeen: progress?.audiobookSeen ?? false,
+			canTriggerSearch: canTriggerSearch(.audio),
+			shouldOfferSearch: shouldOfferSearch(request.audioStatus),
+			searchAction: {
+				triggerSearch(.audio)
+			}
+		)
 	}
 }
 
