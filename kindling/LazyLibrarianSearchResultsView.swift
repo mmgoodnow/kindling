@@ -33,12 +33,8 @@ struct LazyLibrarianSearchResultsView: View {
 			pendingRequestIDs.contains(book.id)
 			&& viewModel.progressForBookID(book.id) == nil
 		let progress = viewModel.progressForBookID(book.id)
-		let shouldShowProgress =
-			viewModel.shouldShowDownloadProgress(
-				status: book.status,
-				audioStatus: book.audioStatus
-			) && progress != nil
-		let shouldShowGetButton = !shouldShowProgress
+		let matchingRequest = viewModel.requests.first(where: { $0.id == book.id })
+		let shouldShowGetButton = matchingRequest == nil
 
 		return
 			VStack(alignment: .leading, spacing: 8) {
@@ -62,11 +58,57 @@ struct LazyLibrarianSearchResultsView: View {
 					}
 					Spacer(minLength: 8)
 					VStack(alignment: .trailing, spacing: 6) {
-						if let progress, shouldShowProgress {
-							lazyLibrarianProgressCircles(
-								progress: progress,
-								showLabels: false
-							)
+						if let request = matchingRequest {
+							let ebookProgress = progress?.ebook
+							let audioProgress = progress?.audiobook
+							HStack(spacing: 10) {
+								lazyLibrarianEbookStatusRow(
+									status: request.status,
+									progressValue: ebookProgress,
+									progressFinished: progress?.ebookFinished ?? false,
+									progressSeen: progress?.ebookSeen ?? false,
+									canTriggerSearch: viewModel.canTriggerSearch(
+										bookID: request.id,
+										library: .ebook
+									),
+									shouldOfferSearch: viewModel.shouldOfferSearch(
+										status: request.status
+									),
+									searchAction: {
+										Task {
+											await viewModel.triggerSearch(
+												bookID: request.id,
+												library: .ebook,
+												using: client
+											)
+										}
+									},
+									downloadAction: {},
+									canDownload: false
+								)
+								lazyLibrarianAudioStatusRow(
+									status: request.audioStatus,
+									progressValue: audioProgress,
+									progressFinished: progress?.audiobookFinished ?? false,
+									progressSeen: progress?.audiobookSeen ?? false,
+									canTriggerSearch: viewModel.canTriggerSearch(
+										bookID: request.id,
+										library: .audio
+									),
+									shouldOfferSearch: viewModel.shouldOfferSearch(
+										status: request.audioStatus
+									),
+									searchAction: {
+										Task {
+											await viewModel.triggerSearch(
+												bookID: request.id,
+												library: .audio,
+												using: client
+											)
+										}
+									}
+								)
+							}
 						} else if shouldShowGetButton {
 							Group {
 								if isPending {

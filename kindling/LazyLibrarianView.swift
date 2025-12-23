@@ -312,16 +312,10 @@ func lazyLibrarianAudioStatusRow(
 
 @ViewBuilder
 func lazyLibrarianProgressCircles(
-	progress: LazyLibrarianViewModel.DownloadProgress,
-	showLabels: Bool = true
+	progress: LazyLibrarianViewModel.DownloadProgress
 ) -> some View {
 	VStack(alignment: .trailing, spacing: 6) {
 		HStack(spacing: 6) {
-			if showLabels {
-				Text("eBook")
-					.font(.caption2)
-					.foregroundStyle(.secondary)
-			}
 			lazyLibrarianProgressCircle(
 				value: progress.ebook,
 				tint: progress.ebookFinished ? .green : .blue,
@@ -329,11 +323,6 @@ func lazyLibrarianProgressCircles(
 			)
 		}
 		HStack(spacing: 6) {
-			if showLabels {
-				Text("Audio")
-					.font(.caption2)
-					.foregroundStyle(.secondary)
-			}
 			lazyLibrarianProgressCircle(
 				value: progress.audiobook,
 				tint: progress.audiobookFinished ? .green : .blue,
