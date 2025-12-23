@@ -18,6 +18,7 @@ final class LazyLibrarianViewModel: ObservableObject {
 	@Published var isLoading: Bool = false
 	@Published var errorMessage: String?
 	@Published var downloadProgressByBookID: [String: DownloadProgress] = [:]
+	@Published private var pendingRequestsByID: [String: LazyLibrarianRequest] = [:]
 
 	private var downloadPollingTasks: [String: Task<Void, Never>] = [:]
 	private let downloadPollIntervalNanoseconds: UInt64 = 500_000_000
@@ -44,7 +45,7 @@ final class LazyLibrarianViewModel: ObservableObject {
 				try? await client.fetchBookCovers(wait: true)
 				all = try await client.fetchRequests()
 			}
-			let filteredRequests = filtered(all)
+			let filteredRequests = mergePending(into: filtered(all))
 			requests = filteredRequests
 			startPollingIfNeeded(for: filteredRequests, client: client)
 		} catch {
@@ -69,7 +70,9 @@ final class LazyLibrarianViewModel: ObservableObject {
 		isLoading = true
 		errorMessage = nil
 		do {
+			addPendingRequestIfNeeded(for: book)
 			let requested = try await client.requestBook(id: book.id, titleHint: book.title, authorHint: book.author)
+			pendingRequestsByID[requested.id] = nil
 			markSearchTriggered(bookID: requested.id, library: .ebook)
 			markSearchTriggered(bookID: requested.id, library: .audio)
 			// Update the request list and the search results with the new status.
@@ -90,6 +93,7 @@ final class LazyLibrarianViewModel: ObservableObject {
 				searchResults[searchIndex] = updated
 			}
 			requests = filtered(requests)
+			requests = mergePending(into: requests)
 			startPolling(bookID: requested.id, client: client)
 		} catch {
 			self.errorMessage = error.localizedDescription
@@ -157,6 +161,34 @@ final class LazyLibrarianViewModel: ObservableObject {
 			}
 		}
 		return false
+	}
+
+	private func addPendingRequestIfNeeded(for book: LazyLibrarianBook) {
+		guard pendingRequestsByID[book.id] == nil else { return }
+		if requests.contains(where: { $0.id == book.id }) { return }
+		let placeholder = LazyLibrarianRequest(
+			id: book.id,
+			title: book.title,
+			author: book.author,
+			status: .requested,
+			audioStatus: .requested,
+			bookAdded: .now
+		)
+		pendingRequestsByID[book.id] = placeholder
+		requests.append(placeholder)
+		requests = filtered(requests)
+	}
+
+	private func mergePending(into items: [LazyLibrarianRequest]) -> [LazyLibrarianRequest] {
+		guard pendingRequestsByID.isEmpty == false else { return items }
+		var merged = items
+		for (id, pending) in pendingRequestsByID {
+			guard let pending, merged.contains(where: { $0.id == id }) == false else {
+				continue
+			}
+			merged.append(pending)
+		}
+		return filtered(merged)
 	}
 	
     private func refreshRequestsSilently(using client: LazyLibrarianServing) async {
