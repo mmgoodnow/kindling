@@ -231,8 +231,9 @@ struct LazyLibrarianView: View {
     )
   }
 
+  @ViewBuilder
   private func selectionTray(for item: LazyLibrarianLibraryItem) -> some View {
-    HStack(spacing: 10) {
+    let trayContent = HStack(spacing: 10) {
       Button {
       } label: {
         Image(systemName: "square.and.arrow.up")
@@ -256,11 +257,27 @@ struct LazyLibrarianView: View {
     .buttonStyle(.plain)
     .padding()
     .frame(maxWidth: .infinity, alignment: .leading)
-    .background(
-      Capsule(style: .continuous)
-        .fill(Color(.tertiarySystemFill))
 
-    )
+    #if os(iOS)
+      if #available(iOS 26.0, *) {
+        GlassEffectContainer {
+          trayContent
+        }
+        .glassEffect()
+      } else {
+        trayContent
+          .background(
+            Capsule(style: .continuous)
+              .fill(Color(.tertiarySystemFill))
+          )
+      }
+    #else
+      trayContent
+        .background(
+          Capsule(style: .continuous)
+            .fill(Color(.tertiarySystemFill))
+        )
+    #endif
   }
 }
 
