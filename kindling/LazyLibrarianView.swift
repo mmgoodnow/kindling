@@ -256,8 +256,12 @@ struct LazyLibrarianView: View {
     .padding(.vertical, 10)
     .padding(.horizontal, 12)
     .background(
-      RoundedRectangle(cornerRadius: 10, style: .continuous)
-        .fill(.quaternary)
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .fill(.regularMaterial)
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .strokeBorder(.quaternary.opacity(0.6), lineWidth: 1)
     )
   }
 }
