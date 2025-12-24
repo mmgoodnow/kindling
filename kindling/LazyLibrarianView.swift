@@ -243,9 +243,8 @@ struct LazyLibrarianView: View {
   @ViewBuilder
   private func trailingControls() -> some View {
     let controls = HStack(spacing: 0) {
-      trailingControlButton(systemName: "square.and.arrow.up")
-      trailingControlButton(systemName: "bookmark")
-      trailingControlButton(systemName: "ellipsis")
+      trailingControlButton(systemName: "gear")
+      trailingControlButton(systemName: "arrow.clockwise")
     }
     .frame(alignment: .trailing)
     .frame(height: 44)
