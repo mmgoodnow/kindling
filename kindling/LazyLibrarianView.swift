@@ -429,7 +429,7 @@ func lazyLibrarianEbookStatusRow(
 ) -> some View {
   HStack(spacing: 6) {
     if status == .open {
-      Image(systemName: "book.fill")
+      Image(systemName: "book")
         .font(.system(size: 16, weight: .semibold))
         .foregroundStyle(.secondary)
         .frame(width: 22, height: 22)
