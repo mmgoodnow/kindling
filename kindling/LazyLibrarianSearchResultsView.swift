@@ -74,26 +74,9 @@ struct LazyLibrarianSearchResultsView: View {
               lazyLibrarianStatusCluster(
                 item: item,
                 progress: progress,
-                canTriggerSearch: { library in
-                  viewModel.canTriggerSearch(
-                    bookID: item.id,
-                    library: library
-                  )
-                },
                 shouldOfferSearch: { status in
                   viewModel.shouldOfferSearch(status: status)
-                },
-                triggerSearch: { library in
-                  Task {
-                    await viewModel.triggerSearch(
-                      bookID: item.id,
-                      library: library,
-                      using: client
-                    )
-                  }
-                },
-                downloadAction: {},
-                canDownload: false
+                }
               )
             } else if shouldShowGetButton {
               Group {

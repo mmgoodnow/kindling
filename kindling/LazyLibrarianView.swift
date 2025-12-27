@@ -181,46 +181,20 @@ struct LazyLibrarianView: View {
         }
         Spacer(minLength: 8)
         ZStack(alignment: .trailing) {
-          trailingControls()
-            .opacity(isSelected ? 1 : 0)
-            .offset(x: isSelected ? 0 : 24)
-            .allowsHitTesting(isSelected)
+          trailingControls(
+            item: item,
+            client: client,
+            isDownloadingThisBook: isDownloadingThisBook
+          )
+          .opacity(isSelected ? 1 : 0)
+          .offset(x: isSelected ? 0 : 24)
+          .allowsHitTesting(isSelected)
           lazyLibrarianStatusCluster(
             item: item,
             progress: progress,
-            canTriggerSearch: { library in
-              viewModel.canTriggerSearch(
-                bookID: item.id,
-                library: library
-              )
-            },
             shouldOfferSearch: { status in
               viewModel.shouldOfferSearch(status: status)
-            },
-            triggerSearch: { library in
-              Task {
-                await viewModel.triggerSearch(
-                  bookID: item.id,
-                  library: library,
-                  using: client
-                )
-              }
-            },
-            downloadAction: {
-              Task {
-                await startPodibleDownload(
-                  bookID: item.id,
-                  author: item.author,
-                  title: item.title
-                )
-              }
-            },
-            canDownload: isDownloadingThisBook == false
-              && podibleEpubURL(
-                baseURLString: userSettings.podibleURL,
-                author: item.author,
-                title: item.title
-              ) != nil
+            }
           )
           .opacity(isSelected ? 0 : 1)
           .offset(x: isSelected ? -24 : 0)
@@ -241,10 +215,75 @@ struct LazyLibrarianView: View {
   }
 
   @ViewBuilder
-  private func trailingControls() -> some View {
-    let controls = HStack(spacing: 0) {
-      trailingControlButton(systemName: "gear")
-      trailingControlButton(systemName: "arrow.clockwise")
+  private func trailingControls(
+    item: LazyLibrarianLibraryItem,
+    client: LazyLibrarianServing,
+    isDownloadingThisBook: Bool
+  ) -> some View {
+    let canEbookSearch = viewModel.shouldOfferSearch(status: item.status)
+    let canAudioSearch = viewModel.shouldOfferSearch(status: item.audioStatus)
+    let canTriggerEbookSearch =
+      canEbookSearch
+      && viewModel.canTriggerSearch(bookID: item.id, library: .ebook)
+    let canTriggerAudioSearch =
+      canAudioSearch
+      && viewModel.canTriggerSearch(bookID: item.id, library: .audio)
+    let canDownload =
+      isDownloadingThisBook == false
+      && podibleEpubURL(
+        baseURLString: userSettings.podibleURL,
+        author: item.author,
+        title: item.title
+      ) != nil
+    let canExport = item.status == .open && canDownload
+
+    let controls = HStack(spacing: 8) {
+      trailingControlButton(
+        label: "Search eBook",
+        isEnabled: canTriggerEbookSearch,
+        content: {
+          searchActionIcon(base: "book")
+        },
+        action: {
+          Task {
+            await viewModel.triggerSearch(
+              bookID: item.id,
+              library: .ebook,
+              using: client
+            )
+          }
+        }
+      )
+      trailingControlButton(
+        label: "Search Audio",
+        isEnabled: canTriggerAudioSearch,
+        content: {
+          searchActionIcon(base: "waveform.mid")
+        },
+        action: {
+          Task {
+            await viewModel.triggerSearch(
+              bookID: item.id,
+              library: .audio,
+              using: client
+            )
+          }
+        }
+      )
+      trailingControlButton(
+        label: "Download & Export",
+        systemName: "square.and.arrow.down",
+        isEnabled: canExport,
+        action: {
+          Task {
+            await startPodibleDownload(
+              bookID: item.id,
+              author: item.author,
+              title: item.title
+            )
+          }
+        }
+      )
     }
     .frame(alignment: .trailing)
     .frame(height: 44)
@@ -263,14 +302,46 @@ struct LazyLibrarianView: View {
     #endif
   }
 
-  private func trailingControlButton(systemName: String) -> some View {
-    Button {
-    } label: {
+  private func trailingControlButton(
+    label: String,
+    systemName: String,
+    isEnabled: Bool = true,
+    action: @escaping () -> Void
+  ) -> some View {
+    Button(action: action) {
       Image(systemName: systemName)
+        .font(.title3.weight(.medium))
         .imageScale(.large)
         .frame(width: 48, height: 48)
     }
     .buttonStyle(.borderless)
+    .disabled(!isEnabled)
+    .accessibilityLabel(label)
+  }
+
+  private func trailingControlButton(
+    label: String,
+    isEnabled: Bool = true,
+    @ViewBuilder content: () -> some View,
+    action: @escaping () -> Void
+  ) -> some View {
+    Button(action: action) {
+      content()
+        .frame(width: 48, height: 48)
+    }
+    .buttonStyle(.borderless)
+    .disabled(!isEnabled)
+    .accessibilityLabel(label)
+  }
+
+  private func searchActionIcon(base: String) -> some View {
+    ZStack {
+      Image(systemName: base)
+        .font(.title3.weight(.medium))
+      Image(systemName: "magnifyingglass")
+        .font(.system(size: 9, weight: .bold))
+        .offset(x: 10, y: 10)
+    }
   }
 }
 
@@ -279,22 +350,14 @@ func lazyLibrarianEbookStatusRow(
   progressValue: Int?,
   progressFinished: Bool,
   progressSeen: Bool,
-  canTriggerSearch: Bool,
-  shouldOfferSearch: Bool,
-  searchAction: @escaping () -> Void,
-  downloadAction: @escaping () -> Void,
-  canDownload: Bool
+  shouldOfferSearch: Bool
 ) -> some View {
   HStack(spacing: 6) {
     if status == .open {
-      Button(action: downloadAction) {
-        Image(systemName: "book")
-          .font(.system(size: 16, weight: .semibold))
-      }
-      .buttonStyle(.plain)
-      .foregroundStyle(Color.accentColor)
-      .frame(width: 22, height: 22)
-      .disabled(canDownload == false)
+      Image(systemName: "book.fill")
+        .font(.system(size: 16, weight: .semibold))
+        .foregroundStyle(Color.accentColor)
+        .frame(width: 22, height: 22)
     } else if progressSeen {
       lazyLibrarianProgressCircle(
         value: progressValue ?? 0,
@@ -302,14 +365,7 @@ func lazyLibrarianEbookStatusRow(
         icon: "book"
       )
     } else if shouldOfferSearch {
-      Button(action: searchAction) {
-        Image(systemName: "magnifyingglass")
-          .font(.system(size: 16, weight: .semibold))
-      }
-      .buttonStyle(.borderless)
-      .controlSize(.small)
-      .frame(width: 22, height: 22)
-      .disabled(canTriggerSearch == false)
+      lazyLibrarianSearchIndicator(icon: "book")
     } else {
       Color.clear
         .frame(width: 22, height: 22)
@@ -322,9 +378,7 @@ func lazyLibrarianAudioStatusRow(
   progressValue: Int?,
   progressFinished: Bool,
   progressSeen: Bool,
-  canTriggerSearch: Bool,
-  shouldOfferSearch: Bool,
-  searchAction: @escaping () -> Void
+  shouldOfferSearch: Bool
 ) -> some View {
   HStack(spacing: 6) {
     if status == .open {
@@ -339,14 +393,7 @@ func lazyLibrarianAudioStatusRow(
         icon: "waveform.mid"
       )
     } else if shouldOfferSearch {
-      Button(action: searchAction) {
-        Image(systemName: "magnifyingglass")
-          .font(.system(size: 16, weight: .semibold))
-      }
-      .buttonStyle(.borderless)
-      .controlSize(.small)
-      .frame(width: 22, height: 22)
-      .disabled(canTriggerSearch == false)
+      lazyLibrarianSearchIndicator(icon: "waveform.mid")
     } else {
       Color.clear
         .frame(width: 22, height: 22)
@@ -379,11 +426,7 @@ func lazyLibrarianProgressCircles(
 func lazyLibrarianStatusCluster(
   item: LazyLibrarianLibraryItem,
   progress: LazyLibrarianViewModel.DownloadProgress?,
-  canTriggerSearch: (LazyLibrarianLibrary) -> Bool,
-  shouldOfferSearch: (LazyLibrarianLibraryItemStatus?) -> Bool,
-  triggerSearch: @escaping (LazyLibrarianLibrary) -> Void,
-  downloadAction: @escaping () -> Void,
-  canDownload: Bool
+  shouldOfferSearch: (LazyLibrarianLibraryItemStatus?) -> Bool
 ) -> some View {
   HStack(spacing: 10) {
     lazyLibrarianEbookStatusRow(
@@ -391,24 +434,14 @@ func lazyLibrarianStatusCluster(
       progressValue: progress?.ebook,
       progressFinished: progress?.ebookFinished ?? false,
       progressSeen: progress?.ebookSeen ?? false,
-      canTriggerSearch: canTriggerSearch(.ebook),
-      shouldOfferSearch: shouldOfferSearch(item.status),
-      searchAction: {
-        triggerSearch(.ebook)
-      },
-      downloadAction: downloadAction,
-      canDownload: canDownload
+      shouldOfferSearch: shouldOfferSearch(item.status)
     )
     lazyLibrarianAudioStatusRow(
       status: item.audioStatus,
       progressValue: progress?.audiobook,
       progressFinished: progress?.audiobookFinished ?? false,
       progressSeen: progress?.audiobookSeen ?? false,
-      canTriggerSearch: canTriggerSearch(.audio),
-      shouldOfferSearch: shouldOfferSearch(item.audioStatus),
-      searchAction: {
-        triggerSearch(.audio)
-      }
+      shouldOfferSearch: shouldOfferSearch(item.audioStatus)
     )
   }
 }
@@ -435,6 +468,19 @@ func lazyLibrarianProgressCircle(
         .font(.system(size: 11, weight: .bold))
         .foregroundStyle(.secondary)
     }
+  }
+  .frame(width: 22, height: 22)
+}
+
+func lazyLibrarianSearchIndicator(icon: String) -> some View {
+  ZStack {
+    Image(systemName: icon)
+      .font(.system(size: 14, weight: .semibold))
+      .foregroundStyle(.secondary)
+    Image(systemName: "magnifyingglass")
+      .font(.system(size: 8, weight: .bold))
+      .foregroundStyle(.secondary)
+      .offset(x: 7, y: 7)
   }
   .frame(width: 22, height: 22)
 }

@@ -27,7 +27,6 @@
 		51792FD12C96283F004B6E71 /* IRCConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC02C91250F004B6E71 /* IRCConnection.swift */; };
 		51792FD22C962844004B6E71 /* DCCFileTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC22C93CB90004B6E71 /* DCCFileTransfer.swift */; };
 		51792FD32C962848004B6E71 /* EBookDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51792FC42C93CF90004B6E71 /* EBookDownloader.swift */; };
-		51F36E2D2EF733F2004A31B1 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 51F36E2E2EF733F2004A31B1 /* Kingfisher */; };
 		51929E1F2C9A531400D77429 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 51929E1E2C9A531400D77429 /* ZIPFoundation */; };
 		51929E212C9A532700D77429 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 51929E202C9A532700D77429 /* ZIPFoundation */; };
 		51929E232C9A5F3A00D77429 /* SearchResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51929E222C9A5F3A00D77429 /* SearchResult.swift */; };
@@ -40,6 +39,7 @@
 		51A0C0022DCB12F800123456 /* LazyLibrarianViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51A0C0122DCB12F800123456 /* LazyLibrarianViewModel.swift */; };
 		51A0C0032DCB12F800123456 /* LazyLibrarianView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51A0C0132DCB12F800123456 /* LazyLibrarianView.swift */; };
 		51A0C0102DCB12F800123456 /* LazyLibrarianSearchResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51A0C0202DCB12F800123456 /* LazyLibrarianSearchResultsView.swift */; };
+		51F36E2D2EF733F2004A31B1 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 51F36E2E2EF733F2004A31B1 /* Kingfisher */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -862,15 +862,15 @@
 			package = 51929E1D2C9A531400D77429 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
 			productName = ZIPFoundation;
 		};
-		51F36E2E2EF733F2004A31B1 /* Kingfisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 51F36E2C2EF733F2004A31B1 /* XCRemoteSwiftPackageReference "Kingfisher" */;
-			productName = Kingfisher;
-		};
 		51929E202C9A532700D77429 /* ZIPFoundation */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 51929E1D2C9A531400D77429 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
 			productName = ZIPFoundation;
+		};
+		51F36E2E2EF733F2004A31B1 /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 51F36E2C2EF733F2004A31B1 /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
