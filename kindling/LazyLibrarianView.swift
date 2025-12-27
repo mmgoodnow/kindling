@@ -431,7 +431,7 @@ func lazyLibrarianEbookStatusRow(
     if status == .open {
       Image(systemName: "book.fill")
         .font(.system(size: 16, weight: .semibold))
-        .foregroundStyle(Color.accentColor)
+        .foregroundStyle(.secondary)
         .frame(width: 22, height: 22)
     } else if progressSeen {
       lazyLibrarianProgressCircle(
