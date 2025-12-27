@@ -333,7 +333,7 @@ struct LazyLibrarianView: View {
       }
       trailingControlButton(
         label: "Download & Export",
-        systemName: "square.and.arrow.down",
+        systemName: "square.and.arrow.up",
         isEnabled: canExport,
         action: {
           Task {
