@@ -8,6 +8,9 @@ struct LazyLibrarianView: View {
   @State private var isShowingSearchResults = false
   @State private var isShowingShareSheet = false
   @State private var shareURL: URL?
+  @State private var isShowingKindleExporter = false
+  @State private var kindleExportFile: BookFile?
+  @State private var isKindleExported = false
   @State private var podibleErrorMessage: String?
   @State private var podibleDownloadingBookID: String?
   @State private var selectedItemID: LazyLibrarianLibraryItem.ID?
@@ -125,6 +128,12 @@ struct LazyLibrarianView: View {
         )
       )
     #endif
+    .exporter(
+      downloadedFile: kindleExportFile,
+      kindleEmailAddress: userSettings.kindleEmailAddress,
+      isExportModalOpen: $isShowingKindleExporter,
+      isExported: $isKindleExported
+    )
   }
 
   private func startPodibleDownload(
@@ -148,6 +157,34 @@ struct LazyLibrarianView: View {
       let filename = sanitizeFilename(title).appending(".epub")
       shareURL = makeShareableCopy(of: localURL, filename: filename) ?? localURL
       isShowingShareSheet = true
+    } catch {
+      podibleErrorMessage = error.localizedDescription
+    }
+    podibleDownloadingBookID = nil
+  }
+
+  private func startKindleExport(
+    bookID: String,
+    author: String,
+    title: String
+  ) async {
+    guard
+      let epubURL = podibleEpubURL(
+        baseURLString: userSettings.podibleURL,
+        author: author,
+        title: title
+      )
+    else { return }
+    podibleDownloadingBookID = bookID
+    podibleErrorMessage = nil
+    do {
+      let localURL = try await PodibleClient(
+        baseURLString: userSettings.podibleURL
+      ).downloadEpub(from: epubURL)
+      let filename = sanitizeFilename(title).appending(".epub")
+      let data = try Data(contentsOf: localURL)
+      kindleExportFile = BookFile(filename: filename, data: data)
+      isShowingKindleExporter = true
     } catch {
       podibleErrorMessage = error.localizedDescription
     }
@@ -254,6 +291,8 @@ struct LazyLibrarianView: View {
         title: item.title
       ) != nil
     let canExport = item.status == .open && canDownload
+    let canKindleExport =
+      canExport && userSettings.kindleEmailAddress.isEmpty == false
 
     let controls = HStack(spacing: 8) {
       trailingControlButton(
@@ -295,6 +334,20 @@ struct LazyLibrarianView: View {
         action: {
           Task {
             await startPodibleDownload(
+              bookID: item.id,
+              author: item.author,
+              title: item.title
+            )
+          }
+        }
+      )
+      trailingControlButton(
+        label: "Email to Kindle",
+        systemName: "paperplane",
+        isEnabled: canKindleExport,
+        action: {
+          Task {
+            await startKindleExport(
               bookID: item.id,
               author: item.author,
               title: item.title
