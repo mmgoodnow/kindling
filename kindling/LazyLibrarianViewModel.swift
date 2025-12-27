@@ -53,7 +53,9 @@ final class LazyLibrarianViewModel: ObservableObject {
       libraryItems = filteredItems
       startPollingIfNeeded(for: filteredItems, client: client)
     } catch {
-      errorMessage = error.localizedDescription
+      if shouldIgnoreError(error) == false {
+        errorMessage = error.localizedDescription
+      }
     }
     isLoading = false
   }
@@ -65,7 +67,9 @@ final class LazyLibrarianViewModel: ObservableObject {
     do {
       searchResults = try await client.searchBooks(query: query)
     } catch {
-      errorMessage = error.localizedDescription
+      if shouldIgnoreError(error) == false {
+        errorMessage = error.localizedDescription
+      }
     }
     isLoading = false
   }
@@ -129,8 +133,10 @@ final class LazyLibrarianViewModel: ObservableObject {
       libraryItems = mergePending(into: libraryItems)
       startPolling(bookID: requested.id, client: client)
     } catch {
-      self.errorMessage = error.localizedDescription
-      print("[LazyLibrarian] request error for \(book.id): \(error.localizedDescription)")
+      if shouldIgnoreError(error) == false {
+        self.errorMessage = error.localizedDescription
+        print("[LazyLibrarian] request error for \(book.id): \(error.localizedDescription)")
+      }
     }
     isLoading = false
   }
@@ -144,7 +150,9 @@ final class LazyLibrarianViewModel: ObservableObject {
       markSearchTriggered(bookID: book.id, library: .ebook)
       markSearchTriggered(bookID: book.id, library: .audio)
     } catch {
-      self.errorMessage = error.localizedDescription
+      if shouldIgnoreError(error) == false {
+        self.errorMessage = error.localizedDescription
+      }
     }
     isLoading = false
   }
@@ -157,7 +165,9 @@ final class LazyLibrarianViewModel: ObservableObject {
       try await client.searchBook(id: bookID, library: library)
       markSearchTriggered(bookID: bookID, library: library)
     } catch {
-      self.errorMessage = error.localizedDescription
+      if shouldIgnoreError(error) == false {
+        self.errorMessage = error.localizedDescription
+      }
     }
   }
 
@@ -390,5 +400,9 @@ final class LazyLibrarianViewModel: ObservableObject {
     case .downloaded, .failed, .have, .skipped, .open, .processed, .ignored, .okay, .unknown:
       return false
     }
+  }
+
+  private func shouldIgnoreError(_ error: Error) -> Bool {
+    error is CancellationError
   }
 }
