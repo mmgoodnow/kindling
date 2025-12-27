@@ -70,6 +70,16 @@ final class LazyLibrarianViewModel: ObservableObject {
     isLoading = false
   }
 
+  func filteredLibraryItems(query: String) -> [LazyLibrarianLibraryItem] {
+    let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmed.isEmpty == false else { return libraryItems }
+    let needle = trimmed.lowercased()
+    return libraryItems.filter { item in
+      item.title.lowercased().contains(needle)
+        || item.author.lowercased().contains(needle)
+    }
+  }
+
   func request(_ book: LazyLibrarianBook, using client: LazyLibrarianServing) async {
     isLoading = true
     errorMessage = nil

@@ -21,14 +21,27 @@ struct LazyLibrarianSearchResultsView: View {
         )
       } else {
         ForEach(viewModel.searchResults) { book in
-          searchRow(for: book)
+          LazyLibrarianSearchResultRow(
+            viewModel: viewModel,
+            book: book,
+            client: client,
+            pendingItemIDs: $pendingItemIDs
+          )
         }
       }
     }
     .navigationTitle("Search")
   }
+}
 
-  private func searchRow(for book: LazyLibrarianBook) -> some View {
+struct LazyLibrarianSearchResultRow: View {
+  @ObservedObject var viewModel: LazyLibrarianViewModel
+  @EnvironmentObject var userSettings: UserSettings
+  let book: LazyLibrarianBook
+  let client: LazyLibrarianServing
+  @Binding var pendingItemIDs: Set<String>
+
+  var body: some View {
     let isPending =
       pendingItemIDs.contains(book.id)
       && viewModel.progressForBookID(book.id) == nil
@@ -48,104 +61,103 @@ struct LazyLibrarianSearchResultsView: View {
         : nil)
     let shouldShowGetButton = effectiveItem == nil
 
-    return
-      VStack(alignment: .leading, spacing: 8) {
-        HStack(alignment: .center, spacing: 8) {
-          podibleCoverView(
-            url: book.coverImageURL
-              ?? podibleCoverURL(
-                baseURLString: userSettings.podibleURL,
-                author: book.author,
-                title: book.title
-              )
-          )
-          VStack(alignment: .leading, spacing: 4) {
-            Text(book.title)
-              .font(.headline)
-              .lineLimit(2)
-            Text(book.author)
-              .font(.subheadline)
-              .foregroundStyle(.secondary)
-              .lineLimit(1)
-          }
-          Spacer(minLength: 8)
-          VStack(alignment: .trailing, spacing: 6) {
-            if let item = effectiveItem {
-              lazyLibrarianStatusCluster(
-                item: item,
-                progress: progress,
-                shouldOfferSearch: { status in
-                  viewModel.shouldOfferSearch(status: status)
-                }
-              )
-            } else if shouldShowGetButton {
-              Group {
-                if isPending {
-                  Button {
-                    Task {
-                      await viewModel.request(
-                        book,
-                        using: client
-                      )
-                    }
-                  } label: {
-                    Text("GET")
-                  }
-                  .buttonStyle(.bordered)
-                  .foregroundStyle(.secondary)
-                } else {
-                  Button {
-                    pendingItemIDs.insert(book.id)
-                    viewModel.beginOptimisticRequest(for: book)
-                    Task {
-                      await viewModel.request(
-                        book,
-                        using: client
-                      )
-                      let updated = viewModel
-                        .searchResults
-                        .first(where: {
-                          $0.id == book.id
-                        })
-                      let shouldWait =
-                        updated.map {
-                          viewModel
-                            .shouldShowDownloadProgress(
-                              status: $0.status,
-                              audioStatus: $0
-                                .audioStatus
-                            )
-                        } ?? false
-                      if shouldWait == false
-                        || viewModel.progressForBookID(
-                          book.id
-                        ) != nil
-                      {
-                        pendingItemIDs.remove(
-                          book.id
-                        )
-                      }
-                    }
-                  } label: {
-                    Text("GET")
-                  }
-                  .buttonStyle(.bordered)
-                }
+    return VStack(alignment: .leading, spacing: 8) {
+      HStack(alignment: .center, spacing: 8) {
+        podibleCoverView(
+          url: book.coverImageURL
+            ?? podibleCoverURL(
+              baseURLString: userSettings.podibleURL,
+              author: book.author,
+              title: book.title
+            )
+        )
+        VStack(alignment: .leading, spacing: 4) {
+          Text(book.title)
+            .font(.headline)
+            .lineLimit(2)
+          Text(book.author)
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
+        Spacer(minLength: 8)
+        VStack(alignment: .trailing, spacing: 6) {
+          if let item = effectiveItem {
+            lazyLibrarianStatusCluster(
+              item: item,
+              progress: progress,
+              shouldOfferSearch: { status in
+                viewModel.shouldOfferSearch(status: status)
               }
-              .controlSize(.small)
-              .tint(.accentColor)
-              .clipShape(Capsule())
-              .disabled(
-                isPending || book.status == .requested
-                  || book.status == .wanted
-              )
+            )
+          } else if shouldShowGetButton {
+            Group {
+              if isPending {
+                Button {
+                  Task {
+                    await viewModel.request(
+                      book,
+                      using: client
+                    )
+                  }
+                } label: {
+                  Text("GET")
+                }
+                .buttonStyle(.bordered)
+                .foregroundStyle(.secondary)
+              } else {
+                Button {
+                  pendingItemIDs.insert(book.id)
+                  viewModel.beginOptimisticRequest(for: book)
+                  Task {
+                    await viewModel.request(
+                      book,
+                      using: client
+                    )
+                    let updated = viewModel
+                      .searchResults
+                      .first(where: {
+                        $0.id == book.id
+                      })
+                    let shouldWait =
+                      updated.map {
+                        viewModel
+                          .shouldShowDownloadProgress(
+                            status: $0.status,
+                            audioStatus: $0
+                              .audioStatus
+                          )
+                      } ?? false
+                    if shouldWait == false
+                      || viewModel.progressForBookID(
+                        book.id
+                      ) != nil
+                    {
+                      pendingItemIDs.remove(
+                        book.id
+                      )
+                    }
+                  }
+                } label: {
+                  Text("GET")
+                }
+                .buttonStyle(.bordered)
+              }
             }
+            .controlSize(.small)
+            .tint(.accentColor)
+            .clipShape(Capsule())
+            .disabled(
+              isPending || book.status == .requested
+                || book.status == .wanted
+            )
           }
         }
       }
-      .onChange(of: viewModel.progressForBookID(book.id)?.updatedAt) { _, _ in
-        pendingItemIDs.remove(book.id)
-      }
+    }
+    .onChange(of: viewModel.progressForBookID(book.id)?.updatedAt) { _, _ in
+      pendingItemIDs.remove(book.id)
+    }
   }
 }
 

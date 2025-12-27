@@ -5,7 +5,6 @@ import SwiftUI
 struct LazyLibrarianView: View {
   @EnvironmentObject var userSettings: UserSettings
   @StateObject private var viewModel = LazyLibrarianViewModel()
-  @State private var isShowingSearchResults = false
   @State private var isShowingShareSheet = false
   @State private var shareURL: URL?
   @State private var isShowingKindleExporter = false
@@ -14,6 +13,7 @@ struct LazyLibrarianView: View {
   @State private var podibleErrorMessage: String?
   @State private var podibleDownloadingBookID: String?
   @State private var selectedItemID: LazyLibrarianLibraryItem.ID?
+  @State private var pendingSearchItemIDs: Set<String> = []
 
   let clientOverride: LazyLibrarianServing?
 
@@ -68,12 +68,43 @@ struct LazyLibrarianView: View {
           .font(.caption)
       }
 
-      if viewModel.libraryItems.isEmpty {
-        Text("No books yet.")
-          .foregroundStyle(.secondary)
+      if viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if viewModel.libraryItems.isEmpty {
+          Text("No books yet.")
+            .foregroundStyle(.secondary)
+        } else {
+          ForEach(viewModel.libraryItems) { item in
+            libraryRow(item, client: client)
+          }
+        }
       } else {
-        ForEach(viewModel.libraryItems) { item in
-          libraryRow(item, client: client)
+        Section("Library") {
+          let filtered = viewModel.filteredLibraryItems(query: viewModel.query)
+          if filtered.isEmpty {
+            Text("No library matches.")
+              .foregroundStyle(.secondary)
+          } else {
+            ForEach(filtered) { item in
+              libraryRow(item, client: client)
+            }
+          }
+        }
+        Section("Search Results") {
+          if viewModel.searchResults.isEmpty {
+            ContentUnavailableView(
+              "No Results",
+              systemImage: "magnifyingglass"
+            )
+          } else {
+            ForEach(viewModel.searchResults) { book in
+              LazyLibrarianSearchResultRow(
+                viewModel: viewModel,
+                book: book,
+                client: client,
+                pendingItemIDs: $pendingSearchItemIDs
+              )
+            }
+          }
         }
       }
     }
@@ -93,14 +124,13 @@ struct LazyLibrarianView: View {
     .onSubmit(of: .search) {
       Task {
         await viewModel.search(using: client)
-        isShowingSearchResults = true
       }
     }
-    .navigationDestination(isPresented: $isShowingSearchResults) {
-      LazyLibrarianSearchResultsView(
-        viewModel: viewModel,
-        client: client
-      )
+    .onChange(of: viewModel.query) { _, newValue in
+      if newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        viewModel.searchResults = []
+        pendingSearchItemIDs.removeAll()
+      }
     }
     #if os(iOS)
       .sheet(isPresented: $isShowingShareSheet) {
