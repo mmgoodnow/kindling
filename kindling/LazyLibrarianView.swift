@@ -86,18 +86,6 @@ struct LazyLibrarianView: View {
         await viewModel.loadLibraryItems(using: client)
       }
     }
-    .toolbar {
-      ToolbarItem {
-        Button {
-          Task {
-            await viewModel.loadLibraryItems(using: client)
-          }
-        } label: {
-          Image(systemName: "arrow.clockwise")
-        }
-        .keyboardShortcut("r", modifiers: [.command])
-      }
-    }
     .refreshable {
       await viewModel.loadLibraryItems(using: client)
     }
