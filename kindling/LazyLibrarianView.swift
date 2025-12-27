@@ -1,15 +1,13 @@
 import Foundation
 import Kingfisher
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct LazyLibrarianView: View {
   @EnvironmentObject var userSettings: UserSettings
   @StateObject private var viewModel = LazyLibrarianViewModel()
   @State private var isShowingSearchResults = false
-  @State private var isShowingPodibleExporter = false
-  @State private var podibleExportDocument: EpubDocument?
-  @State private var podibleExportFilename: String = "book.epub"
+  @State private var isShowingShareSheet = false
+  @State private var shareURL: URL?
   @State private var podibleErrorMessage: String?
   @State private var podibleDownloadingBookID: String?
   @State private var selectedItemID: LazyLibrarianLibraryItem.ID?
@@ -113,14 +111,20 @@ struct LazyLibrarianView: View {
         client: client
       )
     }
-    .fileExporter(
-      isPresented: $isShowingPodibleExporter,
-      document: podibleExportDocument,
-      contentType: .epub,
-      defaultFilename: podibleExportFilename
-    ) { _ in
-      podibleExportDocument = nil
-    }
+    #if os(iOS)
+      .sheet(isPresented: $isShowingShareSheet) {
+        if let shareURL {
+          ActivityShareSheet(items: [shareURL])
+        }
+      }
+    #else
+      .background(
+        ShareSheetPresenter(
+          isPresented: $isShowingShareSheet,
+          items: shareURL.map { [$0] } ?? []
+        )
+      )
+    #endif
   }
 
   private func startPodibleDownload(
@@ -141,9 +145,9 @@ struct LazyLibrarianView: View {
       let localURL = try await PodibleClient(
         baseURLString: userSettings.podibleURL
       ).downloadEpub(from: epubURL)
-      podibleExportFilename = sanitizeFilename(title).appending(".epub")
-      podibleExportDocument = EpubDocument(url: localURL)
-      isShowingPodibleExporter = true
+      let filename = sanitizeFilename(title).appending(".epub")
+      shareURL = makeShareableCopy(of: localURL, filename: filename) ?? localURL
+      isShowingShareSheet = true
     } catch {
       podibleErrorMessage = error.localizedDescription
     }
@@ -152,6 +156,20 @@ struct LazyLibrarianView: View {
 
   private func sanitizeFilename(_ value: String) -> String {
     podibleSanitizeFilename(value)
+  }
+
+  private func makeShareableCopy(of url: URL, filename: String) -> URL? {
+    guard url.lastPathComponent != filename else { return url }
+    let destination = url.deletingLastPathComponent().appendingPathComponent(filename)
+    do {
+      if FileManager.default.fileExists(atPath: destination.path) {
+        try FileManager.default.removeItem(at: destination)
+      }
+      try FileManager.default.copyItem(at: url, to: destination)
+      return destination
+    } catch {
+      return nil
+    }
   }
 
   private func libraryRow(
@@ -570,30 +588,55 @@ private func podibleSlugify(_ value: String) -> String {
   return collapsed.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
 }
 
-struct EpubDocument: FileDocument {
-  static var readableContentTypes: [UTType] { [.epub] }
+struct ActivityShareSheet: View {
+  let items: [Any]
 
-  let url: URL
-
-  init(url: URL) {
-    self.url = url
-  }
-
-  init(configuration: ReadConfiguration) throws {
-    throw CocoaError(.fileReadUnknown)
-  }
-
-  func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-    let data = try Data(contentsOf: url)
-    return FileWrapper(regularFileWithContents: data)
+  var body: some View {
+    ActivityShareSheetController(items: items)
   }
 }
 
-extension UTType {
-  static var epub: UTType {
-    UTType(filenameExtension: "epub") ?? .data
+#if os(iOS)
+  struct ActivityShareSheetController: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+      UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
+    }
   }
-}
+#else
+  struct ActivityShareSheetController: NSViewRepresentable {
+    let items: [Any]
+
+    func makeNSView(context: Context) -> NSView {
+      NSView(frame: .zero)
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+    }
+  }
+
+  struct ShareSheetPresenter: NSViewRepresentable {
+    @Binding var isPresented: Bool
+    let items: [Any]
+
+    func makeNSView(context: Context) -> NSView {
+      NSView(frame: .zero)
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+      guard isPresented, items.isEmpty == false else { return }
+      DispatchQueue.main.async {
+        let picker = NSSharingServicePicker(items: items)
+        picker.show(relativeTo: nsView.bounds, of: nsView, preferredEdge: .minY)
+        isPresented = false
+      }
+    }
+  }
+#endif
 
 #Preview {
   NavigationStack {
