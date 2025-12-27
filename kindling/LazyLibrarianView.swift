@@ -14,6 +14,7 @@ struct LazyLibrarianView: View {
   @State private var podibleDownloadingBookID: String?
   @State private var selectedItemID: LazyLibrarianLibraryItem.ID?
   @State private var pendingSearchItemIDs: Set<String> = []
+  @State private var searchTask: Task<Void, Never>?
 
   let clientOverride: LazyLibrarianServing?
 
@@ -90,13 +91,17 @@ struct LazyLibrarianView: View {
           }
         }
         Section("Search Results") {
-          if viewModel.searchResults.isEmpty {
+          let libraryIDs = Set(viewModel.libraryItems.map(\.id))
+          let remoteResults = viewModel.searchResults.filter {
+            libraryIDs.contains($0.id) == false
+          }
+          if remoteResults.isEmpty {
             ContentUnavailableView(
               "No Results",
               systemImage: "magnifyingglass"
             )
           } else {
-            ForEach(viewModel.searchResults) { book in
+            ForEach(remoteResults) { book in
               LazyLibrarianSearchResultRow(
                 viewModel: viewModel,
                 book: book,
@@ -127,9 +132,17 @@ struct LazyLibrarianView: View {
       }
     }
     .onChange(of: viewModel.query) { _, newValue in
-      if newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+      searchTask?.cancel()
+      let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+      if trimmed.isEmpty {
         viewModel.searchResults = []
         pendingSearchItemIDs.removeAll()
+        return
+      }
+      searchTask = Task {
+        try? await Task.sleep(nanoseconds: 400_000_000)
+        guard Task.isCancelled == false else { return }
+        await viewModel.search(using: client)
       }
     }
     #if os(iOS)
