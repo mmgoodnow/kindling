@@ -295,38 +295,42 @@ struct LazyLibrarianView: View {
       canExport && userSettings.kindleEmailAddress.isEmpty == false
 
     let controls = HStack(spacing: 8) {
-      trailingControlButton(
-        label: "Search eBook",
-        isEnabled: canTriggerEbookSearch,
-        content: {
-          searchActionIcon(base: "book")
-        },
-        action: {
-          Task {
-            await viewModel.triggerSearch(
-              bookID: item.id,
-              library: .ebook,
-              using: client
-            )
+      if canEbookSearch {
+        trailingControlButton(
+          label: "Search eBook",
+          isEnabled: canTriggerEbookSearch,
+          content: {
+            searchActionIcon(base: "book")
+          },
+          action: {
+            Task {
+              await viewModel.triggerSearch(
+                bookID: item.id,
+                library: .ebook,
+                using: client
+              )
+            }
           }
-        }
-      )
-      trailingControlButton(
-        label: "Search Audio",
-        isEnabled: canTriggerAudioSearch,
-        content: {
-          searchActionIcon(base: "waveform.mid")
-        },
-        action: {
-          Task {
-            await viewModel.triggerSearch(
-              bookID: item.id,
-              library: .audio,
-              using: client
-            )
+        )
+      }
+      if canAudioSearch {
+        trailingControlButton(
+          label: "Search Audio",
+          isEnabled: canTriggerAudioSearch,
+          content: {
+            searchActionIcon(base: "waveform.mid")
+          },
+          action: {
+            Task {
+              await viewModel.triggerSearch(
+                bookID: item.id,
+                library: .audio,
+                using: client
+              )
+            }
           }
-        }
-      )
+        )
+      }
       trailingControlButton(
         label: "Download & Export",
         systemName: "square.and.arrow.down",
