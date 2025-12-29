@@ -429,6 +429,7 @@ struct LazyLibrarianView: View {
   }
 }
 
+@ViewBuilder
 func lazyLibrarianEbookStatusRow(
   status: LazyLibrarianLibraryItemStatus?,
   progressValue: Int?,
@@ -436,32 +437,31 @@ func lazyLibrarianEbookStatusRow(
   progressSeen: Bool,
   shouldOfferSearch: Bool
 ) -> some View {
+  let isComplete = progressFinished || (status?.isComplete ?? false)
   HStack(spacing: 6) {
-    let isComplete = progressFinished || (status?.isComplete ?? false)
-    if isComplete {
-      Color.clear
-        .frame(width: 22, height: 22)
-    } else if progressSeen {
-      lazyLibrarianProgressCircle(
-        value: progressValue ?? 0,
-        tint: progressFinished ? .green : .blue,
-        icon: "book",
-        snoring: false
-      )
-    } else if shouldOfferSearch {
-      lazyLibrarianProgressCircle(
-        value: 0,
-        tint: .blue,
-        icon: "book",
-        snoring: true
-      )
-    } else {
-      Color.clear
-        .frame(width: 22, height: 22)
+    if isComplete == false {
+      if progressSeen {
+        lazyLibrarianProgressCircle(
+          value: progressValue ?? 0,
+          tint: progressFinished ? .green : .blue,
+          icon: "book",
+          snoring: false
+        )
+      } else if shouldOfferSearch {
+        lazyLibrarianProgressCircle(
+          value: 0,
+          tint: .blue,
+          icon: "book",
+          snoring: true
+        )
+      }
     }
   }
+  .transition(.opacity)
+  .animation(.easeInOut(duration: 0.2), value: isComplete)
 }
 
+@ViewBuilder
 func lazyLibrarianAudioStatusRow(
   status: LazyLibrarianLibraryItemStatus?,
   progressValue: Int?,
@@ -469,30 +469,28 @@ func lazyLibrarianAudioStatusRow(
   progressSeen: Bool,
   shouldOfferSearch: Bool
 ) -> some View {
+  let isComplete = progressFinished || (status?.isComplete ?? false)
   HStack(spacing: 6) {
-    let isComplete = progressFinished || (status?.isComplete ?? false)
-    if isComplete {
-      Color.clear
-        .frame(width: 22, height: 22)
-    } else if progressSeen {
-      lazyLibrarianProgressCircle(
-        value: progressValue ?? 0,
-        tint: progressFinished ? .green : .blue,
-        icon: "waveform.mid",
-        snoring: false
-      )
-    } else if shouldOfferSearch {
-      lazyLibrarianProgressCircle(
-        value: 0,
-        tint: .blue,
-        icon: "waveform.mid",
-        snoring: true
-      )
-    } else {
-      Color.clear
-        .frame(width: 22, height: 22)
+    if isComplete == false {
+      if progressSeen {
+        lazyLibrarianProgressCircle(
+          value: progressValue ?? 0,
+          tint: progressFinished ? .green : .blue,
+          icon: "waveform.mid",
+          snoring: false
+        )
+      } else if shouldOfferSearch {
+        lazyLibrarianProgressCircle(
+          value: 0,
+          tint: .blue,
+          icon: "waveform.mid",
+          snoring: true
+        )
+      }
     }
   }
+  .transition(.opacity)
+  .animation(.easeInOut(duration: 0.2), value: isComplete)
 }
 
 @ViewBuilder
