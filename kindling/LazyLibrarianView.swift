@@ -303,39 +303,30 @@ struct LazyLibrarianView: View {
     let canKindleExport =
       canExport && userSettings.kindleEmailAddress.isEmpty == false
 
+    let canRefresh = canEbookSearch || canAudioSearch
+    let canTriggerRefresh = canTriggerEbookSearch || canTriggerAudioSearch
     let controls = HStack(spacing: 8) {
-      if canEbookSearch {
+      if canRefresh {
         trailingControlButton(
-          label: "Search eBook",
-          isEnabled: canTriggerEbookSearch,
-          content: {
-            searchActionIcon(base: "book")
-          },
+          label: "Refresh",
+          systemName: "arrow.clockwise",
+          isEnabled: canTriggerRefresh,
           action: {
             Task {
-              await viewModel.triggerSearch(
-                bookID: item.id,
-                library: .ebook,
-                using: client
-              )
-            }
-          }
-        )
-      }
-      if canAudioSearch {
-        trailingControlButton(
-          label: "Search Audio",
-          isEnabled: canTriggerAudioSearch,
-          content: {
-            searchActionIcon(base: "waveform.mid")
-          },
-          action: {
-            Task {
-              await viewModel.triggerSearch(
-                bookID: item.id,
-                library: .audio,
-                using: client
-              )
+              if canTriggerEbookSearch {
+                await viewModel.triggerSearch(
+                  bookID: item.id,
+                  library: .ebook,
+                  using: client
+                )
+              }
+              if canTriggerAudioSearch {
+                await viewModel.triggerSearch(
+                  bookID: item.id,
+                  library: .audio,
+                  using: client
+                )
+              }
             }
           }
         )
