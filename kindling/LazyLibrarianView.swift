@@ -542,6 +542,7 @@ func lazyLibrarianStatusCluster(
   }
 }
 
+@ViewBuilder
 func lazyLibrarianProgressCircle(
   value: Int,
   tint: Color,
@@ -550,7 +551,7 @@ func lazyLibrarianProgressCircle(
 ) -> some View {
   let clamped = max(0, min(100, value))
   let progress = Double(clamped) / 100.0
-  return ZStack {
+  let base = ZStack {
     Circle()
       .stroke(.quaternary, lineWidth: 1.5)
     Circle()
@@ -565,14 +566,18 @@ func lazyLibrarianProgressCircle(
         .font(.system(size: 11, weight: .bold))
         .foregroundStyle(.secondary)
     }
-    if snoring {
-      Text("Zz")
-        .font(.system(size: 7, weight: .bold))
-        .foregroundStyle(.secondary)
-        .offset(x: 8, y: -8)
-    }
   }
   .frame(width: 22, height: 22)
+
+  if snoring {
+    TimelineView(.animation) { context in
+      let phase = context.date.timeIntervalSinceReferenceDate * 2.0
+      let opacity = 0.35 + 0.65 * (sin(phase) + 1.0) / 2.0
+      base.opacity(opacity)
+    }
+  } else {
+    base
+  }
 }
 
 @MainActor
