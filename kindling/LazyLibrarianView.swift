@@ -344,19 +344,7 @@ struct LazyLibrarianView: View {
     }
     .frame(alignment: .leading)
     .frame(height: 44)
-
-    #if os(iOS)
-      if #available(iOS 26.0, *) {
-        GlassEffectContainer {
-          controls
-            .glassEffect()
-        }
-      } else {
-        controls
-      }
-    #else
-      controls
-    #endif
+    controls
   }
 
   private func trailingControlButton(
