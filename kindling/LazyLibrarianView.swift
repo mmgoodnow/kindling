@@ -342,7 +342,7 @@ struct LazyLibrarianView: View {
         }
       )
     }
-    .frame(alignment: .leading)
+    .frame(maxWidth: .infinity, alignment: .leading)
     .frame(height: 44)
     controls
   }
