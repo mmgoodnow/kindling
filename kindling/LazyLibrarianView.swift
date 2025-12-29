@@ -255,7 +255,6 @@ struct LazyLibrarianView: View {
               isDownloadingThisBook: isDownloadingThisBook
             )
             .opacity(isSelected ? 1 : 0)
-            .offset(x: isSelected ? 0 : 24)
             .allowsHitTesting(isSelected)
             lazyLibrarianStatusCluster(
               item: item,
@@ -265,7 +264,6 @@ struct LazyLibrarianView: View {
               }
             )
             .opacity(isSelected ? 0 : 1)
-            .offset(x: isSelected ? -24 : 0)
             .allowsHitTesting(!isSelected)
           }
         }
