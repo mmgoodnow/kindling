@@ -10,8 +10,8 @@ struct LazyLibrarianView: View {
   @State private var isShowingKindleExporter = false
   @State private var kindleExportFile: BookFile?
   @State private var isKindleExported = false
-  @State private var podibleErrorMessage: String?
-  @State private var podibleDownloadingBookID: String?
+  @State private var downloadErrorMessage: String?
+  @State private var downloadingBookID: String?
   @State private var selectedItemID: LazyLibrarianLibraryItem.ID?
   @State private var pendingSearchItemIDs: Set<String> = []
   @State private var searchTask: Task<Void, Never>?
@@ -63,8 +63,8 @@ struct LazyLibrarianView: View {
           .font(.caption)
       }
 
-      if let podibleError = podibleErrorMessage {
-        Text(podibleError)
+      if let downloadError = downloadErrorMessage {
+        Text(downloadError)
           .foregroundStyle(.red)
           .font(.caption)
       }
@@ -167,22 +167,22 @@ struct LazyLibrarianView: View {
     )
   }
 
-  private func startPodibleDownload(
+  private func startEbookDownload(
     bookID: String,
     title: String,
     client: LazyLibrarianServing
   ) async {
-    podibleDownloadingBookID = bookID
-    podibleErrorMessage = nil
+    downloadingBookID = bookID
+    downloadErrorMessage = nil
     do {
       let localURL = try await client.downloadEpub(bookID: bookID)
       let filename = sanitizeFilename(title).appending(".epub")
       shareURL = makeShareableCopy(of: localURL, filename: filename) ?? localURL
       isShowingShareSheet = true
     } catch {
-      podibleErrorMessage = error.localizedDescription
+      downloadErrorMessage = error.localizedDescription
     }
-    podibleDownloadingBookID = nil
+    downloadingBookID = nil
   }
 
   private func startKindleExport(
@@ -190,8 +190,8 @@ struct LazyLibrarianView: View {
     title: String,
     client: LazyLibrarianServing
   ) async {
-    podibleDownloadingBookID = bookID
-    podibleErrorMessage = nil
+    downloadingBookID = bookID
+    downloadErrorMessage = nil
     do {
       let localURL = try await client.downloadEpub(bookID: bookID)
       let filename = sanitizeFilename(title).appending(".epub")
@@ -199,13 +199,15 @@ struct LazyLibrarianView: View {
       kindleExportFile = BookFile(filename: filename, data: data)
       isShowingKindleExporter = true
     } catch {
-      podibleErrorMessage = error.localizedDescription
+      downloadErrorMessage = error.localizedDescription
     }
-    podibleDownloadingBookID = nil
+    downloadingBookID = nil
   }
 
   private func sanitizeFilename(_ value: String) -> String {
-    podibleSanitizeFilename(value)
+    let sanitized = value.trimmingCharacters(in: .whitespacesAndNewlines)
+      .replacingOccurrences(of: "[\\\\/:*?\"<>|]", with: "-", options: .regularExpression)
+    return sanitized.isEmpty ? "untitled" : sanitized
   }
 
   private func makeShareableCopy(of url: URL, filename: String) -> URL? {
@@ -227,12 +229,12 @@ struct LazyLibrarianView: View {
     client: LazyLibrarianServing
   ) -> some View {
     let progress = viewModel.progressForBookID(item.id)
-    let isDownloadingThisBook = podibleDownloadingBookID == item.id
+    let isDownloadingThisBook = downloadingBookID == item.id
     let isSelected = selectedItemID == item.id
 
     return VStack(alignment: .leading, spacing: 8) {
       HStack(alignment: .center, spacing: 8) {
-        podibleCoverView(
+        bookCoverView(
           url: lazyLibrarianAssetURL(
             baseURLString: userSettings.lazyLibrarianURL,
             path: item.bookImagePath
@@ -296,13 +298,7 @@ struct LazyLibrarianView: View {
     let canTriggerAudioSearch =
       canAudioSearch
       && viewModel.canTriggerSearch(bookID: item.id, library: .audio)
-    let canDownload =
-      isDownloadingThisBook == false
-      && podibleEpubURL(
-        baseURLString: userSettings.podibleURL,
-        author: item.author,
-        title: item.title
-      ) != nil
+    let canDownload = isDownloadingThisBook == false
     let canExport = item.status == .open && canDownload
     let canKindleExport =
       canExport && userSettings.kindleEmailAddress.isEmpty == false
@@ -350,7 +346,7 @@ struct LazyLibrarianView: View {
         isEnabled: canExport,
         action: {
           Task {
-            await startPodibleDownload(
+            await startEbookDownload(
               bookID: item.id,
               title: item.title,
               client: client
@@ -575,22 +571,22 @@ func lazyLibrarianSearchIndicator(icon: String) -> some View {
 
 @MainActor
 @ViewBuilder
-func podibleCoverView(url: URL?) -> some View {
+func bookCoverView(url: URL?) -> some View {
   if let url {
     KFImage(url)
       .placeholder {
-        podibleCoverPlaceholder()
+        bookCoverPlaceholder()
       }
       .resizable()
       .scaledToFill()
       .frame(width: 48, height: 70)
       .clipShape(RoundedRectangle(cornerRadius: 6))
   } else {
-    podibleCoverPlaceholder()
+    bookCoverPlaceholder()
   }
 }
 
-func podibleCoverPlaceholder() -> some View {
+func bookCoverPlaceholder() -> some View {
   RoundedRectangle(cornerRadius: 6)
     .fill(.quaternary)
     .frame(width: 48, height: 70)
@@ -599,27 +595,6 @@ func podibleCoverPlaceholder() -> some View {
         .font(.caption)
         .foregroundStyle(.secondary)
     )
-}
-
-private func podibleSanitizeFilename(_ value: String) -> String {
-  let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-  if trimmed.isEmpty { return "book" }
-  let invalid = CharacterSet(charactersIn: "/\\:?%*|\"<>")
-  return trimmed.components(separatedBy: invalid).joined(separator: "-")
-}
-
-func podibleEpubURL(baseURLString: String, author: String, title: String)
-  -> URL?
-{
-  let slug = podibleSlugify("\(author) \(title)")
-  return PodibleClient(baseURLString: baseURLString).epubURL(slug: slug)
-}
-
-func podibleCoverURL(baseURLString: String, author: String, title: String)
-  -> URL?
-{
-  let slug = podibleSlugify("\(author) \(title)")
-  return PodibleClient(baseURLString: baseURLString).coverURL(slug: slug)
 }
 
 func lazyLibrarianAssetURL(baseURLString: String, path: String?) -> URL? {
@@ -639,23 +614,6 @@ func lazyLibrarianAssetURL(baseURLString: String, path: String?) -> URL? {
     return nil
   }
   return url
-}
-
-private func podibleSlugify(_ value: String) -> String {
-  let trimmed = value.lowercased().trimmingCharacters(
-    in: .whitespacesAndNewlines
-  )
-  let dashed = trimmed.replacingOccurrences(
-    of: "[^a-z0-9]+",
-    with: "-",
-    options: .regularExpression
-  )
-  let collapsed = dashed.replacingOccurrences(
-    of: "-{2,}",
-    with: "-",
-    options: .regularExpression
-  )
-  return collapsed.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
 }
 
 struct ActivityShareSheet: View {

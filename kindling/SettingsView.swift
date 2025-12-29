@@ -28,14 +28,6 @@ struct SettingsView: View {
           #endif
       }
 
-      Section("Podible") {
-        TextField("Base URL", text: userSettings.$podibleURL)
-          #if os(iOS)
-            .textInputAutocapitalization(.never)
-            .keyboardType(.URL)
-          #endif
-      }
-
       Section("IRC") {
         TextField("Server", text: userSettings.$ircServer)
         TextField(
