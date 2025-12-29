@@ -437,7 +437,7 @@ func lazyLibrarianEbookStatusRow(
   progressSeen: Bool,
   shouldOfferSearch: Bool
 ) -> some View {
-  let isComplete = progressFinished || (status?.isComplete ?? false)
+  let isComplete = status?.isComplete ?? false
   HStack(spacing: 6) {
     if isComplete == false {
       if progressSeen {
@@ -469,7 +469,7 @@ func lazyLibrarianAudioStatusRow(
   progressSeen: Bool,
   shouldOfferSearch: Bool
 ) -> some View {
-  let isComplete = progressFinished || (status?.isComplete ?? false)
+  let isComplete = status?.isComplete ?? false
   HStack(spacing: 6) {
     if isComplete == false {
       if progressSeen {
