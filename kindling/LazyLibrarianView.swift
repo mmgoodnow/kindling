@@ -271,6 +271,7 @@ struct LazyLibrarianView: View {
         }
       }
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
     .contentShape(Rectangle())
     .onTapGesture {
       withAnimation(.snappy) {
