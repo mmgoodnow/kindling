@@ -12,7 +12,6 @@ struct LazyLibrarianView: View {
   @State private var isKindleExported = false
   @State private var downloadErrorMessage: String?
   @State private var downloadingBookID: String?
-  @State private var selectedItemID: LazyLibrarianLibraryItem.ID?
   @State private var pendingSearchItemIDs: Set<String> = []
   @State private var searchTask: Task<Void, Never>?
 
@@ -230,7 +229,6 @@ struct LazyLibrarianView: View {
   ) -> some View {
     let progress = viewModel.progressForBookID(item.id)
     let isDownloadingThisBook = downloadingBookID == item.id
-    let isSelected = selectedItemID == item.id
 
     return VStack(alignment: .leading, spacing: 8) {
       HStack(alignment: .top, spacing: 12) {
@@ -248,14 +246,12 @@ struct LazyLibrarianView: View {
             .font(.subheadline)
             .foregroundStyle(.secondary)
             .lineLimit(1)
-          ZStack(alignment: .leading) {
+          VStack(alignment: .leading, spacing: 6) {
             trailingControls(
               item: item,
               client: client,
               isDownloadingThisBook: isDownloadingThisBook
             )
-            .opacity(isSelected ? 1 : 0)
-            .allowsHitTesting(isSelected)
             lazyLibrarianStatusCluster(
               item: item,
               progress: progress,
@@ -263,20 +259,11 @@ struct LazyLibrarianView: View {
                 viewModel.shouldOfferSearch(status: status)
               }
             )
-            .opacity(isSelected ? 0 : 1)
-            .allowsHitTesting(!isSelected)
           }
         }
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
-    .contentShape(Rectangle())
-    .onTapGesture {
-      selectedItemID = (selectedItemID == item.id) ? nil : item.id
-    }
-    .listRowBackground(
-      isSelected ? Color(.secondarySystemFill) : Color.clear
-    )
   }
 
   @ViewBuilder
