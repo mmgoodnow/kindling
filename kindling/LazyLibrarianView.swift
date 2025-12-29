@@ -429,28 +429,26 @@ func lazyLibrarianEbookStatusRow(
   shouldOfferSearch: Bool
 ) -> some View {
   let isComplete = status?.isComplete ?? false
-  HStack(spacing: 6) {
-    if isComplete == false {
-      if progressSeen {
-        lazyLibrarianProgressCircle(
-          value: progressValue ?? 0,
-          tint: progressFinished ? .green : .blue,
-          icon: "book",
-          snoring: false
-        )
-      } else {
-        lazyLibrarianProgressCircle(
-          value: 0,
-          tint: .blue,
-          icon: "book",
-          snoring: true
-        )
-        .opacity(shouldOfferSearch ? 1 : 0)
-      }
+  if isComplete == false {
+    if progressSeen {
+      lazyLibrarianProgressCircle(
+        value: progressValue ?? 0,
+        tint: progressFinished ? .green : .blue,
+        icon: "book",
+        snoring: false
+      )
+    } else {
+      lazyLibrarianProgressCircle(
+        value: 0,
+        tint: .blue,
+        icon: "book",
+        snoring: true
+      )
+      .opacity(shouldOfferSearch ? 1 : 0)
     }
   }
   .transition(.opacity)
-  .animation(.easeInOut(duration: 0.2), value: isComplete)
+    .animation(.easeInOut(duration: 0.2), value: isComplete)
 }
 
 @ViewBuilder
@@ -462,28 +460,26 @@ func lazyLibrarianAudioStatusRow(
   shouldOfferSearch: Bool
 ) -> some View {
   let isComplete = status?.isComplete ?? false
-  HStack(spacing: 6) {
-    if isComplete == false {
-      if progressSeen {
-        lazyLibrarianProgressCircle(
-          value: progressValue ?? 0,
-          tint: progressFinished ? .green : .blue,
-          icon: "waveform.mid",
-          snoring: false
-        )
-      } else {
-        lazyLibrarianProgressCircle(
-          value: 0,
-          tint: .blue,
-          icon: "waveform.mid",
-          snoring: true
-        )
-        .opacity(shouldOfferSearch ? 1 : 0)
-      }
+  if isComplete == false {
+    if progressSeen {
+      lazyLibrarianProgressCircle(
+        value: progressValue ?? 0,
+        tint: progressFinished ? .green : .blue,
+        icon: "waveform.mid",
+        snoring: false
+      )
+    } else {
+      lazyLibrarianProgressCircle(
+        value: 0,
+        tint: .blue,
+        icon: "waveform.mid",
+        snoring: true
+      )
+      .opacity(shouldOfferSearch ? 1 : 0)
     }
   }
   .transition(.opacity)
-  .animation(.easeInOut(duration: 0.2), value: isComplete)
+    .animation(.easeInOut(duration: 0.2), value: isComplete)
 }
 
 @ViewBuilder
@@ -515,21 +511,27 @@ func lazyLibrarianStatusCluster(
   progress: LazyLibrarianViewModel.DownloadProgress?,
   shouldOfferSearch: (LazyLibrarianLibraryItemStatus?) -> Bool
 ) -> some View {
+  let showEbook = item.status?.isComplete != true
+  let showAudio = item.audioStatus?.isComplete != true
   HStack(spacing: 10) {
-    lazyLibrarianEbookStatusRow(
-      status: item.status,
-      progressValue: progress?.ebook,
-      progressFinished: progress?.ebookFinished ?? false,
-      progressSeen: progress?.ebookSeen ?? false,
-      shouldOfferSearch: shouldOfferSearch(item.status)
-    )
-    lazyLibrarianAudioStatusRow(
-      status: item.audioStatus,
-      progressValue: progress?.audiobook,
-      progressFinished: progress?.audiobookFinished ?? false,
-      progressSeen: progress?.audiobookSeen ?? false,
-      shouldOfferSearch: shouldOfferSearch(item.audioStatus)
-    )
+    if showEbook {
+      lazyLibrarianEbookStatusRow(
+        status: item.status,
+        progressValue: progress?.ebook,
+        progressFinished: progress?.ebookFinished ?? false,
+        progressSeen: progress?.ebookSeen ?? false,
+        shouldOfferSearch: shouldOfferSearch(item.status)
+      )
+    }
+    if showAudio {
+      lazyLibrarianAudioStatusRow(
+        status: item.audioStatus,
+        progressValue: progress?.audiobook,
+        progressFinished: progress?.audiobookFinished ?? false,
+        progressSeen: progress?.audiobookSeen ?? false,
+        shouldOfferSearch: shouldOfferSearch(item.audioStatus)
+      )
+    }
   }
 }
 
