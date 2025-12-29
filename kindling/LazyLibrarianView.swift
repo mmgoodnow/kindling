@@ -256,6 +256,7 @@ struct LazyLibrarianView: View {
             )
             .opacity(isSelected ? 1 : 0)
             .allowsHitTesting(isSelected)
+            .animation(.snappy, value: isSelected)
             lazyLibrarianStatusCluster(
               item: item,
               progress: progress,
@@ -264,6 +265,7 @@ struct LazyLibrarianView: View {
               }
             )
             .opacity(isSelected ? 0 : 1)
+            .animation(.none, value: isSelected)
             .allowsHitTesting(!isSelected)
           }
         }
