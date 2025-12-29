@@ -438,13 +438,14 @@ func lazyLibrarianEbookStatusRow(
           icon: "book",
           snoring: false
         )
-      } else if shouldOfferSearch {
+      } else {
         lazyLibrarianProgressCircle(
           value: 0,
           tint: .blue,
           icon: "book",
           snoring: true
         )
+        .opacity(shouldOfferSearch ? 1 : 0)
       }
     }
   }
@@ -470,13 +471,14 @@ func lazyLibrarianAudioStatusRow(
           icon: "waveform.mid",
           snoring: false
         )
-      } else if shouldOfferSearch {
+      } else {
         lazyLibrarianProgressCircle(
           value: 0,
           tint: .blue,
           icon: "waveform.mid",
           snoring: true
         )
+        .opacity(shouldOfferSearch ? 1 : 0)
       }
     }
   }
