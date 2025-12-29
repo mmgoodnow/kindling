@@ -283,6 +283,7 @@ protocol LazyLibrarianServing {
   func fetchBookCovers(wait: Bool) async throws
   func searchBook(id: String, library: LazyLibrarianLibrary) async throws
   func fetchDownloadProgress(limit: Int?) async throws -> [LazyLibrarianDownloadProgressItem]
+  func downloadEpub(bookID: String) async throws -> URL
 }
 
 enum LazyLibrarianLibrary: String {
@@ -368,6 +369,17 @@ struct LazyLibrarianClient: LazyLibrarianServing {
     items.append(contentsOf: queryItems)
     components?.queryItems = items
     return components?.url
+  }
+
+  private func moveDownloadedEpub(from tempURL: URL) throws -> URL {
+    let fm = FileManager.default
+    let folder = fm.temporaryDirectory.appendingPathComponent("lazy-librarian", isDirectory: true)
+    try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
+    let destination = folder.appendingPathComponent(UUID().uuidString).appendingPathExtension(
+      "epub")
+    try? fm.removeItem(at: destination)
+    try fm.moveItem(at: tempURL, to: destination)
+    return destination
   }
 
   private func decodeBooks(from data: Data) throws -> [LazyLibrarianBook] {
@@ -793,6 +805,22 @@ struct LazyLibrarianClient: LazyLibrarianServing {
     throw LazyLibrarianError.badResponse
   }
 
+  func downloadEpub(bookID: String) async throws -> URL {
+    guard
+      let url = apiURL(
+        cmd: "getBookFileDirect",
+        queryItems: [URLQueryItem(name: "bookid", value: bookID)]
+      )
+    else {
+      throw LazyLibrarianError.badURL
+    }
+    let (tempURL, response) = try await session.download(from: url)
+    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+      throw LazyLibrarianError.badResponse
+    }
+    return try moveDownloadedEpub(from: tempURL)
+  }
+
   private struct APIResponseWrapper<T: Decodable>: Decodable {
     let success: Bool?
     let data: T?
@@ -931,6 +959,16 @@ final actor LazyLibrarianMockClient: LazyLibrarianServing {
       )
     }
     return items
+  }
+
+  func downloadEpub(bookID: String) async throws -> URL {
+    let fm = FileManager.default
+    let folder = fm.temporaryDirectory.appendingPathComponent("lazy-librarian", isDirectory: true)
+    try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
+    let destination = folder.appendingPathComponent("\(bookID)-mock").appendingPathExtension("epub")
+    let data = Data("mock-ebook-\(bookID)".utf8)
+    try data.write(to: destination, options: .atomic)
+    return destination
   }
 }
 

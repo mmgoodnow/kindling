@@ -169,22 +169,13 @@ struct LazyLibrarianView: View {
 
   private func startPodibleDownload(
     bookID: String,
-    author: String,
-    title: String
+    title: String,
+    client: LazyLibrarianServing
   ) async {
-    guard
-      let epubURL = podibleEpubURL(
-        baseURLString: userSettings.podibleURL,
-        author: author,
-        title: title
-      )
-    else { return }
     podibleDownloadingBookID = bookID
     podibleErrorMessage = nil
     do {
-      let localURL = try await PodibleClient(
-        baseURLString: userSettings.podibleURL
-      ).downloadEpub(from: epubURL)
+      let localURL = try await client.downloadEpub(bookID: bookID)
       let filename = sanitizeFilename(title).appending(".epub")
       shareURL = makeShareableCopy(of: localURL, filename: filename) ?? localURL
       isShowingShareSheet = true
@@ -196,22 +187,13 @@ struct LazyLibrarianView: View {
 
   private func startKindleExport(
     bookID: String,
-    author: String,
-    title: String
+    title: String,
+    client: LazyLibrarianServing
   ) async {
-    guard
-      let epubURL = podibleEpubURL(
-        baseURLString: userSettings.podibleURL,
-        author: author,
-        title: title
-      )
-    else { return }
     podibleDownloadingBookID = bookID
     podibleErrorMessage = nil
     do {
-      let localURL = try await PodibleClient(
-        baseURLString: userSettings.podibleURL
-      ).downloadEpub(from: epubURL)
+      let localURL = try await client.downloadEpub(bookID: bookID)
       let filename = sanitizeFilename(title).appending(".epub")
       let data = try Data(contentsOf: localURL)
       kindleExportFile = BookFile(filename: filename, data: data)
@@ -370,8 +352,8 @@ struct LazyLibrarianView: View {
           Task {
             await startPodibleDownload(
               bookID: item.id,
-              author: item.author,
-              title: item.title
+              title: item.title,
+              client: client
             )
           }
         }
@@ -384,8 +366,8 @@ struct LazyLibrarianView: View {
           Task {
             await startKindleExport(
               bookID: item.id,
-              author: item.author,
-              title: item.title
+              title: item.title,
+              client: client
             )
           }
         }
