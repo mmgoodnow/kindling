@@ -437,19 +437,24 @@ func lazyLibrarianEbookStatusRow(
   shouldOfferSearch: Bool
 ) -> some View {
   HStack(spacing: 6) {
-    if status == .open {
-      Image(systemName: "book")
-        .font(.system(size: 16, weight: .semibold))
-        .foregroundStyle(.secondary)
+    let isComplete = progressFinished || (status?.isComplete ?? false)
+    if isComplete {
+      Color.clear
         .frame(width: 22, height: 22)
     } else if progressSeen {
       lazyLibrarianProgressCircle(
         value: progressValue ?? 0,
         tint: progressFinished ? .green : .blue,
-        icon: "book"
+        icon: "book",
+        snoring: false
       )
     } else if shouldOfferSearch {
-      lazyLibrarianSearchIndicator(icon: "book")
+      lazyLibrarianProgressCircle(
+        value: 0,
+        tint: .blue,
+        icon: "book",
+        snoring: true
+      )
     } else {
       Color.clear
         .frame(width: 22, height: 22)
@@ -465,19 +470,24 @@ func lazyLibrarianAudioStatusRow(
   shouldOfferSearch: Bool
 ) -> some View {
   HStack(spacing: 6) {
-    if status == .open {
-      Image(systemName: "waveform.mid")
-        .font(.system(size: 16, weight: .semibold))
-        .foregroundStyle(.secondary)
+    let isComplete = progressFinished || (status?.isComplete ?? false)
+    if isComplete {
+      Color.clear
         .frame(width: 22, height: 22)
     } else if progressSeen {
       lazyLibrarianProgressCircle(
         value: progressValue ?? 0,
         tint: progressFinished ? .green : .blue,
-        icon: "waveform.mid"
+        icon: "waveform.mid",
+        snoring: false
       )
     } else if shouldOfferSearch {
-      lazyLibrarianSearchIndicator(icon: "waveform.mid")
+      lazyLibrarianProgressCircle(
+        value: 0,
+        tint: .blue,
+        icon: "waveform.mid",
+        snoring: true
+      )
     } else {
       Color.clear
         .frame(width: 22, height: 22)
@@ -494,14 +504,16 @@ func lazyLibrarianProgressCircles(
       lazyLibrarianProgressCircle(
         value: progress.ebook,
         tint: progress.ebookFinished ? .green : .blue,
-        icon: "book"
+        icon: "book",
+        snoring: false
       )
     }
     HStack(spacing: 6) {
       lazyLibrarianProgressCircle(
         value: progress.audiobook,
         tint: progress.audiobookFinished ? .green : .blue,
-        icon: "waveform.mid"
+        icon: "waveform.mid",
+        snoring: false
       )
     }
   }
@@ -533,7 +545,8 @@ func lazyLibrarianStatusCluster(
 func lazyLibrarianProgressCircle(
   value: Int,
   tint: Color,
-  icon: String?
+  icon: String?,
+  snoring: Bool
 ) -> some View {
   let clamped = max(0, min(100, value))
   let progress = Double(clamped) / 100.0
@@ -552,19 +565,12 @@ func lazyLibrarianProgressCircle(
         .font(.system(size: 11, weight: .bold))
         .foregroundStyle(.secondary)
     }
-  }
-  .frame(width: 22, height: 22)
-}
-
-func lazyLibrarianSearchIndicator(icon: String) -> some View {
-  ZStack {
-    Image(systemName: icon)
-      .font(.system(size: 14, weight: .semibold))
-      .foregroundStyle(.secondary)
-    Image(systemName: "magnifyingglass")
-      .font(.system(size: 8, weight: .bold))
-      .foregroundStyle(.secondary)
-      .offset(x: 7, y: 7)
+    if snoring {
+      Text("Zz")
+        .font(.system(size: 7, weight: .bold))
+        .foregroundStyle(.secondary)
+        .offset(x: 8, y: -8)
+    }
   }
   .frame(width: 22, height: 22)
 }
