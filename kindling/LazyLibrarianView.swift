@@ -553,11 +553,11 @@ func lazyLibrarianProgressCircle(
   let progress = Double(clamped) / 100.0
   let base = ZStack {
     Circle()
-      .stroke(.quaternary, lineWidth: 1.5)
+      .stroke(.tertiary, lineWidth: 1.5)
     Circle()
       .trim(from: 0, to: progress)
       .stroke(
-        tint,
+        .secondary,
         style: StrokeStyle(lineWidth: 1.5, lineCap: .round)
       )
       .rotationEffect(.degrees(-90))
