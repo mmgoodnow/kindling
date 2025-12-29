@@ -256,7 +256,6 @@ struct LazyLibrarianView: View {
             )
             .opacity(isSelected ? 1 : 0)
             .allowsHitTesting(isSelected)
-            .animation(.snappy, value: isSelected)
             lazyLibrarianStatusCluster(
               item: item,
               progress: progress,
@@ -265,7 +264,6 @@ struct LazyLibrarianView: View {
               }
             )
             .opacity(isSelected ? 0 : 1)
-            .animation(.none, value: isSelected)
             .allowsHitTesting(!isSelected)
           }
         }
@@ -274,14 +272,11 @@ struct LazyLibrarianView: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .contentShape(Rectangle())
     .onTapGesture {
-      withAnimation(.snappy) {
-        selectedItemID = (selectedItemID == item.id) ? nil : item.id
-      }
+      selectedItemID = (selectedItemID == item.id) ? nil : item.id
     }
     .listRowBackground(
       isSelected ? Color(.secondarySystemFill) : Color.clear
     )
-    .animation(.snappy, value: isSelected)
   }
 
   @ViewBuilder
