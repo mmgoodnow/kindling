@@ -233,14 +233,14 @@ struct LazyLibrarianView: View {
     let isSelected = selectedItemID == item.id
 
     return VStack(alignment: .leading, spacing: 8) {
-      HStack(alignment: .center, spacing: 8) {
+      HStack(alignment: .top, spacing: 12) {
         bookCoverView(
           url: lazyLibrarianAssetURL(
             baseURLString: userSettings.lazyLibrarianURL,
             path: item.bookImagePath
           )
         )
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
           Text(item.title)
             .font(.headline)
             .lineLimit(2)
@@ -248,27 +248,26 @@ struct LazyLibrarianView: View {
             .font(.subheadline)
             .foregroundStyle(.secondary)
             .lineLimit(1)
-        }
-        Spacer(minLength: 8)
-        ZStack(alignment: .trailing) {
-          trailingControls(
-            item: item,
-            client: client,
-            isDownloadingThisBook: isDownloadingThisBook
-          )
-          .opacity(isSelected ? 1 : 0)
-          .offset(x: isSelected ? 0 : 24)
-          .allowsHitTesting(isSelected)
-          lazyLibrarianStatusCluster(
-            item: item,
-            progress: progress,
-            shouldOfferSearch: { status in
-              viewModel.shouldOfferSearch(status: status)
-            }
-          )
-          .opacity(isSelected ? 0 : 1)
-          .offset(x: isSelected ? -24 : 0)
-          .allowsHitTesting(!isSelected)
+          ZStack(alignment: .leading) {
+            trailingControls(
+              item: item,
+              client: client,
+              isDownloadingThisBook: isDownloadingThisBook
+            )
+            .opacity(isSelected ? 1 : 0)
+            .offset(x: isSelected ? 0 : 24)
+            .allowsHitTesting(isSelected)
+            lazyLibrarianStatusCluster(
+              item: item,
+              progress: progress,
+              shouldOfferSearch: { status in
+                viewModel.shouldOfferSearch(status: status)
+              }
+            )
+            .opacity(isSelected ? 0 : 1)
+            .offset(x: isSelected ? -24 : 0)
+            .allowsHitTesting(!isSelected)
+          }
         }
       }
     }
@@ -369,7 +368,7 @@ struct LazyLibrarianView: View {
         }
       )
     }
-    .frame(alignment: .trailing)
+    .frame(alignment: .leading)
     .frame(height: 44)
 
     #if os(iOS)
@@ -579,7 +578,7 @@ func bookCoverView(url: URL?) -> some View {
       }
       .resizable()
       .scaledToFill()
-      .frame(width: 48, height: 70)
+      .frame(width: 88, height: 128)
       .clipShape(RoundedRectangle(cornerRadius: 6))
   } else {
     bookCoverPlaceholder()
@@ -589,7 +588,7 @@ func bookCoverView(url: URL?) -> some View {
 func bookCoverPlaceholder() -> some View {
   RoundedRectangle(cornerRadius: 6)
     .fill(.quaternary)
-    .frame(width: 48, height: 70)
+    .frame(width: 88, height: 128)
     .overlay(
       Image(systemName: "book.closed")
         .font(.caption)

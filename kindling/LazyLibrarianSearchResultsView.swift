@@ -62,7 +62,7 @@ struct LazyLibrarianSearchResultRow: View {
     let shouldShowGetButton = effectiveItem == nil
 
     return VStack(alignment: .leading, spacing: 8) {
-      HStack(alignment: .center, spacing: 8) {
+      HStack(alignment: .top, spacing: 12) {
         let coverURL = book.coverImageURL.flatMap { url -> URL? in
           if url.scheme != nil { return url }
           return lazyLibrarianAssetURL(
@@ -71,7 +71,7 @@ struct LazyLibrarianSearchResultRow: View {
           )
         }
         bookCoverView(url: coverURL)
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
           Text(book.title)
             .font(.headline)
             .lineLimit(2)
@@ -79,9 +79,6 @@ struct LazyLibrarianSearchResultRow: View {
             .font(.subheadline)
             .foregroundStyle(.secondary)
             .lineLimit(1)
-        }
-        Spacer(minLength: 8)
-        VStack(alignment: .trailing, spacing: 6) {
           if let item = effectiveItem {
             lazyLibrarianStatusCluster(
               item: item,
