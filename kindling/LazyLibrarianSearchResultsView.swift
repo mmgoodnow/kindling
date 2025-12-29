@@ -63,12 +63,14 @@ struct LazyLibrarianSearchResultRow: View {
 
     return VStack(alignment: .leading, spacing: 8) {
       HStack(alignment: .center, spacing: 8) {
-        podibleCoverView(
-          url: lazyLibrarianAssetURL(
+        let coverURL = book.coverImageURL.flatMap { url -> URL? in
+          if url.scheme != nil { return url }
+          return lazyLibrarianAssetURL(
             baseURLString: userSettings.lazyLibrarianURL,
-            path: book.coverImageURL?.absoluteString
+            path: url.absoluteString
           )
-        )
+        }
+        podibleCoverView(url: coverURL)
         VStack(alignment: .leading, spacing: 4) {
           Text(book.title)
             .font(.headline)
