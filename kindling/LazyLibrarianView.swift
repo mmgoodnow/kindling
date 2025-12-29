@@ -550,6 +550,7 @@ func lazyLibrarianProgressCircle(
         style: StrokeStyle(lineWidth: 1.5, lineCap: .round)
       )
       .rotationEffect(.degrees(-90))
+      .animation(.easeInOut(duration: 0.25), value: clamped)
     if let icon {
       Image(systemName: icon)
         .font(.system(size: 13, weight: .bold))
