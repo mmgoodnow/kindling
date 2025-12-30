@@ -394,6 +394,50 @@ struct LazyLibrarianClient: LazyLibrarianServing {
     return destination
   }
 
+  private func moveDownloadedAudiobook(from tempURL: URL, filename: String?) throws -> URL {
+    let fm = FileManager.default
+    let folder = fm.temporaryDirectory.appendingPathComponent("lazy-librarian", isDirectory: true)
+    try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
+    let safeName =
+      filename?
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+      .replacingOccurrences(of: "/", with: "-")
+      .replacingOccurrences(of: ":", with: "-")
+    let destinationName: String
+    if let safe = safeName, safe.isEmpty == false {
+      destinationName = safe
+    } else {
+      destinationName = UUID().uuidString.appending(".zip")
+    }
+    let destination = folder.appendingPathComponent(destinationName)
+    try? fm.removeItem(at: destination)
+    try fm.moveItem(at: tempURL, to: destination)
+    return destination
+  }
+
+  private func contentDispositionFilename(from response: HTTPURLResponse) -> String? {
+    let raw =
+      response.allHeaderFields.first { key, _ in
+        (key as? String)?.lowercased() == "content-disposition"
+      }?.value as? String
+    guard let value = raw else { return nil }
+    let parts = value.split(separator: ";").map { $0.trimmingCharacters(in: .whitespaces) }
+    if let filenameStar = parts.first(where: { $0.lowercased().hasPrefix("filename*=") }) {
+      let rawValue = filenameStar.dropFirst("filename*=".count)
+      let sanitized = rawValue.replacingOccurrences(of: "\"", with: "")
+      if let range = sanitized.range(of: "''") {
+        let encoded = String(sanitized[range.upperBound...])
+        return encoded.removingPercentEncoding ?? encoded
+      }
+      return sanitized
+    }
+    if let filename = parts.first(where: { $0.lowercased().hasPrefix("filename=") }) {
+      let rawValue = filename.dropFirst("filename=".count)
+      return rawValue.replacingOccurrences(of: "\"", with: "")
+    }
+    return nil
+  }
+
   private func decodeBooks(from data: Data) throws -> [LazyLibrarianBook] {
     let decoder = JSONDecoder()
     decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -859,7 +903,8 @@ struct LazyLibrarianClient: LazyLibrarianServing {
       #endif
       throw LazyLibrarianError.badResponse
     }
-    return try moveDownloadedAudiobook(from: tempURL)
+    let filename = contentDispositionFilename(from: http)
+    return try moveDownloadedAudiobook(from: tempURL, filename: filename)
   }
 
   private struct APIResponseWrapper<T: Decodable>: Decodable {
@@ -1016,7 +1061,7 @@ final actor LazyLibrarianMockClient: LazyLibrarianServing {
     let fm = FileManager.default
     let folder = fm.temporaryDirectory.appendingPathComponent("lazy-librarian", isDirectory: true)
     try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
-    let destination = folder.appendingPathComponent("\(bookID)-mock").appendingPathExtension("zip")
+    let destination = folder.appendingPathComponent("\(bookID)-mock").appendingPathExtension("m4b")
     let data = Data("mock-audio-\(bookID)".utf8)
     try data.write(to: destination, options: .atomic)
     return destination

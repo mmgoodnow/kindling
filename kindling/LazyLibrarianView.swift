@@ -208,7 +208,7 @@ struct LazyLibrarianView: View {
     downloadErrorMessage = nil
     do {
       let localURL = try await client.downloadAudiobook(bookID: bookID)
-      let filename = sanitizeFilename(title).appending(".zip")
+      let filename = localURL.lastPathComponent
       shareURL = makeShareableCopy(of: localURL, filename: filename) ?? localURL
       isShowingShareSheet = true
     } catch {
