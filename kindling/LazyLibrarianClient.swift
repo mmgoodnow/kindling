@@ -456,6 +456,7 @@ struct LazyLibrarianClient: LazyLibrarianServing {
       var progressHandler: ((Double) -> Void)?
       weak var session: URLSession?
       private var tempURL: URL?
+      private var moveError: Error?
       private var didFinish = false
 
       func urlSession(
@@ -475,7 +476,18 @@ struct LazyLibrarianClient: LazyLibrarianServing {
         downloadTask: URLSessionDownloadTask,
         didFinishDownloadingTo location: URL
       ) {
-        tempURL = location
+        let fm = FileManager.default
+        let folder = fm.temporaryDirectory.appendingPathComponent(
+          "lazy-librarian", isDirectory: true)
+        do {
+          try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
+          let destination = folder.appendingPathComponent(UUID().uuidString)
+          try? fm.removeItem(at: destination)
+          try fm.moveItem(at: location, to: destination)
+          tempURL = destination
+        } catch {
+          moveError = error
+        }
       }
 
       func urlSession(
@@ -488,6 +500,10 @@ struct LazyLibrarianClient: LazyLibrarianServing {
         session.finishTasksAndInvalidate()
         if let error {
           continuation?.resume(throwing: error)
+          return
+        }
+        if let moveError {
+          continuation?.resume(throwing: moveError)
           return
         }
         guard let tempURL, let http = task.response as? HTTPURLResponse else {
@@ -618,8 +634,7 @@ struct LazyLibrarianClient: LazyLibrarianServing {
       throw LazyLibrarianError.badURL
     }
     let (data, response) = try await session.data(from: url)
-    let http = response
-    guard (200..<300).contains(http.statusCode) else {
+    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
       throw LazyLibrarianError.badResponse
     }
     do {
@@ -700,8 +715,7 @@ struct LazyLibrarianClient: LazyLibrarianServing {
       throw LazyLibrarianError.badURL
     }
     let (data, response) = try await session.data(from: url)
-    let http = response
-    guard (200..<300).contains(http.statusCode) else {
+    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
       throw LazyLibrarianError.badResponse
     }
     #if DEBUG
