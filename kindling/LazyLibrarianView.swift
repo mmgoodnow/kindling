@@ -246,7 +246,7 @@ struct LazyLibrarianView: View {
             .font(.subheadline)
             .foregroundStyle(.secondary)
             .lineLimit(1)
-          trailingControls(
+          rowControls(
             item: item,
             client: client,
             isDownloadingThisBook: isDownloadingThisBook
@@ -266,7 +266,7 @@ struct LazyLibrarianView: View {
   }
 
   @ViewBuilder
-  private func trailingControls(
+  private func rowControls(
     item: LazyLibrarianLibraryItem,
     client: LazyLibrarianServing,
     isDownloadingThisBook: Bool
