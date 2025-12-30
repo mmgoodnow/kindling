@@ -174,6 +174,12 @@ struct LazyLibrarianView: View {
     title: String,
     client: LazyLibrarianServing
   ) async {
+    if let cachedURL = cachedEbookURL(title: title) {
+      let filename = sanitizeFilename(title).appending(".\(cachedURL.pathExtension)")
+      shareURL = makeShareableCopy(of: cachedURL, filename: filename) ?? cachedURL
+      isShowingShareSheet = true
+      return
+    }
     downloadingBookID = bookID
     downloadKind = .ebook
     downloadProgress = 0
@@ -200,6 +206,17 @@ struct LazyLibrarianView: View {
     title: String,
     client: LazyLibrarianServing
   ) async {
+    if let cachedURL = cachedEbookURL(title: title) {
+      let filename = sanitizeFilename(title).appending(".\(cachedURL.pathExtension)")
+      do {
+        let data = try Data(contentsOf: cachedURL)
+        kindleExportFile = BookFile(filename: filename, data: data)
+        isShowingKindleExporter = true
+      } catch {
+        downloadErrorMessage = error.localizedDescription
+      }
+      return
+    }
     downloadingBookID = bookID
     downloadKind = .ebook
     downloadProgress = 0
@@ -265,6 +282,32 @@ struct LazyLibrarianView: View {
       return destination
     } catch {
       return nil
+    }
+  }
+
+  private func cachedEbookURL(title: String) -> URL? {
+    let fm = FileManager.default
+    let folder = fm.temporaryDirectory.appendingPathComponent("lazy-librarian", isDirectory: true)
+    let prefix = sanitizeFilename(title).appending(".")
+    guard
+      let contents = try? fm.contentsOfDirectory(
+        at: folder,
+        includingPropertiesForKeys: [.contentModificationDateKey],
+        options: [.skipsHiddenFiles]
+      )
+    else {
+      return nil
+    }
+    let matches = contents.filter { $0.lastPathComponent.hasPrefix(prefix) }
+    guard matches.isEmpty == false else { return nil }
+    return matches.max { lhs, rhs in
+      let lhsDate =
+        (try? lhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
+        ?? .distantPast
+      let rhsDate =
+        (try? rhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
+        ?? .distantPast
+      return lhsDate < rhsDate
     }
   }
 
