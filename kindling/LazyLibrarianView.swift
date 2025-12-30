@@ -355,7 +355,7 @@ struct LazyLibrarianView: View {
     Button(action: action) {
       Image(systemName: systemName)
         .font(.title3.weight(.medium))
-        .foregroundStyle(.tertiary)
+        .foregroundStyle(.primary)
         .imageScale(.large)
         .frame(width: 44, height: 44, alignment: .leading)
         .contentShape(Rectangle())
@@ -373,7 +373,7 @@ struct LazyLibrarianView: View {
   ) -> some View {
     Button(action: action) {
       content()
-        .foregroundStyle(.tertiary)
+        .foregroundStyle(.primary)
         .frame(width: 44, height: 44, alignment: .leading)
         .contentShape(Rectangle())
     }
