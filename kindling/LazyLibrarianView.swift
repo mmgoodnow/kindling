@@ -12,6 +12,8 @@ struct LazyLibrarianView: View {
   @State private var isKindleExported = false
   @State private var downloadErrorMessage: String?
   @State private var downloadingBookID: String?
+  @State private var downloadProgress: Double?
+  @State private var downloadKind: DownloadKind?
   @State private var pendingSearchItemIDs: Set<String> = []
   @State private var searchTask: Task<Void, Never>?
 
@@ -19,6 +21,11 @@ struct LazyLibrarianView: View {
 
   init(client: LazyLibrarianServing? = nil) {
     self.clientOverride = client
+  }
+
+  private enum DownloadKind {
+    case ebook
+    case audiobook
   }
 
   private var configuredClient: LazyLibrarianServing? {
@@ -168,9 +175,15 @@ struct LazyLibrarianView: View {
     client: LazyLibrarianServing
   ) async {
     downloadingBookID = bookID
+    downloadKind = .ebook
+    downloadProgress = 0
     downloadErrorMessage = nil
     do {
-      let localURL = try await client.downloadEpub(bookID: bookID)
+      let localURL = try await client.downloadEpub(bookID: bookID) { value in
+        Task { @MainActor in
+          downloadProgress = value
+        }
+      }
       let filename = sanitizeFilename(title).appending(".\(localURL.pathExtension)")
       shareURL = makeShareableCopy(of: localURL, filename: filename) ?? localURL
       isShowingShareSheet = true
@@ -178,6 +191,8 @@ struct LazyLibrarianView: View {
       downloadErrorMessage = error.localizedDescription
     }
     downloadingBookID = nil
+    downloadKind = nil
+    downloadProgress = nil
   }
 
   private func startKindleExport(
@@ -186,9 +201,15 @@ struct LazyLibrarianView: View {
     client: LazyLibrarianServing
   ) async {
     downloadingBookID = bookID
+    downloadKind = .ebook
+    downloadProgress = 0
     downloadErrorMessage = nil
     do {
-      let localURL = try await client.downloadEpub(bookID: bookID)
+      let localURL = try await client.downloadEpub(bookID: bookID) { value in
+        Task { @MainActor in
+          downloadProgress = value
+        }
+      }
       let filename = sanitizeFilename(title).appending(".\(localURL.pathExtension)")
       let data = try Data(contentsOf: localURL)
       kindleExportFile = BookFile(filename: filename, data: data)
@@ -197,6 +218,8 @@ struct LazyLibrarianView: View {
       downloadErrorMessage = error.localizedDescription
     }
     downloadingBookID = nil
+    downloadKind = nil
+    downloadProgress = nil
   }
 
   private func startAudiobookDownload(
@@ -205,9 +228,15 @@ struct LazyLibrarianView: View {
     client: LazyLibrarianServing
   ) async {
     downloadingBookID = bookID
+    downloadKind = .audiobook
+    downloadProgress = 0
     downloadErrorMessage = nil
     do {
-      let localURL = try await client.downloadAudiobook(bookID: bookID)
+      let localURL = try await client.downloadAudiobook(bookID: bookID) { value in
+        Task { @MainActor in
+          downloadProgress = value
+        }
+      }
       let filename = localURL.lastPathComponent
       shareURL = makeShareableCopy(of: localURL, filename: filename) ?? localURL
       isShowingShareSheet = true
@@ -215,6 +244,8 @@ struct LazyLibrarianView: View {
       downloadErrorMessage = error.localizedDescription
     }
     downloadingBookID = nil
+    downloadKind = nil
+    downloadProgress = nil
   }
 
   private func sanitizeFilename(_ value: String) -> String {
@@ -346,6 +377,14 @@ struct LazyLibrarianView: View {
           }
         }
       )
+      if isDownloadingThisBook, let progress = downloadProgress, let kind = downloadKind {
+        lazyLibrarianProgressCircle(
+          value: Int(progress * 100),
+          tint: .secondary,
+          icon: kind == .ebook ? "book" : "waveform.mid",
+          snoring: false
+        )
+      }
       if canRefresh {
         trailingControlButton(
           label: "Refresh",
