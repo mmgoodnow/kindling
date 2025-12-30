@@ -451,33 +451,60 @@ struct LazyLibrarianClient: LazyLibrarianServing {
     url: URL,
     progress: @escaping (Double) -> Void
   ) async throws -> (URL, HTTPURLResponse) {
-    try await withCheckedThrowingContinuation { continuation in
-      var downloadTask: URLSessionDownloadTask?
-      let progressTask = Task {
-        while Task.isCancelled == false {
-          guard let task = downloadTask else { break }
-          if task.state != .running { break }
-          let expected = task.countOfBytesExpectedToReceive
-          if expected > 0 {
-            let fraction = Double(task.countOfBytesReceived) / Double(expected)
-            progress(min(1, max(0, fraction)))
-          }
-          try? await Task.sleep(nanoseconds: 100_000_000)
-        }
+    final class DownloadDelegate: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
+      var continuation: CheckedContinuation<(URL, HTTPURLResponse), Error>?
+      var progressHandler: ((Double) -> Void)?
+      weak var session: URLSession?
+      private var tempURL: URL?
+      private var didFinish = false
+
+      func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didWriteData bytesWritten: Int64,
+        totalBytesWritten: Int64,
+        totalBytesExpectedToWrite: Int64
+      ) {
+        guard totalBytesExpectedToWrite > 0 else { return }
+        let fraction = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
+        progressHandler?(min(1, max(0, fraction)))
       }
-      let task = session.downloadTask(with: url) { tempURL, response, error in
-        progressTask.cancel()
+
+      func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didFinishDownloadingTo location: URL
+      ) {
+        tempURL = location
+      }
+
+      func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didCompleteWithError error: Error?
+      ) {
+        guard didFinish == false else { return }
+        didFinish = true
+        session.finishTasksAndInvalidate()
         if let error {
-          continuation.resume(throwing: error)
+          continuation?.resume(throwing: error)
           return
         }
-        guard let tempURL, let http = response as? HTTPURLResponse else {
-          continuation.resume(throwing: LazyLibrarianError.badResponse)
+        guard let tempURL, let http = task.response as? HTTPURLResponse else {
+          continuation?.resume(throwing: LazyLibrarianError.badResponse)
           return
         }
-        continuation.resume(returning: (tempURL, http))
+        continuation?.resume(returning: (tempURL, http))
       }
-      downloadTask = task
+    }
+
+    return try await withCheckedThrowingContinuation { continuation in
+      let delegate = DownloadDelegate()
+      delegate.continuation = continuation
+      delegate.progressHandler = progress
+      let session = URLSession(configuration: .default, delegate: delegate, delegateQueue: nil)
+      delegate.session = session
+      let task = session.downloadTask(with: url)
       task.resume()
     }
   }
@@ -591,7 +618,8 @@ struct LazyLibrarianClient: LazyLibrarianServing {
       throw LazyLibrarianError.badURL
     }
     let (data, response) = try await session.data(from: url)
-    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+    let http = response
+    guard (200..<300).contains(http.statusCode) else {
       throw LazyLibrarianError.badResponse
     }
     do {
@@ -672,7 +700,8 @@ struct LazyLibrarianClient: LazyLibrarianServing {
       throw LazyLibrarianError.badURL
     }
     let (data, response) = try await session.data(from: url)
-    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+    let http = response
+    guard (200..<300).contains(http.statusCode) else {
       throw LazyLibrarianError.badResponse
     }
     #if DEBUG
