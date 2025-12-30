@@ -78,29 +78,22 @@ struct LazyLibrarianView: View {
           }
         }
       } else {
-        Section("Library") {
-          let filtered = viewModel.filteredLibraryItems(query: viewModel.query)
-          if filtered.isEmpty {
-            Text("No library matches.")
-              .foregroundStyle(.secondary)
-          } else {
-            ForEach(filtered) { item in
+        let filteredLibrary = viewModel.filteredLibraryItems(query: viewModel.query)
+        let libraryByID = Dictionary(uniqueKeysWithValues: filteredLibrary.map { ($0.id, $0) })
+        let remoteResults = viewModel.searchResults
+        let matchedIDs = Set(remoteResults.map(\.id)).intersection(libraryByID.keys)
+        let remainingLibrary = filteredLibrary.filter { matchedIDs.contains($0.id) == false }
+
+        if remoteResults.isEmpty && remainingLibrary.isEmpty {
+          ContentUnavailableView(
+            "No Results",
+            systemImage: "magnifyingglass"
+          )
+        } else {
+          ForEach(remoteResults) { book in
+            if let item = libraryByID[book.id] {
               libraryRow(item, client: client)
-            }
-          }
-        }
-        Section("Search Results") {
-          let libraryIDs = Set(viewModel.libraryItems.map(\.id))
-          let remoteResults = viewModel.searchResults.filter {
-            libraryIDs.contains($0.id) == false
-          }
-          if remoteResults.isEmpty {
-            ContentUnavailableView(
-              "No Results",
-              systemImage: "magnifyingglass"
-            )
-          } else {
-            ForEach(remoteResults) { book in
+            } else {
               LazyLibrarianSearchResultRow(
                 viewModel: viewModel,
                 book: book,
@@ -108,6 +101,9 @@ struct LazyLibrarianView: View {
                 pendingItemIDs: $pendingSearchItemIDs
               )
             }
+          }
+          ForEach(remainingLibrary) { item in
+            libraryRow(item, client: client)
           }
         }
       }
