@@ -287,31 +287,6 @@ struct LazyLibrarianView: View {
     let canRefresh = canEbookSearch || canAudioSearch
     let canTriggerRefresh = canTriggerEbookSearch || canTriggerAudioSearch
     let controls = HStack(spacing: 8) {
-      if canRefresh {
-        trailingControlButton(
-          label: "Refresh",
-          systemName: "arrow.clockwise",
-          isEnabled: canTriggerRefresh,
-          action: {
-            Task {
-              if canTriggerEbookSearch {
-                await viewModel.triggerSearch(
-                  bookID: item.id,
-                  library: .ebook,
-                  using: client
-                )
-              }
-              if canTriggerAudioSearch {
-                await viewModel.triggerSearch(
-                  bookID: item.id,
-                  library: .audio,
-                  using: client
-                )
-              }
-            }
-          }
-        )
-      }
       trailingControlButton(
         label: "Download & Export",
         systemName: "square.and.arrow.up",
@@ -340,6 +315,31 @@ struct LazyLibrarianView: View {
           }
         }
       )
+      if canRefresh {
+        trailingControlButton(
+          label: "Refresh",
+          systemName: "arrow.clockwise",
+          isEnabled: canTriggerRefresh,
+          action: {
+            Task {
+              if canTriggerEbookSearch {
+                await viewModel.triggerSearch(
+                  bookID: item.id,
+                  library: .ebook,
+                  using: client
+                )
+              }
+              if canTriggerAudioSearch {
+                await viewModel.triggerSearch(
+                  bookID: item.id,
+                  library: .audio,
+                  using: client
+                )
+              }
+            }
+          }
+        )
+      }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .frame(height: 44)
