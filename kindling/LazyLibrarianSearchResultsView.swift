@@ -123,12 +123,12 @@ struct LazyLibrarianSearchResultRow: View {
             }
           } label: {
             Text("GET")
-              .font(.headline)
-              .padding(.horizontal, 12)
-              .padding(.vertical, 4)
+              .font(.subheadline.weight(.semibold))
+              .padding(.horizontal, 10)
+              .padding(.vertical, 2)
           }
           .buttonStyle(.bordered)
-          .controlSize(.regular)
+          .controlSize(.small)
           .tint(.accentColor)
           .clipShape(Capsule())
           .disabled(
