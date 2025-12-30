@@ -199,6 +199,24 @@ struct LazyLibrarianView: View {
     downloadingBookID = nil
   }
 
+  private func startAudiobookDownload(
+    bookID: String,
+    title: String,
+    client: LazyLibrarianServing
+  ) async {
+    downloadingBookID = bookID
+    downloadErrorMessage = nil
+    do {
+      let localURL = try await client.downloadAudiobook(bookID: bookID)
+      let filename = sanitizeFilename(title).appending(".zip")
+      shareURL = makeShareableCopy(of: localURL, filename: filename) ?? localURL
+      isShowingShareSheet = true
+    } catch {
+      downloadErrorMessage = error.localizedDescription
+    }
+    downloadingBookID = nil
+  }
+
   private func sanitizeFilename(_ value: String) -> String {
     let sanitized = value.trimmingCharacters(in: .whitespacesAndNewlines)
       .replacingOccurrences(of: "[\\\\/:*?\"<>|]", with: "-", options: .regularExpression)
@@ -279,6 +297,7 @@ struct LazyLibrarianView: View {
       && viewModel.canTriggerSearch(bookID: item.id, library: .audio)
     let canDownload = isDownloadingThisBook == false
     let canExport = item.status == .open && canDownload
+    let canAudioExport = item.audioStatus == .open && canDownload
     let canKindleExport =
       canExport && userSettings.kindleEmailAddress.isEmpty == false
 
@@ -292,6 +311,20 @@ struct LazyLibrarianView: View {
         action: {
           Task {
             await startEbookDownload(
+              bookID: item.id,
+              title: item.title,
+              client: client
+            )
+          }
+        }
+      )
+      trailingControlButton(
+        label: "Download Audiobook",
+        systemName: "waveform",
+        isEnabled: canAudioExport,
+        action: {
+          Task {
+            await startAudiobookDownload(
               bookID: item.id,
               title: item.title,
               client: client

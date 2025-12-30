@@ -284,6 +284,7 @@ protocol LazyLibrarianServing {
   func searchBook(id: String, library: LazyLibrarianLibrary) async throws
   func fetchDownloadProgress(limit: Int?) async throws -> [LazyLibrarianDownloadProgressItem]
   func downloadEpub(bookID: String) async throws -> URL
+  func downloadAudiobook(bookID: String) async throws -> URL
 }
 
 enum LazyLibrarianLibrary: String {
@@ -377,6 +378,17 @@ struct LazyLibrarianClient: LazyLibrarianServing {
     try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
     let destination = folder.appendingPathComponent(UUID().uuidString).appendingPathExtension(
       "epub")
+    try? fm.removeItem(at: destination)
+    try fm.moveItem(at: tempURL, to: destination)
+    return destination
+  }
+
+  private func moveDownloadedAudiobook(from tempURL: URL) throws -> URL {
+    let fm = FileManager.default
+    let folder = fm.temporaryDirectory.appendingPathComponent("lazy-librarian", isDirectory: true)
+    try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
+    let destination = folder.appendingPathComponent(UUID().uuidString).appendingPathExtension(
+      "zip")
     try? fm.removeItem(at: destination)
     try fm.moveItem(at: tempURL, to: destination)
     return destination
@@ -821,6 +833,25 @@ struct LazyLibrarianClient: LazyLibrarianServing {
     return try moveDownloadedEpub(from: tempURL)
   }
 
+  func downloadAudiobook(bookID: String) async throws -> URL {
+    guard
+      let url = apiURL(
+        cmd: "getFileDirect",
+        queryItems: [
+          URLQueryItem(name: "type", value: "audiobook"),
+          URLQueryItem(name: "id", value: bookID),
+        ]
+      )
+    else {
+      throw LazyLibrarianError.badURL
+    }
+    let (tempURL, response) = try await session.download(from: url)
+    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+      throw LazyLibrarianError.badResponse
+    }
+    return try moveDownloadedAudiobook(from: tempURL)
+  }
+
   private struct APIResponseWrapper<T: Decodable>: Decodable {
     let success: Bool?
     let data: T?
@@ -967,6 +998,16 @@ final actor LazyLibrarianMockClient: LazyLibrarianServing {
     try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
     let destination = folder.appendingPathComponent("\(bookID)-mock").appendingPathExtension("epub")
     let data = Data("mock-ebook-\(bookID)".utf8)
+    try data.write(to: destination, options: .atomic)
+    return destination
+  }
+
+  func downloadAudiobook(bookID: String) async throws -> URL {
+    let fm = FileManager.default
+    let folder = fm.temporaryDirectory.appendingPathComponent("lazy-librarian", isDirectory: true)
+    try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
+    let destination = folder.appendingPathComponent("\(bookID)-mock").appendingPathExtension("zip")
+    let data = Data("mock-audio-\(bookID)".utf8)
     try data.write(to: destination, options: .atomic)
     return destination
   }
