@@ -303,7 +303,7 @@ struct LazyLibrarianView: View {
       )
       trailingControlButton(
         label: "Email to Kindle",
-        systemName: "envelope",
+        systemName: "paperplane",
         isEnabled: canKindleExport,
         action: {
           Task {
