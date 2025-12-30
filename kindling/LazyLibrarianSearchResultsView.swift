@@ -70,7 +70,11 @@ struct LazyLibrarianSearchResultRow: View {
             path: url.absoluteString
           )
         }
-        bookCoverView(url: coverURL)
+        bookCoverView(
+          title: book.title,
+          author: book.author,
+          url: coverURL
+        )
         VStack(alignment: .leading, spacing: 6) {
           Text(book.title)
             .font(.headline)

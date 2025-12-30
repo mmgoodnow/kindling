@@ -229,6 +229,8 @@ struct LazyLibrarianView: View {
     return VStack(alignment: .leading, spacing: 8) {
       HStack(alignment: .top, spacing: 12) {
         bookCoverView(
+          title: item.title,
+          author: item.author,
           url: lazyLibrarianAssetURL(
             baseURLString: userSettings.lazyLibrarianURL,
             path: item.bookImagePath
@@ -550,30 +552,56 @@ func lazyLibrarianProgressCircle(
 
 @MainActor
 @ViewBuilder
-func bookCoverView(url: URL?) -> some View {
+func bookCoverView(title: String, author: String, url: URL?) -> some View {
   if let url {
     KFImage(url)
       .placeholder {
-        bookCoverPlaceholder()
+        bookCoverPlaceholder(title: title, author: author)
       }
       .resizable()
       .scaledToFill()
       .frame(width: 88, height: 128)
       .clipShape(RoundedRectangle(cornerRadius: 6))
   } else {
-    bookCoverPlaceholder()
+    bookCoverPlaceholder(title: title, author: author)
   }
 }
 
-func bookCoverPlaceholder() -> some View {
+func bookCoverPlaceholder(title: String, author: String) -> some View {
   RoundedRectangle(cornerRadius: 6)
-    .fill(.quaternary)
+    .fill(coverPlaceholderColor(title: title, author: author))
     .frame(width: 88, height: 128)
     .overlay(
-      Image(systemName: "book.closed")
-        .font(.caption)
-        .foregroundStyle(.secondary)
+      VStack(spacing: 6) {
+        Text(title)
+          .font(.caption.weight(.semibold))
+          .multilineTextAlignment(.center)
+          .lineLimit(3)
+        Text(author)
+          .font(.caption2)
+          .multilineTextAlignment(.center)
+          .lineLimit(2)
+      }
+      .padding(8)
+      .foregroundStyle(.white.opacity(0.9))
     )
+}
+
+func coverPlaceholderColor(title: String, author: String) -> Color {
+  let palette: [Color] = [
+    Color(red: 0.36, green: 0.25, blue: 0.20),
+    Color(red: 0.16, green: 0.33, blue: 0.52),
+    Color(red: 0.46, green: 0.22, blue: 0.28),
+    Color(red: 0.18, green: 0.43, blue: 0.36),
+    Color(red: 0.42, green: 0.36, blue: 0.18),
+    Color(red: 0.28, green: 0.28, blue: 0.48),
+  ]
+  var hash = 5381
+  for scalar in (title + "|" + author).unicodeScalars {
+    hash = ((hash << 5) &+ hash) &+ Int(scalar.value)
+  }
+  let index = abs(hash) % palette.count
+  return palette[index]
 }
 
 func lazyLibrarianAssetURL(baseURLString: String, path: String?) -> URL? {
