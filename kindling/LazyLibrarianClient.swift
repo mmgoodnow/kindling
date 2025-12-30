@@ -383,6 +383,27 @@ struct LazyLibrarianClient: LazyLibrarianServing {
     return destination
   }
 
+  private func moveDownloadedEpub(from tempURL: URL, filename: String?) throws -> URL {
+    let fm = FileManager.default
+    let folder = fm.temporaryDirectory.appendingPathComponent("lazy-librarian", isDirectory: true)
+    try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
+    let safeName =
+      filename?
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+      .replacingOccurrences(of: "/", with: "-")
+      .replacingOccurrences(of: ":", with: "-")
+    let destinationName: String
+    if let safe = safeName, safe.isEmpty == false {
+      destinationName = safe
+    } else {
+      destinationName = UUID().uuidString.appending(".epub")
+    }
+    let destination = folder.appendingPathComponent(destinationName)
+    try? fm.removeItem(at: destination)
+    try fm.moveItem(at: tempURL, to: destination)
+    return destination
+  }
+
   private func moveDownloadedAudiobook(from tempURL: URL) throws -> URL {
     let fm = FileManager.default
     let folder = fm.temporaryDirectory.appendingPathComponent("lazy-librarian", isDirectory: true)
@@ -879,7 +900,8 @@ struct LazyLibrarianClient: LazyLibrarianServing {
       #endif
       throw LazyLibrarianError.badResponse
     }
-    return try moveDownloadedEpub(from: tempURL)
+    let filename = contentDispositionFilename(from: http)
+    return try moveDownloadedEpub(from: tempURL, filename: filename)
   }
 
   func downloadAudiobook(bookID: String) async throws -> URL {

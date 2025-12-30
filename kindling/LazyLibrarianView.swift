@@ -171,7 +171,7 @@ struct LazyLibrarianView: View {
     downloadErrorMessage = nil
     do {
       let localURL = try await client.downloadEpub(bookID: bookID)
-      let filename = sanitizeFilename(title).appending(".epub")
+      let filename = sanitizeFilename(title).appending(".\(localURL.pathExtension)")
       shareURL = makeShareableCopy(of: localURL, filename: filename) ?? localURL
       isShowingShareSheet = true
     } catch {
@@ -189,7 +189,7 @@ struct LazyLibrarianView: View {
     downloadErrorMessage = nil
     do {
       let localURL = try await client.downloadEpub(bookID: bookID)
-      let filename = sanitizeFilename(title).appending(".epub")
+      let filename = sanitizeFilename(title).appending(".\(localURL.pathExtension)")
       let data = try Data(contentsOf: localURL)
       kindleExportFile = BookFile(filename: filename, data: data)
       isShowingKindleExporter = true
