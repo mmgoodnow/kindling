@@ -246,21 +246,20 @@ struct LazyLibrarianView: View {
             .font(.subheadline)
             .foregroundStyle(.secondary)
             .lineLimit(1)
-          VStack(alignment: .leading, spacing: 6) {
-            trailingControls(
-              item: item,
-              client: client,
-              isDownloadingThisBook: isDownloadingThisBook
-            )
-            lazyLibrarianStatusCluster(
-              item: item,
-              progress: progress,
-              shouldOfferSearch: { status in
-                viewModel.shouldOfferSearch(status: status)
-              }
-            )
-          }
+          trailingControls(
+            item: item,
+            client: client,
+            isDownloadingThisBook: isDownloadingThisBook
+          )
         }
+        Spacer(minLength: 0)
+        lazyLibrarianStatusCluster(
+          item: item,
+          progress: progress,
+          shouldOfferSearch: { status in
+            viewModel.shouldOfferSearch(status: status)
+          }
+        )
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
