@@ -87,68 +87,56 @@ struct LazyLibrarianSearchResultRow: View {
                 viewModel.shouldOfferSearch(status: status)
               }
             )
-          } else if shouldShowGetButton {
-            Group {
-              if isPending {
-                Button {
-                  Task {
-                    await viewModel.request(
-                      book,
-                      using: client
+          }
+          Button {
+            guard shouldShowGetButton else { return }
+            pendingItemIDs.insert(book.id)
+            viewModel.beginOptimisticRequest(for: book)
+            Task {
+              await viewModel.request(
+                book,
+                using: client
+              )
+              let updated = viewModel
+                .searchResults
+                .first(where: {
+                  $0.id == book.id
+                })
+              let shouldWait =
+                updated.map {
+                  viewModel
+                    .shouldShowDownloadProgress(
+                      status: $0.status,
+                      audioStatus: $0
+                        .audioStatus
                     )
-                  }
-                } label: {
-                  Text("GET")
-                }
-                .buttonStyle(.bordered)
-                .foregroundStyle(.secondary)
-              } else {
-                Button {
-                  pendingItemIDs.insert(book.id)
-                  viewModel.beginOptimisticRequest(for: book)
-                  Task {
-                    await viewModel.request(
-                      book,
-                      using: client
-                    )
-                    let updated = viewModel
-                      .searchResults
-                      .first(where: {
-                        $0.id == book.id
-                      })
-                    let shouldWait =
-                      updated.map {
-                        viewModel
-                          .shouldShowDownloadProgress(
-                            status: $0.status,
-                            audioStatus: $0
-                              .audioStatus
-                          )
-                      } ?? false
-                    if shouldWait == false
-                      || viewModel.progressForBookID(
-                        book.id
-                      ) != nil
-                    {
-                      pendingItemIDs.remove(
-                        book.id
-                      )
-                    }
-                  }
-                } label: {
-                  Text("GET")
-                }
-                .buttonStyle(.bordered)
+                } ?? false
+              if shouldWait == false
+                || viewModel.progressForBookID(
+                  book.id
+                ) != nil
+              {
+                pendingItemIDs.remove(
+                  book.id
+                )
               }
             }
-            .controlSize(.small)
-            .tint(.accentColor)
-            .clipShape(Capsule())
-            .disabled(
-              isPending || book.status == .requested
-                || book.status == .wanted
-            )
+          } label: {
+            Text("GET")
+              .font(.headline)
+              .padding(.horizontal, 12)
+              .padding(.vertical, 4)
           }
+          .buttonStyle(.bordered)
+          .controlSize(.regular)
+          .tint(.accentColor)
+          .clipShape(Capsule())
+          .disabled(
+            shouldShowGetButton == false
+              || isPending
+              || book.status == .requested
+              || book.status == .wanted
+          )
         }
       }
     }
