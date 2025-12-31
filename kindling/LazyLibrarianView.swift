@@ -392,20 +392,22 @@ struct LazyLibrarianView: View {
           }
         }
       )
-      trailingControlButton(
-        label: "Download Audiobook",
-        systemName: "waveform",
-        isEnabled: canAudioExport,
-        action: {
-          Task {
-            await startAudiobookDownload(
-              bookID: item.id,
-              title: item.title,
-              client: client
-            )
+      if item.audioStatus == .open {
+        trailingControlButton(
+          label: "Download Audiobook",
+          systemName: "waveform",
+          isEnabled: canAudioExport,
+          action: {
+            Task {
+              await startAudiobookDownload(
+                bookID: item.id,
+                title: item.title,
+                client: client
+              )
+            }
           }
-        }
-      )
+        )
+      }
       trailingControlButton(
         label: "Email to Kindle",
         systemName: "paperplane",
