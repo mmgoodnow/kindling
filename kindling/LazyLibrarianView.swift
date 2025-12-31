@@ -144,7 +144,7 @@ struct LazyLibrarianView: View {
       searchTask = Task {
         try? await Task.sleep(nanoseconds: 200_000_000)
         guard Task.isCancelled == false else { return }
-        await viewModel.search(using: client)
+        await viewModel.search(using: client, query: trimmed)
       }
     }
     #if os(iOS)

@@ -24,6 +24,7 @@ final class LazyLibrarianViewModel: ObservableObject {
   private let downloadPollIntervalNanoseconds: UInt64 = 500_000_000
   private let searchCooldownInterval: TimeInterval = 20
   private var lastSearchByKey: [SearchCooldownKey: Date] = [:]
+  private var searchResultsByQuery: [String: [LazyLibrarianBook]] = [:]
 
   private struct SearchCooldownKey: Hashable {
     let bookID: String
@@ -61,11 +62,24 @@ final class LazyLibrarianViewModel: ObservableObject {
   }
 
   func search(using client: LazyLibrarianServing) async {
+    let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+    await search(using: client, query: trimmed)
+  }
+
+  func search(using client: LazyLibrarianServing, query: String) async {
     guard query.isEmpty == false else { return }
+    if let cached = searchResultsByQuery[query] {
+      searchResults = cached
+      return
+    }
     isLoading = true
     errorMessage = nil
     do {
-      searchResults = try await client.searchBooks(query: query)
+      let results = try await client.searchBooks(query: query)
+      searchResultsByQuery[query] = results
+      if self.query.trimmingCharacters(in: .whitespacesAndNewlines) == query {
+        searchResults = results
+      }
     } catch {
       if shouldIgnoreError(error) == false {
         errorMessage = error.localizedDescription
@@ -403,6 +417,10 @@ final class LazyLibrarianViewModel: ObservableObject {
   }
 
   private func shouldIgnoreError(_ error: Error) -> Bool {
-    error is CancellationError
+    if error is CancellationError { return true }
+    if let urlError = error as? URLError, urlError.code == .cancelled {
+      return true
+    }
+    return false
   }
 }
