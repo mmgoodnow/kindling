@@ -958,7 +958,8 @@ struct LazyLibrarianClient: LazyLibrarianServing {
       throw LazyLibrarianError.badURL
     }
     let (tempURL, response) = try await downloadFile(url: url, progress: progress)
-    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+    let http = response
+    guard (200..<300).contains(http.statusCode) else {
       #if DEBUG
         if let data = try? Data(contentsOf: tempURL) {
           logResponse("getBookFileDirect bad response", data: data)
@@ -986,7 +987,8 @@ struct LazyLibrarianClient: LazyLibrarianServing {
       throw LazyLibrarianError.badURL
     }
     let (tempURL, response) = try await downloadFile(url: url, progress: progress)
-    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+    let http = response
+    guard (200..<300).contains(http.statusCode) else {
       #if DEBUG
         if let data = try? Data(contentsOf: tempURL) {
           logResponse("getFileDirect bad response", data: data)
