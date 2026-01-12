@@ -12,7 +12,13 @@ import SwiftUI
 struct kindlingApp: App {
   @StateObject private var userSettings = UserSettings()
   var sharedModelContainer: ModelContainer = {
-    let schema = Schema([])
+    let schema = Schema([
+      Author.self,
+      Series.self,
+      LibraryBook.self,
+      LibraryBookFile.self,
+      LocalBookState.self,
+    ])
     let modelConfiguration = ModelConfiguration(
       schema: schema, isStoredInMemoryOnly: false)
 
