@@ -19,6 +19,9 @@ struct LocalLibraryView: View {
   @State private var lastSummary: LibrarySyncService.Summary?
   @State private var downloadProgressByBookID: [String: Double] = [:]
   @State private var downloadingBookIDs: Set<String> = []
+  @StateObject private var player = AudioPlayerController()
+  @State private var isShowingPlayer = false
+  @State private var activePlaybackBook: LibraryBook?
 
   var body: some View {
     List {
@@ -72,6 +75,9 @@ struct LocalLibraryView: View {
         startSync()
       }
     }
+    .sheet(isPresented: $isShowingPlayer) {
+      LocalPlaybackView(player: player)
+    }
   }
 
   @ViewBuilder
@@ -111,6 +117,7 @@ struct LocalLibraryView: View {
     let status = file?.downloadStatus ?? .notStarted
     let progress = downloadProgressByBookID[book.llId]
     let audioStatus = parseAudioStatus(from: book)
+    let playbackURL = playbackURL(for: book)
     HStack(alignment: .firstTextBaseline) {
       VStack(alignment: .leading, spacing: 4) {
         Text(book.title)
@@ -120,7 +127,11 @@ struct LocalLibraryView: View {
         statusLine(status: status, progress: progress, audioStatus: audioStatus)
       }
       Spacer()
-      downloadButton(for: book, status: status, audioStatus: audioStatus)
+      if let playbackURL {
+        playButton(for: book, url: playbackURL)
+      } else {
+        downloadButton(for: book, status: status, audioStatus: audioStatus)
+      }
     }
   }
 
@@ -181,6 +192,15 @@ struct LocalLibraryView: View {
       isDownloading || status == .completed || status == .downloading || canDownload == false)
   }
 
+  @ViewBuilder
+  private func playButton(for book: LibraryBook, url: URL) -> some View {
+    Button(action: { startPlayback(for: book, url: url) }) {
+      Image(systemName: "play.circle.fill")
+        .font(.title2)
+    }
+    .help("Play")
+  }
+
   private func startDownload(for book: LibraryBook) {
     guard downloadingBookIDs.contains(book.llId) == false else { return }
     downloadingBookIDs.insert(book.llId)
@@ -235,6 +255,38 @@ struct LocalLibraryView: View {
 
       downloadingBookIDs.remove(book.llId)
       downloadProgressByBookID[book.llId] = nil
+    }
+  }
+
+  private func startPlayback(for book: LibraryBook, url: URL) {
+    activePlaybackBook = book
+    let localState = ensureLocalState(for: book)
+    localState.lastPlayedAt = Date()
+    try? modelContext.save()
+    player.load(url: url, title: book.title)
+    player.play()
+    isShowingPlayer = true
+  }
+
+  private func playbackURL(for book: LibraryBook) -> URL? {
+    guard
+      let file = book.files.first,
+      file.downloadStatus == .completed,
+      let relativePath = file.localRelativePath
+    else {
+      return nil
+    }
+
+    let url = try? LibraryStorage().url(forRelativePath: relativePath)
+    guard let url, FileManager.default.fileExists(atPath: url.path) else { return nil }
+
+    let format =
+      file.format == .unknown ? BookFileFormat.fromFilename(url.lastPathComponent) : file.format
+    switch format {
+    case .m4b, .mp3, .m4a:
+      return url
+    default:
+      return nil
     }
   }
 

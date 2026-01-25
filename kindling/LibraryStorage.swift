@@ -30,6 +30,11 @@ struct LibraryStorage {
       filename: destination.lastPathComponent, relativePath: relativePath, fileSizeBytes: fileSize)
   }
 
+  func url(forRelativePath relativePath: String) throws -> URL {
+    let baseURL = try ensureBaseDirectory()
+    return baseURL.appendingPathComponent(relativePath, isDirectory: false)
+  }
+
   private func ensureBaseDirectory() throws -> URL {
     let base = try fileManager.url(
       for: .applicationSupportDirectory,
