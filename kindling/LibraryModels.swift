@@ -77,6 +77,8 @@ final class LibraryBook {
   var addedAt: Date?
   var updatedAt: Date?
   var seriesIndex: Double?
+  var bookStatusRaw: String?
+  var audioStatusRaw: String?
 
   var author: Author?
   var series: Series?
@@ -94,6 +96,8 @@ final class LibraryBook {
     addedAt: Date? = nil,
     updatedAt: Date? = nil,
     seriesIndex: Double? = nil,
+    bookStatusRaw: String? = nil,
+    audioStatusRaw: String? = nil,
     author: Author? = nil,
     series: Series? = nil
   ) {
@@ -106,6 +110,8 @@ final class LibraryBook {
     self.addedAt = addedAt
     self.updatedAt = updatedAt
     self.seriesIndex = seriesIndex
+    self.bookStatusRaw = bookStatusRaw
+    self.audioStatusRaw = audioStatusRaw
     self.author = author
     self.series = series
   }

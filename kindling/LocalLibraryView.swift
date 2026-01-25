@@ -110,23 +110,29 @@ struct LocalLibraryView: View {
     let file = book.files.first
     let status = file?.downloadStatus ?? .notStarted
     let progress = downloadProgressByBookID[book.llId]
+    let audioStatus = parseAudioStatus(from: book)
     HStack(alignment: .firstTextBaseline) {
       VStack(alignment: .leading, spacing: 4) {
         Text(book.title)
         Text(book.author?.name ?? "Unknown Author")
           .foregroundStyle(.secondary)
           .font(.caption)
-        statusLine(status: status, progress: progress)
+        statusLine(status: status, progress: progress, audioStatus: audioStatus)
       }
       Spacer()
-      downloadButton(for: book, status: status)
+      downloadButton(for: book, status: status, audioStatus: audioStatus)
     }
   }
 
   @ViewBuilder
-  private func statusLine(status: DownloadStatus, progress: Double?) -> some View {
+  private func statusLine(
+    status: DownloadStatus,
+    progress: Double?,
+    audioStatus: LazyLibrarianLibraryItemStatus
+  ) -> some View {
     HStack(spacing: 6) {
       Text(statusLabel(for: status))
+      Text("Audio: \(audioStatus.rawValue)")
       if let progress {
         ProgressView(value: progress)
           .frame(maxWidth: 120)
@@ -152,8 +158,13 @@ struct LocalLibraryView: View {
   }
 
   @ViewBuilder
-  private func downloadButton(for book: LibraryBook, status: DownloadStatus) -> some View {
+  private func downloadButton(
+    for book: LibraryBook,
+    status: DownloadStatus,
+    audioStatus: LazyLibrarianLibraryItemStatus
+  ) -> some View {
     let isDownloading = downloadingBookIDs.contains(book.llId)
+    let canDownload = audioStatus.isComplete
     Button(action: { startDownload(for: book) }) {
       switch status {
       case .completed:
@@ -163,10 +174,11 @@ struct LocalLibraryView: View {
       case .downloading:
         ProgressView()
       default:
-        Text("Download")
+        Text(canDownload ? "Download" : "Unavailable")
       }
     }
-    .disabled(isDownloading || status == .completed || status == .downloading)
+    .disabled(
+      isDownloading || status == .completed || status == .downloading || canDownload == false)
   }
 
   private func startDownload(for book: LibraryBook) {
@@ -174,6 +186,14 @@ struct LocalLibraryView: View {
     downloadingBookIDs.insert(book.llId)
     downloadProgressByBookID[book.llId] = 0
     errorMessage = nil
+
+    let audioStatus = parseAudioStatus(from: book)
+    guard audioStatus.isComplete else {
+      errorMessage = "Audiobook not ready (AudioStatus: \(audioStatus.rawValue))."
+      downloadingBookIDs.remove(book.llId)
+      downloadProgressByBookID[book.llId] = nil
+      return
+    }
 
     Task {
       let fileRecord = ensureFileRecord(for: book)
@@ -209,12 +229,18 @@ struct LocalLibraryView: View {
         fileRecord.downloadStatus = .failed
         fileRecord.lastError = error.localizedDescription
         try? modelContext.save()
-        errorMessage = "Download failed: \(error.localizedDescription)"
+        errorMessage =
+          "Download failed (AudioStatus: \(audioStatus.rawValue)): \(error.localizedDescription)"
       }
 
       downloadingBookIDs.remove(book.llId)
       downloadProgressByBookID[book.llId] = nil
     }
+  }
+
+  private func parseAudioStatus(from book: LibraryBook) -> LazyLibrarianLibraryItemStatus {
+    guard let raw = book.audioStatusRaw else { return .unknown }
+    return LazyLibrarianLibraryItemStatus(rawValue: raw) ?? .unknown
   }
 
   private func ensureFileRecord(for book: LibraryBook) -> LibraryBookFile {

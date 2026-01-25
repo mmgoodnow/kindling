@@ -57,6 +57,8 @@ struct LibrarySyncService {
           addedAt: item.bookAdded,
           updatedAt: latestLibraryDate(for: item),
           seriesIndex: nil,
+          bookStatusRaw: item.status.rawValue,
+          audioStatusRaw: item.audioStatus?.rawValue,
           author: author,
           series: nil
         )
@@ -112,6 +114,14 @@ struct LibrarySyncService {
     }
     if book.author !== author {
       book.author = author
+      updated += 1
+    }
+    if book.bookStatusRaw != item.status.rawValue {
+      book.bookStatusRaw = item.status.rawValue
+      updated += 1
+    }
+    if book.audioStatusRaw != item.audioStatus?.rawValue {
+      book.audioStatusRaw = item.audioStatus?.rawValue
       updated += 1
     }
     return updated > 0 ? 1 : 0
