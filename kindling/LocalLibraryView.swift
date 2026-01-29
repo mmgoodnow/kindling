@@ -10,18 +10,36 @@ struct LocalLibraryView: View {
     ]
   )
   private var books: [LibraryBook]
+  @Query(filter: #Predicate<LibrarySyncState> { $0.scope == "library" })
+  private var syncStates: [LibrarySyncState]
 
   let client: LazyLibrarianServing
 
   @State private var isSyncing = false
   @State private var errorMessage: String?
-  @State private var lastSync: Date?
-  @State private var lastSummary: LibrarySyncService.Summary?
   @State private var downloadProgressByBookID: [String: Double] = [:]
   @State private var downloadingBookIDs: Set<String> = []
   @StateObject private var player = AudioPlayerController()
   @State private var isShowingPlayer = false
   @State private var activePlaybackBook: LibraryBook?
+
+  private var syncState: LibrarySyncState? {
+    syncStates.first
+  }
+
+  private var lastSync: Date? {
+    syncState?.lastSync
+  }
+
+  private var lastSummary: LibrarySyncService.Summary? {
+    guard let syncState else { return nil }
+    return LibrarySyncService.Summary(
+      insertedBooks: syncState.insertedBooks,
+      updatedBooks: syncState.updatedBooks,
+      insertedAuthors: syncState.insertedAuthors,
+      updatedAuthors: syncState.updatedAuthors
+    )
+  }
 
   var body: some View {
     List {
@@ -102,12 +120,27 @@ struct LocalLibraryView: View {
           using: client,
           modelContext: modelContext
         )
-        lastSummary = summary
-        lastSync = Date()
+        updateSyncState(with: summary, syncedAt: Date())
       } catch {
         errorMessage = error.localizedDescription
       }
       isSyncing = false
+    }
+  }
+
+  @MainActor
+  private func updateSyncState(with summary: LibrarySyncService.Summary, syncedAt: Date) {
+    let state = syncState ?? LibrarySyncState()
+    if syncState == nil {
+      modelContext.insert(state)
+    }
+    state.lastSync = syncedAt
+    state.insertedBooks = summary.insertedBooks
+    state.updatedBooks = summary.updatedBooks
+    state.insertedAuthors = summary.insertedAuthors
+    state.updatedAuthors = summary.updatedAuthors
+    if modelContext.hasChanges {
+      try? modelContext.save()
     }
   }
 
@@ -335,7 +368,14 @@ struct LocalLibraryView: View {
       LocalLibraryView(client: PreviewLazyLibrarianClient())
     }
     .modelContainer(
-      for: [Author.self, Series.self, LibraryBook.self, LibraryBookFile.self, LocalBookState.self],
+      for: [
+        Author.self,
+        Series.self,
+        LibraryBook.self,
+        LibraryBookFile.self,
+        LocalBookState.self,
+        LibrarySyncState.self,
+      ],
       inMemory: true
     )
   }

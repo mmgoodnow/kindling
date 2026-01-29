@@ -188,3 +188,31 @@ final class LocalBookState {
     self.book = book
   }
 }
+
+@Model
+final class LibrarySyncState {
+  static let libraryScope = "library"
+
+  @Attribute(.unique) var scope: String
+  var lastSync: Date?
+  var insertedBooks: Int
+  var updatedBooks: Int
+  var insertedAuthors: Int
+  var updatedAuthors: Int
+
+  init(
+    scope: String = LibrarySyncState.libraryScope,
+    lastSync: Date? = nil,
+    insertedBooks: Int = 0,
+    updatedBooks: Int = 0,
+    insertedAuthors: Int = 0,
+    updatedAuthors: Int = 0
+  ) {
+    self.scope = scope
+    self.lastSync = lastSync
+    self.insertedBooks = insertedBooks
+    self.updatedBooks = updatedBooks
+    self.insertedAuthors = insertedAuthors
+    self.updatedAuthors = updatedAuthors
+  }
+}

@@ -18,6 +18,7 @@ struct kindlingApp: App {
       LibraryBook.self,
       LibraryBookFile.self,
       LocalBookState.self,
+      LibrarySyncState.self,
     ])
     let modelConfiguration = ModelConfiguration(
       schema: schema, isStoredInMemoryOnly: false)

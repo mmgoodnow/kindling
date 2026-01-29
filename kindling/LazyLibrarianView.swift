@@ -13,6 +13,8 @@ struct LazyLibrarianView: View {
     ]
   )
   private var localBooks: [LibraryBook]
+  @Query(filter: #Predicate<LibrarySyncState> { $0.scope == "library" })
+  private var syncStates: [LibrarySyncState]
   @StateObject private var viewModel = LazyLibrarianViewModel()
   @State private var isShowingShareSheet = false
   @State private var shareURL: URL?
@@ -27,8 +29,6 @@ struct LazyLibrarianView: View {
   @State private var searchTask: Task<Void, Never>?
   @State private var isSyncing = false
   @State private var syncErrorMessage: String?
-  @State private var lastSync: Date?
-  @State private var lastSummary: LibrarySyncService.Summary?
   @State private var localDownloadProgressByBookID: [String: Double] = [:]
   @State private var localDownloadingBookIDs: Set<String> = []
   @StateObject private var player = AudioPlayerController()
@@ -196,6 +196,24 @@ struct LazyLibrarianView: View {
     Dictionary(uniqueKeysWithValues: localBooks.map { ($0.llId, $0) })
   }
 
+  private var syncState: LibrarySyncState? {
+    syncStates.first
+  }
+
+  private var lastSync: Date? {
+    syncState?.lastSync
+  }
+
+  private var lastSummary: LibrarySyncService.Summary? {
+    guard let syncState else { return nil }
+    return LibrarySyncService.Summary(
+      insertedBooks: syncState.insertedBooks,
+      updatedBooks: syncState.updatedBooks,
+      insertedAuthors: syncState.insertedAuthors,
+      updatedAuthors: syncState.updatedAuthors
+    )
+  }
+
   @ViewBuilder
   private func summaryRow(_ summary: LibrarySyncService.Summary) -> some View {
     let totalAdded = summary.insertedBooks + summary.insertedAuthors
@@ -295,12 +313,27 @@ struct LazyLibrarianView: View {
         using: client,
         modelContext: modelContext
       )
-      lastSummary = summary
-      lastSync = Date()
+      updateSyncState(with: summary, syncedAt: Date())
     } catch {
       syncErrorMessage = error.localizedDescription
     }
     isSyncing = false
+  }
+
+  @MainActor
+  private func updateSyncState(with summary: LibrarySyncService.Summary, syncedAt: Date) {
+    let state = syncState ?? LibrarySyncState()
+    if syncState == nil {
+      modelContext.insert(state)
+    }
+    state.lastSync = syncedAt
+    state.insertedBooks = summary.insertedBooks
+    state.updatedBooks = summary.updatedBooks
+    state.insertedAuthors = summary.insertedAuthors
+    state.updatedAuthors = summary.updatedAuthors
+    if modelContext.hasChanges {
+      try? modelContext.save()
+    }
   }
 
   @MainActor
@@ -1366,7 +1399,14 @@ struct ActivityShareSheet: View {
       .environmentObject(UserSettings())
   }
   .modelContainer(
-    for: [Author.self, Series.self, LibraryBook.self, LibraryBookFile.self, LocalBookState.self],
+    for: [
+      Author.self,
+      Series.self,
+      LibraryBook.self,
+      LibraryBookFile.self,
+      LocalBookState.self,
+      LibrarySyncState.self,
+    ],
     inMemory: true
   )
 }
