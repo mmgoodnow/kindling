@@ -422,6 +422,16 @@ struct LocalLibraryView: View {
 
     func searchBook(id: String, library: LazyLibrarianLibrary) async throws {}
 
+    func searchItem(query: String) async throws -> [LazyLibrarianSearchResult] {
+      []
+    }
+
+    func snatchResult(
+      bookID: String,
+      library: LazyLibrarianLibrary,
+      result: LazyLibrarianSearchResult
+    ) async throws {}
+
     func fetchDownloadProgress(limit: Int?) async throws -> [LazyLibrarianDownloadProgressItem] {
       []
     }

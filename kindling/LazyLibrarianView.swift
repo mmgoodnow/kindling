@@ -33,6 +33,7 @@ struct LazyLibrarianView: View {
   @State private var localDownloadingBookIDs: Set<String> = []
   @StateObject private var player = AudioPlayerController()
   @State private var isShowingPlayer = false
+  @State private var snatchContext: SnatchContext?
 
   let clientOverride: LazyLibrarianServing?
 
@@ -43,6 +44,12 @@ struct LazyLibrarianView: View {
   private enum DownloadKind {
     case ebook
     case audiobook
+  }
+
+  private struct SnatchContext: Identifiable {
+    let id = UUID()
+    let item: LazyLibrarianLibraryItem
+    let libraries: [LazyLibrarianLibrary]
   }
 
   private var configuredClient: LazyLibrarianServing? {
@@ -66,6 +73,20 @@ struct LazyLibrarianView: View {
     content(client: configuredClient)
       .sheet(isPresented: $isShowingPlayer) {
         LocalPlaybackView(player: player)
+      }
+      .sheet(item: $snatchContext) { context in
+        if let client = configuredClient {
+          LazyLibrarianSnatchResultPicker(
+            book: context.item,
+            libraries: context.libraries,
+            client: client
+          ) { library in
+            viewModel.noteSearchTriggered(bookID: context.item.id, library: library)
+            await viewModel.loadLibraryItems(using: client)
+          }
+        } else {
+          Text("LazyLibrarian is not configured.")
+        }
       }
   }
 
@@ -342,6 +363,28 @@ struct LazyLibrarianView: View {
     await viewModel.loadLibraryItems(using: client)
   }
 
+  private func presentSnatchPicker(
+    for item: LazyLibrarianLibraryItem,
+    libraries: [LazyLibrarianLibrary]
+  ) {
+    guard libraries.isEmpty == false else { return }
+    snatchContext = SnatchContext(item: item, libraries: libraries)
+  }
+
+  private func snatchLibraries(
+    canTriggerEbookSearch: Bool,
+    canTriggerAudioSearch: Bool
+  ) -> [LazyLibrarianLibrary] {
+    var libraries: [LazyLibrarianLibrary] = []
+    if canTriggerEbookSearch {
+      libraries.append(.ebook)
+    }
+    if canTriggerAudioSearch {
+      libraries.append(.audio)
+    }
+    return libraries
+  }
+
   private func startEbookDownload(
     bookID: String,
     title: String,
@@ -558,6 +601,10 @@ struct LazyLibrarianView: View {
 
     let canRefresh = canEbookSearch || canAudioSearch
     let canTriggerRefresh = canTriggerEbookSearch || canTriggerAudioSearch
+    let snatchLibraries = snatchLibraries(
+      canTriggerEbookSearch: canTriggerEbookSearch,
+      canTriggerAudioSearch: canTriggerAudioSearch
+    )
     let controls = HStack(spacing: 8) {
       trailingControlButton(
         label: "Download & Export",
@@ -617,22 +664,7 @@ struct LazyLibrarianView: View {
           systemName: "arrow.clockwise",
           isEnabled: canTriggerRefresh,
           action: {
-            Task {
-              if canTriggerEbookSearch {
-                await viewModel.triggerSearch(
-                  bookID: item.id,
-                  library: .ebook,
-                  using: client
-                )
-              }
-              if canTriggerAudioSearch {
-                await viewModel.triggerSearch(
-                  bookID: item.id,
-                  library: .audio,
-                  using: client
-                )
-              }
-            }
+            presentSnatchPicker(for: item, libraries: snatchLibraries)
           }
         )
       }
@@ -1108,6 +1140,176 @@ struct LazyLibrarianView: View {
 
   private func latestLibraryDate(for item: LazyLibrarianLibraryItem) -> Date? {
     [item.bookLibrary, item.audioLibrary].compactMap { $0 }.max()
+  }
+}
+
+private struct LazyLibrarianSnatchResultPicker: View {
+  let book: LazyLibrarianLibraryItem
+  let libraries: [LazyLibrarianLibrary]
+  let client: LazyLibrarianServing
+  let onSnatchComplete: (LazyLibrarianLibrary) async -> Void
+
+  @Environment(\.dismiss) private var dismiss
+  @State private var selectedLibrary: LazyLibrarianLibrary
+  @State private var results: [LazyLibrarianSearchResult] = []
+  @State private var isLoading = false
+  @State private var errorMessage: String?
+  @State private var snatchError: String?
+  @State private var activeSnatchID: String?
+
+  init(
+    book: LazyLibrarianLibraryItem,
+    libraries: [LazyLibrarianLibrary],
+    client: LazyLibrarianServing,
+    onSnatchComplete: @escaping (LazyLibrarianLibrary) async -> Void
+  ) {
+    self.book = book
+    self.libraries = libraries
+    self.client = client
+    self.onSnatchComplete = onSnatchComplete
+    _selectedLibrary = State(initialValue: libraries.first ?? .ebook)
+  }
+
+  var body: some View {
+    NavigationStack {
+      List {
+        if let errorMessage {
+          Text(errorMessage)
+            .foregroundStyle(.red)
+            .font(.caption)
+        }
+
+        if let snatchError {
+          Text(snatchError)
+            .foregroundStyle(.red)
+            .font(.caption)
+        }
+
+        if libraries.count > 1 {
+          Picker("Library", selection: $selectedLibrary) {
+            ForEach(libraries, id: \.self) { library in
+              Text(library.rawValue)
+                .tag(library)
+            }
+          }
+          .pickerStyle(.segmented)
+        }
+
+        if isLoading {
+          HStack {
+            Spacer()
+            ProgressView()
+            Spacer()
+          }
+        } else if filteredResults.isEmpty {
+          ContentUnavailableView(
+            "No Results",
+            systemImage: "magnifyingglass",
+            description: Text("Try refreshing or adjusting your query.")
+          )
+        } else {
+          ForEach(filteredResults) { result in
+            snatchRow(result)
+          }
+        }
+      }
+      .navigationTitle("Choose Result")
+      .toolbar {
+        ToolbarItem(placement: .cancellationAction) {
+          Button("Done") { dismiss() }
+        }
+      }
+      .task {
+        await loadResults()
+      }
+    }
+  }
+
+  private var filteredResults: [LazyLibrarianSearchResult] {
+    results.filter { result in
+      guard let library = result.library else { return true }
+      return library == selectedLibrary
+    }
+  }
+
+  @ViewBuilder
+  private func snatchRow(_ result: LazyLibrarianSearchResult) -> some View {
+    let title = result.title.isEmpty ? result.url : result.title
+    HStack(alignment: .top, spacing: 12) {
+      VStack(alignment: .leading, spacing: 4) {
+        Text(title)
+          .font(.headline)
+          .lineLimit(2)
+        Text(result.provider.isEmpty ? "Unknown Provider" : result.provider)
+          .font(.subheadline)
+          .foregroundStyle(.secondary)
+        HStack(spacing: 8) {
+          if let size = result.displaySize {
+            Text(size)
+          }
+          if let seeders = result.seeders {
+            Text("S \(seeders)")
+          }
+          if let leechers = result.leechers {
+            Text("L \(leechers)")
+          }
+          if let age = result.age {
+            Text(age)
+          }
+          if result.mode.isEmpty == false {
+            Text(result.mode)
+          }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+      }
+      Spacer()
+      if activeSnatchID == result.id {
+        ProgressView()
+          .controlSize(.small)
+      } else {
+        Button("Snatch") {
+          snatch(result)
+        }
+        .disabled(result.canSnatch == false || activeSnatchID != nil)
+      }
+    }
+    .padding(.vertical, 4)
+  }
+
+  @MainActor
+  private func loadResults() async {
+    guard isLoading == false else { return }
+    isLoading = true
+    errorMessage = nil
+    let query = [book.title, book.author]
+      .filter { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }
+      .joined(separator: " ")
+    do {
+      results = try await client.searchItem(query: query)
+    } catch {
+      errorMessage = error.localizedDescription
+    }
+    isLoading = false
+  }
+
+  private func snatch(_ result: LazyLibrarianSearchResult) {
+    snatchError = nil
+    activeSnatchID = result.id
+    Task { @MainActor in
+      do {
+        try await client.snatchResult(
+          bookID: book.id,
+          library: selectedLibrary,
+          result: result
+        )
+        await onSnatchComplete(selectedLibrary)
+        dismiss()
+      } catch {
+        snatchError = error.localizedDescription
+      }
+      activeSnatchID = nil
+    }
   }
 }
 

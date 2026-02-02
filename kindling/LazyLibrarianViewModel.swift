@@ -297,6 +297,10 @@ final class LazyLibrarianViewModel: ObservableObject {
     return true
   }
 
+  func noteSearchTriggered(bookID: String, library: LazyLibrarianLibrary) {
+    markSearchTriggered(bookID: bookID, library: library)
+  }
+
   private func markSearchTriggered(bookID: String, library: LazyLibrarianLibrary) {
     lastSearchByKey[SearchCooldownKey(bookID: bookID, library: library)] = .now
   }

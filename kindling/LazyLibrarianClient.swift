@@ -282,6 +282,12 @@ protocol LazyLibrarianServing {
   func fetchLibraryItems() async throws -> [LazyLibrarianLibraryItem]
   func fetchBookCovers(wait: Bool) async throws
   func searchBook(id: String, library: LazyLibrarianLibrary) async throws
+  func searchItem(query: String) async throws -> [LazyLibrarianSearchResult]
+  func snatchResult(
+    bookID: String,
+    library: LazyLibrarianLibrary,
+    result: LazyLibrarianSearchResult
+  ) async throws
   func fetchDownloadProgress(limit: Int?) async throws -> [LazyLibrarianDownloadProgressItem]
   func downloadEpub(bookID: String, progress: @escaping (Double) -> Void) async throws -> URL
   func downloadAudiobook(bookID: String, progress: @escaping (Double) -> Void) async throws -> URL
@@ -348,6 +354,177 @@ struct LazyLibrarianDownloadProgressItem: Hashable, Decodable {
       ?? (try? container.decodeIfPresent(String.self, forKey: .downloadIDLower))
     progress = try? container.decodeIfPresent(Int.self, forKey: .progress)
     finished = try? container.decodeIfPresent(Bool.self, forKey: .finished)
+  }
+}
+
+struct LazyLibrarianSearchResult: Identifiable, Hashable {
+  let id: String
+  let title: String
+  let provider: String
+  let url: String
+  let sizeRaw: String?
+  let sizeBytes: Int64?
+  let seeders: Int?
+  let leechers: Int?
+  let age: String?
+  let mode: String
+  let library: LazyLibrarianLibrary?
+
+  var canSnatch: Bool {
+    title.isEmpty == false && provider.isEmpty == false && url.isEmpty == false
+      && mode.isEmpty == false
+  }
+
+  var sizeParameter: String? {
+    sizeRaw ?? sizeBytes.map(String.init)
+  }
+
+  var displaySize: String? {
+    if let sizeRaw,
+      let parsed = LazyLibrarianSearchResult.parseSizeBytes(from: sizeRaw)
+    {
+      return ByteCountFormatter.string(fromByteCount: parsed, countStyle: .file)
+    }
+    return sizeRaw
+  }
+
+  init?(
+    dictionary: [String: Any]
+  ) {
+    let title =
+      LazyLibrarianSearchResult.stringValue(
+        dictionary,
+        keys: [
+          "title", "Title", "name", "Name", "bookname", "BookName", "filename", "Filename",
+          "release", "Release",
+        ]) ?? ""
+    let provider =
+      LazyLibrarianSearchResult.stringValue(
+        dictionary,
+        keys: [
+          "provider", "Provider", "source", "Source", "indexer", "Indexer",
+        ]) ?? ""
+    let url =
+      LazyLibrarianSearchResult.stringValue(
+        dictionary,
+        keys: [
+          "url", "URL", "link", "Link", "download", "Download", "torrent", "Torrent", "magnet",
+          "Magnet",
+        ]) ?? ""
+    let mode =
+      LazyLibrarianSearchResult.stringValue(
+        dictionary,
+        keys: [
+          "mode", "Mode", "downloadType", "DownloadType", "type", "Type",
+        ]) ?? ""
+    let sizeRaw =
+      LazyLibrarianSearchResult.stringValue(
+        dictionary,
+        keys: [
+          "size", "Size", "filesize", "FileSize",
+        ])
+    let seeders = LazyLibrarianSearchResult.intValue(
+      dictionary,
+      keys: [
+        "seeders", "Seeders", "seeds", "Seeds",
+      ])
+    let leechers = LazyLibrarianSearchResult.intValue(
+      dictionary,
+      keys: [
+        "leechers", "Leechers", "leeches", "Leeches",
+      ])
+    let age = LazyLibrarianSearchResult.stringValue(
+      dictionary,
+      keys: [
+        "age", "Age", "published", "Published", "date", "Date",
+      ])
+    let library = LazyLibrarianSearchResult.parseLibrary(
+      from: LazyLibrarianSearchResult.stringValue(
+        dictionary,
+        keys: [
+          "library", "Library", "kind", "Kind", "booktype", "BookType", "media", "Media", "type",
+          "Type",
+        ]))
+
+    if title.isEmpty && url.isEmpty {
+      return nil
+    }
+
+    let idSeed = [title, provider, url, mode]
+      .filter { $0.isEmpty == false }
+      .joined(separator: "|")
+    let id = idSeed.isEmpty ? UUID().uuidString : idSeed
+
+    self.id = id
+    self.title = title
+    self.provider = provider
+    self.url = url
+    self.sizeRaw = sizeRaw
+    self.sizeBytes = LazyLibrarianSearchResult.parseSizeBytes(from: sizeRaw)
+    self.seeders = seeders
+    self.leechers = leechers
+    self.age = age
+    self.mode = mode
+    self.library = library
+  }
+
+  private static func stringValue(_ dict: [String: Any], keys: [String]) -> String? {
+    for key in keys {
+      if let value = dict[key] {
+        if let string = value as? String {
+          let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+          if trimmed.isEmpty == false { return trimmed }
+        } else if let number = value as? NSNumber {
+          return number.stringValue
+        }
+      }
+    }
+    return nil
+  }
+
+  private static func intValue(_ dict: [String: Any], keys: [String]) -> Int? {
+    for key in keys {
+      if let value = dict[key] {
+        if let int = value as? Int { return int }
+        if let number = value as? NSNumber { return number.intValue }
+        if let string = value as? String, let int = Int(string) { return int }
+      }
+    }
+    return nil
+  }
+
+  private static func parseLibrary(from raw: String?) -> LazyLibrarianLibrary? {
+    guard let raw else { return nil }
+    let lowered = raw.lowercased()
+    if lowered.contains("audio") {
+      return .audio
+    }
+    if lowered.contains("ebook") || lowered.contains("e-book") {
+      return .ebook
+    }
+    return nil
+  }
+
+  private static func parseSizeBytes(from raw: String?) -> Int64? {
+    guard let raw else { return nil }
+    let lowered = raw.lowercased()
+    let scanner = Scanner(string: lowered)
+    scanner.charactersToBeSkipped = .whitespacesAndNewlines
+    guard let value = scanner.scanDouble() else { return nil }
+    let unit = scanner.scanCharacters(from: .letters) ?? ""
+    let multiplier: Double
+    if unit.contains("tb") {
+      multiplier = 1024 * 1024 * 1024 * 1024
+    } else if unit.contains("gb") {
+      multiplier = 1024 * 1024 * 1024
+    } else if unit.contains("mb") {
+      multiplier = 1024 * 1024
+    } else if unit.contains("kb") {
+      multiplier = 1024
+    } else {
+      multiplier = 1
+    }
+    return Int64(value * multiplier)
   }
 }
 
@@ -622,6 +799,53 @@ struct LazyLibrarianClient: LazyLibrarianServing {
     throw LazyLibrarianError.badResponse
   }
 
+  private func decodeSearchResults(from data: Data) throws -> [LazyLibrarianSearchResult] {
+    let json = try JSONSerialization.jsonObject(with: data, options: [])
+    var rawResults: [[String: Any]] = []
+
+    if let array = json as? [[String: Any]] {
+      rawResults = array
+    } else if let dict = json as? [String: Any] {
+      let success =
+        (dict["success"] as? Bool)
+        ?? (dict["Success"] as? Bool)
+      if let success, success == false {
+        let message =
+          (dict["error"] as? String)
+          ?? (dict["Error"] as? String)
+          ?? ((dict["error"] as? [String: Any])?["message"] as? String)
+          ?? ((dict["Error"] as? [String: Any])?["Message"] as? String)
+          ?? "LazyLibrarian error"
+        throw LazyLibrarianError.api(message)
+      }
+
+      if let dataArray = dict["data"] as? [[String: Any]] {
+        rawResults = dataArray
+      } else if let dataArray = dict["Data"] as? [[String: Any]] {
+        rawResults = dataArray
+      } else if let resultsArray = dict["results"] as? [[String: Any]] {
+        rawResults = resultsArray
+      } else if let resultsArray = dict["Results"] as? [[String: Any]] {
+        rawResults = resultsArray
+      } else if let dataDict = dict["data"] as? [String: Any] {
+        rawResults = extractSearchResults(from: dataDict)
+      } else if let dataDict = dict["Data"] as? [String: Any] {
+        rawResults = extractSearchResults(from: dataDict)
+      }
+    }
+
+    let parsed = rawResults.compactMap { LazyLibrarianSearchResult(dictionary: $0) }
+    return parsed
+  }
+
+  private func extractSearchResults(from dict: [String: Any]) -> [[String: Any]] {
+    if let results = dict["results"] as? [[String: Any]] { return results }
+    if let results = dict["Results"] as? [[String: Any]] { return results }
+    if let items = dict["items"] as? [[String: Any]] { return items }
+    if let items = dict["Items"] as? [[String: Any]] { return items }
+    return []
+  }
+
   func searchBooks(query: String) async throws -> [LazyLibrarianBook] {
     // LL supports findBook via GoodReads/GoogleBooks
     guard
@@ -874,6 +1098,83 @@ struct LazyLibrarianClient: LazyLibrarianServing {
     #endif
   }
 
+  func searchItem(query: String) async throws -> [LazyLibrarianSearchResult] {
+    guard
+      let url = apiURL(
+        cmd: "searchItem",
+        queryItems: [
+          URLQueryItem(name: "item", value: query)
+        ])
+    else {
+      throw LazyLibrarianError.badURL
+    }
+    #if DEBUG
+      print("[LazyLibrarian] searchItem call item=\(query)")
+    #endif
+    let (data, response) = try await session.data(from: url)
+    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+      #if DEBUG
+        logResponse(
+          "searchItem bad status item=\(query) \((response as? HTTPURLResponse)?.statusCode ?? -1)",
+          data: data)
+      #endif
+      throw LazyLibrarianError.badResponse
+    }
+    do {
+      return try decodeSearchResults(from: data)
+    } catch {
+      #if DEBUG
+        logResponse("searchItem decode failed item=\(query)", data: data)
+      #endif
+      throw error
+    }
+  }
+
+  func snatchResult(
+    bookID: String,
+    library: LazyLibrarianLibrary,
+    result: LazyLibrarianSearchResult
+  ) async throws {
+    guard result.canSnatch else {
+      throw LazyLibrarianError.unsupported("Missing search result fields for snatch.")
+    }
+    var queryItems: [URLQueryItem] = [
+      URLQueryItem(name: "bookid", value: bookID),
+      URLQueryItem(name: "library", value: library.rawValue),
+      URLQueryItem(name: "mode", value: result.mode),
+      URLQueryItem(name: "provider", value: result.provider),
+      URLQueryItem(name: "url", value: result.url),
+      URLQueryItem(name: "title", value: result.title),
+    ]
+    if let size = result.sizeParameter {
+      queryItems.append(URLQueryItem(name: "size", value: size))
+    }
+    guard let url = apiURL(cmd: "snatchResult", queryItems: queryItems) else {
+      throw LazyLibrarianError.badURL
+    }
+    #if DEBUG
+      print(
+        "[LazyLibrarian] snatchResult bookid=\(bookID) library=\(library.rawValue) provider=\(result.provider)"
+      )
+    #endif
+    let (data, response) = try await session.data(from: url)
+    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+      #if DEBUG
+        logResponse(
+          "snatchResult bad status bookid=\(bookID) library=\(library.rawValue)",
+          data: data
+        )
+      #endif
+      throw LazyLibrarianError.badResponse
+    }
+    let decoder = JSONDecoder()
+    if let wrapper = try? decoder.decode(APIResponseWrapper<Bool>.self, from: data) {
+      if let success = wrapper.success, success == false {
+        throw LazyLibrarianError.api(wrapper.error?.message ?? "LazyLibrarian error")
+      }
+    }
+  }
+
   func fetchDownloadProgress(limit: Int? = nil) async throws -> [LazyLibrarianDownloadProgressItem]
   {
     var items: [URLQueryItem] = []
@@ -1106,6 +1407,59 @@ final actor LazyLibrarianMockClient: LazyLibrarianServing {
 
   func searchBook(id: String, library: LazyLibrarianLibrary) async throws {
     // no-op for mock
+  }
+
+  func searchItem(query: String) async throws -> [LazyLibrarianSearchResult] {
+    return [
+      LazyLibrarianSearchResult(
+        dictionary: [
+          "title": "\(query) (Mock eBook)",
+          "provider": "MockProvider",
+          "url": "https://example.com/mock-ebook",
+          "size": "12.4 MB",
+          "mode": "torznab",
+          "seeders": 42,
+          "leechers": 3,
+          "age": "1d",
+          "library": "eBook",
+        ]
+      )!,
+      LazyLibrarianSearchResult(
+        dictionary: [
+          "title": "\(query) (Mock Audio)",
+          "provider": "MockProvider",
+          "url": "https://example.com/mock-audio",
+          "size": "420 MB",
+          "mode": "torznab",
+          "seeders": 12,
+          "leechers": 1,
+          "age": "2d",
+          "library": "AudioBook",
+        ]
+      )!,
+    ]
+  }
+
+  func snatchResult(
+    bookID: String,
+    library: LazyLibrarianLibrary,
+    result: LazyLibrarianSearchResult
+  ) async throws {
+    if let index = libraryItems.firstIndex(where: { $0.id == bookID }) {
+      let existing = libraryItems[index]
+      let updated = LazyLibrarianLibraryItem(
+        id: existing.id,
+        title: existing.title,
+        author: existing.author,
+        status: library == .ebook ? .snatched : existing.status,
+        audioStatus: library == .audio ? .snatched : existing.audioStatus,
+        bookAdded: existing.bookAdded,
+        bookLibrary: existing.bookLibrary,
+        audioLibrary: existing.audioLibrary,
+        bookImagePath: existing.bookImagePath
+      )
+      libraryItems[index] = updated
+    }
   }
 
   func fetchDownloadProgress(limit: Int? = nil) async throws -> [LazyLibrarianDownloadProgressItem]
