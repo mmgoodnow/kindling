@@ -422,7 +422,11 @@ struct LocalLibraryView: View {
 
     func searchBook(id: String, library: LazyLibrarianLibrary) async throws {}
 
-    func searchItem(query: String) async throws -> [LazyLibrarianSearchResult] {
+    func searchItem(
+      query: String,
+      cat: LazyLibrarianSearchCategory?,
+      bookID: String?
+    ) async throws -> [LazyLibrarianSearchResult] {
       []
     }
 

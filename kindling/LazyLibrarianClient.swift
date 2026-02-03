@@ -282,7 +282,11 @@ protocol LazyLibrarianServing {
   func fetchLibraryItems() async throws -> [LazyLibrarianLibraryItem]
   func fetchBookCovers(wait: Bool) async throws
   func searchBook(id: String, library: LazyLibrarianLibrary) async throws
-  func searchItem(query: String) async throws -> [LazyLibrarianSearchResult]
+  func searchItem(
+    query: String,
+    cat: LazyLibrarianSearchCategory?,
+    bookID: String?
+  ) async throws -> [LazyLibrarianSearchResult]
   func snatchResult(
     bookID: String,
     library: LazyLibrarianLibrary,
@@ -301,11 +305,27 @@ extension LazyLibrarianServing {
   func downloadAudiobook(bookID: String) async throws -> URL {
     try await downloadAudiobook(bookID: bookID, progress: { _ in })
   }
+
+  func searchItem(query: String) async throws -> [LazyLibrarianSearchResult] {
+    try await searchItem(query: query, cat: nil, bookID: nil)
+  }
 }
 
 enum LazyLibrarianLibrary: String {
   case ebook = "eBook"
   case audio = "AudioBook"
+}
+
+enum LazyLibrarianSearchCategory: String {
+  case general
+  case book
+  case audio
+}
+
+extension LazyLibrarianLibrary {
+  var searchCategory: LazyLibrarianSearchCategory {
+    self == .ebook ? .book : .audio
+  }
 }
 
 struct LazyLibrarianDownloadProgressItem: Hashable, Decodable {
@@ -1098,18 +1118,29 @@ struct LazyLibrarianClient: LazyLibrarianServing {
     #endif
   }
 
-  func searchItem(query: String) async throws -> [LazyLibrarianSearchResult] {
+  func searchItem(
+    query: String,
+    cat: LazyLibrarianSearchCategory?,
+    bookID: String?
+  ) async throws -> [LazyLibrarianSearchResult] {
+    var queryItems = [URLQueryItem(name: "item", value: query)]
+    if let cat {
+      queryItems.append(URLQueryItem(name: "cat", value: cat.rawValue))
+    }
+    if let bookID, bookID.isEmpty == false {
+      queryItems.append(URLQueryItem(name: "bookid", value: bookID))
+    }
     guard
       let url = apiURL(
         cmd: "searchItem",
-        queryItems: [
-          URLQueryItem(name: "item", value: query)
-        ])
+        queryItems: queryItems)
     else {
       throw LazyLibrarianError.badURL
     }
     #if DEBUG
-      print("[LazyLibrarian] searchItem call item=\(query)")
+      print(
+        "[LazyLibrarian] searchItem call item=\(query) cat=\(cat?.rawValue ?? "nil") bookid=\(bookID ?? "nil")"
+      )
     #endif
     let (data, response) = try await session.data(from: url)
     guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
@@ -1409,8 +1440,12 @@ final actor LazyLibrarianMockClient: LazyLibrarianServing {
     // no-op for mock
   }
 
-  func searchItem(query: String) async throws -> [LazyLibrarianSearchResult] {
-    return [
+  func searchItem(
+    query: String,
+    cat: LazyLibrarianSearchCategory?,
+    bookID: String?
+  ) async throws -> [LazyLibrarianSearchResult] {
+    let results = [
       LazyLibrarianSearchResult(
         dictionary: [
           "title": "\(query) (Mock eBook)",
@@ -1438,6 +1473,15 @@ final actor LazyLibrarianMockClient: LazyLibrarianServing {
         ]
       )!,
     ]
+    guard let cat else { return results }
+    switch cat {
+    case .book:
+      return results.filter { $0.library == .ebook }
+    case .audio:
+      return results.filter { $0.library == .audio }
+    case .general:
+      return results
+    }
   }
 
   func snatchResult(

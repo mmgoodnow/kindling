@@ -1286,7 +1286,9 @@ private struct LazyLibrarianSnatchResultPicker: View {
       .filter { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }
       .joined(separator: " ")
     do {
-      results = try await client.searchItem(query: query)
+      let category = selectedLibrary.searchCategory
+      let bookID = book.id.isEmpty ? nil : book.id
+      results = try await client.searchItem(query: query, cat: category, bookID: bookID)
     } catch {
       errorMessage = error.localizedDescription
     }
