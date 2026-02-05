@@ -9,11 +9,11 @@ run:
 
 .PHONY: sim
 sim:
-	@xcodebuild -project kindling.xcodeproj -scheme kindling -destination 'platform=iOS Simulator,name=iPhone 17' build
+	@xcodebuild -project Kindling.xcodeproj -scheme Kindling -destination 'platform=iOS Simulator,name=iPhone 17' build
 	@xcrun simctl bootstatus "iPhone 17" -b
-	@xcrun simctl install "iPhone 17" ~/Library/Developer/Xcode/DerivedData/kindling-*/Build/Products/Debug-iphonesimulator/kindling.app
+	@xcrun simctl install "iPhone 17" ~/Library/Developer/Xcode/DerivedData/Kindling-*/Build/Products/Debug-iphonesimulator/Kindling.app
 	@xcrun simctl launch "iPhone 17" com.bebopbeluga.kindling
 
 .PHONY: format
 format:
-	@swift-format --in-place --recursive kindling
+	@swift-format --in-place --recursive Kindling

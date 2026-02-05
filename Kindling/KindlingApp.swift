@@ -1,6 +1,6 @@
 //
-//  kindlingApp.swift
-//  kindling
+//  KindlingApp.swift
+//  Kindling
 //
 //  Created by Michael Goodnow on 9/9/24.
 //
@@ -9,7 +9,7 @@ import SwiftData
 import SwiftUI
 
 @main
-struct kindlingApp: App {
+struct KindlingApp: App {
   @StateObject private var userSettings = UserSettings()
   var sharedModelContainer: ModelContainer = {
     let schema = Schema([
