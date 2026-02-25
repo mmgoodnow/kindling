@@ -17,7 +17,7 @@ struct ContentView: View {
   var body: some View {
     NavigationStack {
       if hasPodibleBackendConfig {
-        PodibleBackendView()
+        LazyLibrarianView()
           .toolbar {
             ToolbarItem {
               NavigationLink(destination: SettingsView()) {
@@ -132,15 +132,4 @@ struct ContentView: View {
 #Preview {
   ContentView()
     .environmentObject(UserSettings())
-}
-
-private struct PodibleBackendView: View {
-  var body: some View {
-    ContentUnavailableView(
-      "Podible Backend",
-      systemImage: "server.rack",
-      description: Text(
-        "Backend cutover is in progress. Library/search UI is being migrated off LazyLibrarian.")
-    )
-  }
 }

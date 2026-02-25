@@ -56,6 +56,15 @@ struct LazyLibrarianView: View {
     if let clientOverride {
       return clientOverride
     }
+    if let url = URL(string: userSettings.podibleRPCURL),
+      userSettings.podibleRPCURL.isEmpty == false,
+      userSettings.podibleAPIKey.isEmpty == false
+    {
+      return PodibleKindlingClient(
+        rpcURL: url,
+        apiKey: userSettings.podibleAPIKey
+      )
+    }
     guard
       let url = URL(string: userSettings.lazyLibrarianURL),
       userSettings.lazyLibrarianURL.isEmpty == false,
@@ -1529,13 +1538,19 @@ func coverPlaceholderColor(title: String, author: String) -> Color {
 }
 
 func lazyLibrarianAssetURL(baseURLString: String, path: String?) -> URL? {
-  guard let path, let baseURL = URL(string: baseURLString) else { return nil }
+  guard let path else { return nil }
   let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
   if trimmed.lowercased().hasSuffix("nocover.png") {
     return nil
   }
+  if let absolute = URL(string: trimmed), absolute.scheme != nil {
+    return absolute
+  }
+  guard let baseURL = URL(string: baseURLString) else { return nil }
   var base = baseURL
   if base.path.hasSuffix("/api") {
+    base.deleteLastPathComponent()
+  } else if base.path.hasSuffix("/rpc") {
     base.deleteLastPathComponent()
   }
   if base.path.hasSuffix("/") == false {

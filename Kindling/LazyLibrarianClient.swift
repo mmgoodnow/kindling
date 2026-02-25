@@ -1568,3 +1568,622 @@ final actor LazyLibrarianMockClient: LazyLibrarianServing {
     return destination
   }
 }
+
+private struct PodibleRPCEnvelope<Result: Decodable>: Decodable {
+  struct RPCError: Decodable {
+    let code: Int
+    let message: String
+  }
+
+  let result: Result?
+  let error: RPCError?
+}
+
+private struct PodibleEmptyResult: Decodable {}
+
+private struct PodibleLibraryListResult: Decodable {
+  let items: [PodibleLibraryBook]
+  let nextCursor: Int?
+}
+
+private struct PodibleLibraryCreateResult: Decodable {
+  let book: PodibleLibraryBook?
+}
+
+private struct PodibleOpenLibrarySearchResult: Decodable {
+  let results: [PodibleOpenLibraryCandidate]
+}
+
+private struct PodibleOpenLibraryCandidate: Decodable {
+  let openLibraryKey: String
+  let title: String
+  let author: String
+  let publishedAt: String?
+  let coverId: Int?
+}
+
+private struct PodibleLibraryBook: Decodable {
+  let id: Int
+  let title: String
+  let author: String
+  let coverUrl: String?
+  let addedAt: String
+  let updatedAt: String
+  let publishedAt: String?
+  let audioStatus: String
+  let ebookStatus: String
+  let status: String
+}
+
+private struct PodibleSearchRunResult: Decodable {
+  let results: [PodibleTorznabResult]
+}
+
+private struct PodibleTorznabResult: Decodable {
+  let title: String
+  let provider: String
+  let mediaType: String
+  let sizeBytes: Int64?
+  let url: String
+  let guid: String?
+  let infoHash: String?
+  let seeders: Int?
+  let leechers: Int?
+}
+
+private struct PodibleDownloadsListResult: Decodable {
+  let downloads: [PodibleDownload]
+}
+
+private struct PodibleDownloadProgress: Decodable {
+  let percent: Int?
+}
+
+private struct PodibleDownload: Decodable {
+  let jobId: Int
+  let releaseStatus: String?
+  let mediaType: String?
+  let infoHash: String?
+  let bookId: Int?
+  let fullPseudoProgress: Double?
+  let downloadProgress: PodibleDownloadProgress?
+}
+
+private struct PodibleAssetsResult: Decodable {
+  let assets: [PodibleAsset]
+}
+
+private struct PodibleAsset: Decodable {
+  let id: Int
+  let kind: String
+  let mime: String
+  let files: [PodibleAssetFile]
+  let streamExt: String
+}
+
+private struct PodibleAssetFile: Decodable {
+  let path: String
+}
+
+struct PodibleKindlingClient: LazyLibrarianServing {
+  let rpcURL: URL
+  let apiKey: String
+  var session: URLSession = .shared
+
+  func searchBooks(query: String) async throws -> [LazyLibrarianBook] {
+    let response: PodibleOpenLibrarySearchResult = try await rpcCall(
+      method: "openlibrary.search",
+      params: ["q": query, "limit": 50]
+    )
+    return response.results.map { candidate in
+      LazyLibrarianBook(
+        id: candidate.openLibraryKey,
+        title: candidate.title,
+        author: candidate.author,
+        status: .unknown,
+        coverImageURL: podibleOpenLibraryCoverURL(coverID: candidate.coverId),
+        published: candidate.publishedAt
+      )
+    }
+  }
+
+  func requestBook(id: String, titleHint: String? = nil, authorHint: String? = nil) async throws
+    -> LazyLibrarianLibraryItem
+  {
+    _ = titleHint
+    _ = authorHint
+    let response: PodibleLibraryCreateResult = try await rpcCall(
+      method: "library.create",
+      params: ["openLibraryKey": id]
+    )
+    guard let book = response.book else {
+      throw LazyLibrarianError.badResponse
+    }
+    return toLibraryItem(book)
+  }
+
+  func fetchLibraryItems() async throws -> [LazyLibrarianLibraryItem] {
+    var cursor: Int?
+    var collected: [PodibleLibraryBook] = []
+
+    while true {
+      var params: [String: Any] = ["limit": 200]
+      if let cursor {
+        params["cursor"] = cursor
+      }
+      let page: PodibleLibraryListResult = try await rpcCall(method: "library.list", params: params)
+      collected.append(contentsOf: page.items)
+      guard let next = page.nextCursor else { break }
+      cursor = next
+    }
+
+    return collected.map(toLibraryItem(_:))
+  }
+
+  func fetchBookCovers(wait: Bool = false) async throws {
+    _ = wait
+  }
+
+  func searchBook(id: String, library: LazyLibrarianLibrary) async throws {
+    let bookID = try parseBookID(id)
+    _ =
+      try await rpcCall(
+        method: "library.acquire",
+        params: ["bookId": bookID, "media": podibleMediaValue(for: library)]
+      ) as PodibleEmptyResult
+  }
+
+  func searchItem(
+    query: String,
+    cat: LazyLibrarianSearchCategory?,
+    bookID: String?
+  ) async throws -> [LazyLibrarianSearchResult] {
+    _ = bookID
+    let libraries: [LazyLibrarianLibrary]
+    switch cat {
+    case .book:
+      libraries = [.ebook]
+    case .audio:
+      libraries = [.audio]
+    case .general, .none:
+      libraries = [.audio, .ebook]
+    }
+
+    var results: [LazyLibrarianSearchResult] = []
+    for library in libraries {
+      let response: PodibleSearchRunResult = try await rpcCall(
+        method: "search.run",
+        params: [
+          "query": query,
+          "media": podibleMediaValue(for: library),
+        ]
+      )
+      results.append(
+        contentsOf: response.results.compactMap { toSearchResult($0, library: library) })
+    }
+    return results
+  }
+
+  func snatchResult(
+    bookID: String,
+    library: LazyLibrarianLibrary,
+    result: LazyLibrarianSearchResult
+  ) async throws {
+    let numericBookID = try parseBookID(bookID)
+    var params: [String: Any] = [
+      "bookId": numericBookID,
+      "provider": result.provider,
+      "title": result.title,
+      "mediaType": podibleMediaValue(for: library),
+      "url": result.snatchURL,
+    ]
+    if let sizeBytes = result.sizeBytes {
+      params["sizeBytes"] = sizeBytes
+    }
+    _ = try await rpcCall(method: "snatch.create", params: params) as PodibleEmptyResult
+  }
+
+  func fetchDownloadProgress(limit: Int? = nil) async throws -> [LazyLibrarianDownloadProgressItem]
+  {
+    let response: PodibleDownloadsListResult = try await rpcCall(
+      method: "downloads.list",
+      params: [:]
+    )
+    var mapped: [LazyLibrarianDownloadProgressItem] = []
+    for download in response.downloads {
+      guard let bookID = download.bookId else { continue }
+      guard let mediaType = download.mediaType else { continue }
+      let auxInfo: String
+      switch mediaType {
+      case "audio":
+        auxInfo = LazyLibrarianLibrary.audio.rawValue
+      case "ebook":
+        auxInfo = LazyLibrarianLibrary.ebook.rawValue
+      default:
+        continue
+      }
+      let percent =
+        download.downloadProgress?.percent
+        ?? download.fullPseudoProgress.map { Int($0.rounded()) }
+        ?? 0
+      let finished =
+        download.releaseStatus == "downloaded"
+        || download.releaseStatus == "imported"
+        || percent >= 100
+      mapped.append(
+        LazyLibrarianDownloadProgressItem(
+          bookID: String(bookID),
+          auxInfo: auxInfo,
+          source: "podible",
+          downloadID: download.infoHash ?? "job-\(download.jobId)",
+          progress: max(0, min(100, percent)),
+          finished: finished
+        )
+      )
+    }
+    if let limit {
+      return Array(mapped.prefix(limit))
+    }
+    return mapped
+  }
+
+  func downloadEpub(bookID: String, progress: @escaping (Double) -> Void) async throws -> URL {
+    let numericBookID = try parseBookID(bookID)
+    let assets = try await fetchAssets(bookID: numericBookID)
+    guard let asset = assets.first(where: { $0.kind == "ebook" }) else {
+      throw LazyLibrarianError.server("No ebook asset available.")
+    }
+    let fallbackFilename: String = {
+      if let path = asset.files.first?.path, path.isEmpty == false {
+        return URL(fileURLWithPath: path).lastPathComponent
+      }
+      return "\(bookID)-ebook-\(asset.id).\(fileExtensionForEbookMime(asset.mime) ?? "epub")"
+    }()
+    let url = try authorizedWebURL(path: "/ebook/\(asset.id)")
+    return try await downloadHTTPFile(
+      url: url, fallbackFilename: fallbackFilename, progress: progress)
+  }
+
+  func downloadAudiobook(
+    bookID: String,
+    progress: @escaping (Double) -> Void
+  ) async throws -> URL {
+    let numericBookID = try parseBookID(bookID)
+    let assets = try await fetchAssets(bookID: numericBookID)
+    guard let asset = preferredAudioAsset(from: assets) else {
+      throw LazyLibrarianError.server("No audiobook asset available.")
+    }
+    let ext = asset.streamExt.isEmpty ? "mp3" : asset.streamExt
+    let fallbackFilename = "\(bookID)-audio-\(asset.id).\(ext)"
+    let url = try authorizedWebURL(path: "/stream/\(asset.id).\(ext)")
+    return try await downloadHTTPFile(
+      url: url, fallbackFilename: fallbackFilename, progress: progress)
+  }
+
+  private func toSearchResult(
+    _ result: PodibleTorznabResult,
+    library: LazyLibrarianLibrary
+  ) -> LazyLibrarianSearchResult? {
+    var dict: [String: Any] = [
+      "title": result.title,
+      "provider": result.provider,
+      "url": result.url,
+      "mode": "torznab",
+      "library": library.rawValue,
+    ]
+    if let sizeBytes = result.sizeBytes {
+      dict["size"] = String(sizeBytes)
+    }
+    if let seeders = result.seeders {
+      dict["seeders"] = seeders
+    }
+    if let leechers = result.leechers {
+      dict["leechers"] = leechers
+    }
+    return LazyLibrarianSearchResult(dictionary: dict)
+  }
+
+  private func preferredAudioAsset(from assets: [PodibleAsset]) -> PodibleAsset? {
+    if let single = assets.first(where: { $0.kind == "single" }) { return single }
+    if let multi = assets.first(where: { $0.kind == "multi" }) { return multi }
+    return nil
+  }
+
+  private func fetchAssets(bookID: Int) async throws -> [PodibleAsset] {
+    let url = try authorizedWebURL(
+      path: "/assets",
+      queryItems: [URLQueryItem(name: "bookId", value: String(bookID))]
+    )
+    var request = URLRequest(url: url)
+    request.httpMethod = "GET"
+    let (data, response) = try await session.data(for: request)
+    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+      throw LazyLibrarianError.server("Failed to fetch backend assets.")
+    }
+    let decoder = JSONDecoder()
+    decoder.keyDecodingStrategy = .convertFromSnakeCase
+    return try decoder.decode(PodibleAssetsResult.self, from: data).assets
+  }
+
+  private func parseBookID(_ raw: String) throws -> Int {
+    guard let value = Int(raw), value > 0 else {
+      throw LazyLibrarianError.badResponse
+    }
+    return value
+  }
+
+  private func toLibraryItem(_ book: PodibleLibraryBook) -> LazyLibrarianLibraryItem {
+    let ebookStatus = mapPodibleStatus(book.ebookStatus)
+    let audioStatus = mapPodibleStatus(book.audioStatus)
+    let addedAt = LazyLibrarianDateParser.parse(book.addedAt)
+    let updatedAt = LazyLibrarianDateParser.parse(book.updatedAt)
+    return LazyLibrarianLibraryItem(
+      id: String(book.id),
+      title: book.title,
+      author: book.author,
+      status: mapPodibleStatus(book.status),
+      audioStatus: audioStatus,
+      bookAdded: addedAt,
+      bookLibrary: ebookStatus.isComplete ? updatedAt : nil,
+      audioLibrary: audioStatus.isComplete ? updatedAt : nil,
+      bookImagePath: absoluteAssetURLString(from: book.coverUrl)
+    )
+  }
+
+  private func mapPodibleStatus(_ raw: String) -> LazyLibrarianLibraryItemStatus {
+    switch raw.lowercased() {
+    case "wanted":
+      return .wanted
+    case "snatched":
+      return .snatched
+    case "downloading":
+      return .snatched
+    case "downloaded":
+      return .downloaded
+    case "imported":
+      return .have
+    case "error":
+      return .failed
+    case "partial":
+      return .open
+    default:
+      return .unknown
+    }
+  }
+
+  private func podibleMediaValue(for library: LazyLibrarianLibrary) -> String {
+    library == .audio ? "audio" : "ebook"
+  }
+
+  private func podibleOpenLibraryCoverURL(coverID: Int?) -> URL? {
+    guard let coverID, coverID > 0 else { return nil }
+    return URL(string: "https://covers.openlibrary.org/b/id/\(coverID)-L.jpg")
+  }
+
+  private func absoluteAssetURLString(from path: String?) -> String? {
+    guard let path, path.isEmpty == false else { return nil }
+    if let absolute = URL(string: path), absolute.scheme != nil {
+      return absolute.absoluteString
+    }
+    return (try? authorizedWebURL(path: path))?.absoluteString
+  }
+
+  private func fileExtensionForEbookMime(_ mime: String) -> String? {
+    let lowered = mime.lowercased()
+    if lowered.contains("epub") { return "epub" }
+    if lowered.contains("pdf") { return "pdf" }
+    if lowered.contains("mobi") { return "mobi" }
+    return nil
+  }
+
+  private func normalizedRPCURL() -> URL {
+    let trimmed = rpcURL.absoluteString.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard var url = URL(string: trimmed), trimmed.isEmpty == false else { return rpcURL }
+    if url.path.isEmpty || url.path == "/" {
+      url.appendPathComponent("rpc")
+      return url
+    }
+    if url.path.hasSuffix("/rpc") {
+      return url
+    }
+    url.appendPathComponent("rpc")
+    return url
+  }
+
+  private func baseWebURL() -> URL {
+    var url = normalizedRPCURL()
+    if url.path.hasSuffix("/rpc") {
+      url.deleteLastPathComponent()
+    }
+    return url
+  }
+
+  private func authorizedRPCURL() throws -> URL {
+    guard var components = URLComponents(url: normalizedRPCURL(), resolvingAgainstBaseURL: false)
+    else {
+      throw LazyLibrarianError.badURL
+    }
+    var items = components.queryItems ?? []
+    items.append(URLQueryItem(name: "api_key", value: apiKey))
+    components.queryItems = items
+    guard let url = components.url else {
+      throw LazyLibrarianError.badURL
+    }
+    return url
+  }
+
+  private func authorizedWebURL(path: String, queryItems: [URLQueryItem] = []) throws -> URL {
+    guard let base = URL(string: "/", relativeTo: baseWebURL())?.absoluteURL else {
+      throw LazyLibrarianError.badURL
+    }
+    guard let url = URL(string: path, relativeTo: base)?.absoluteURL else {
+      throw LazyLibrarianError.badURL
+    }
+    guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+      throw LazyLibrarianError.badURL
+    }
+    var items = components.queryItems ?? []
+    items.append(URLQueryItem(name: "api_key", value: apiKey))
+    items.append(contentsOf: queryItems)
+    components.queryItems = items
+    guard let final = components.url else {
+      throw LazyLibrarianError.badURL
+    }
+    return final
+  }
+
+  private func rpcCall<Result: Decodable>(method: String, params: [String: Any]) async throws
+    -> Result
+  {
+    var request = URLRequest(url: try authorizedRPCURL())
+    request.httpMethod = "POST"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    let payload: [String: Any] = [
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": method,
+      "params": params,
+    ]
+    request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+    let (data, response) = try await session.data(for: request)
+    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+      throw LazyLibrarianError.server("Backend returned an error for \(method).")
+    }
+
+    let decoder = JSONDecoder()
+    decoder.keyDecodingStrategy = .convertFromSnakeCase
+    let envelope = try decoder.decode(PodibleRPCEnvelope<Result>.self, from: data)
+    if let error = envelope.error {
+      throw LazyLibrarianError.server(error.message)
+    }
+    guard let result = envelope.result else {
+      throw LazyLibrarianError.badResponse
+    }
+    return result
+  }
+
+  private func contentDispositionFilename(from response: HTTPURLResponse) -> String? {
+    let raw =
+      response.allHeaderFields.first { key, _ in
+        (key as? String)?.lowercased() == "content-disposition"
+      }?.value as? String
+    guard let value = raw else { return nil }
+    let parts = value.split(separator: ";").map { $0.trimmingCharacters(in: .whitespaces) }
+    if let filenameStar = parts.first(where: { $0.lowercased().hasPrefix("filename*=") }) {
+      let rawValue = filenameStar.dropFirst("filename*=".count).replacingOccurrences(
+        of: "\"", with: "")
+      if let range = rawValue.range(of: "''") {
+        let encoded = String(rawValue[range.upperBound...])
+        return encoded.removingPercentEncoding ?? encoded
+      }
+      return rawValue
+    }
+    if let filename = parts.first(where: { $0.lowercased().hasPrefix("filename=") }) {
+      return filename.dropFirst("filename=".count).replacingOccurrences(of: "\"", with: "")
+    }
+    return nil
+  }
+
+  private func downloadHTTPFile(
+    url: URL,
+    fallbackFilename: String,
+    progress: @escaping (Double) -> Void
+  ) async throws -> URL {
+    let (tempURL, response) = try await downloadFile(url: url, progress: progress)
+    let filename = contentDispositionFilename(from: response) ?? fallbackFilename
+    return try moveDownloadedFile(from: tempURL, filename: filename)
+  }
+
+  private func moveDownloadedFile(from tempURL: URL, filename: String) throws -> URL {
+    let fm = FileManager.default
+    let folder = fm.temporaryDirectory.appendingPathComponent("podible-backend", isDirectory: true)
+    try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
+    let safeName =
+      filename
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+      .replacingOccurrences(of: "/", with: "-")
+      .replacingOccurrences(of: ":", with: "-")
+    let destinationName = safeName.isEmpty ? UUID().uuidString : safeName
+    let destination = folder.appendingPathComponent(destinationName)
+    try? fm.removeItem(at: destination)
+    try fm.moveItem(at: tempURL, to: destination)
+    return destination
+  }
+
+  private func downloadFile(
+    url: URL,
+    progress: @escaping (Double) -> Void
+  ) async throws -> (URL, HTTPURLResponse) {
+    final class DownloadDelegate: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
+      var continuation: CheckedContinuation<(URL, HTTPURLResponse), Error>?
+      var progressHandler: ((Double) -> Void)?
+      private var tempURL: URL?
+      private var moveError: Error?
+      private var didFinish = false
+
+      func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didWriteData bytesWritten: Int64,
+        totalBytesWritten: Int64,
+        totalBytesExpectedToWrite: Int64
+      ) {
+        guard totalBytesExpectedToWrite > 0 else { return }
+        let fraction = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
+        progressHandler?(min(1, max(0, fraction)))
+      }
+
+      func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didFinishDownloadingTo location: URL
+      ) {
+        let fm = FileManager.default
+        let folder = fm.temporaryDirectory.appendingPathComponent(
+          "podible-backend", isDirectory: true)
+        do {
+          try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
+          let destination = folder.appendingPathComponent(UUID().uuidString)
+          try? fm.removeItem(at: destination)
+          try fm.moveItem(at: location, to: destination)
+          tempURL = destination
+        } catch {
+          moveError = error
+        }
+      }
+
+      func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didCompleteWithError error: Error?
+      ) {
+        guard didFinish == false else { return }
+        didFinish = true
+        session.finishTasksAndInvalidate()
+        if let error {
+          continuation?.resume(throwing: error)
+          return
+        }
+        if let moveError {
+          continuation?.resume(throwing: moveError)
+          return
+        }
+        guard let tempURL, let http = task.response as? HTTPURLResponse else {
+          continuation?.resume(throwing: LazyLibrarianError.badResponse)
+          return
+        }
+        continuation?.resume(returning: (tempURL, http))
+      }
+    }
+
+    return try await withCheckedThrowingContinuation { continuation in
+      let delegate = DownloadDelegate()
+      delegate.continuation = continuation
+      delegate.progressHandler = progress
+      let session = URLSession(configuration: .default, delegate: delegate, delegateQueue: nil)
+      let task = session.downloadTask(with: url)
+      task.resume()
+    }
+  }
+}
