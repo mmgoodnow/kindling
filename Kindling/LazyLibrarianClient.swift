@@ -276,6 +276,7 @@ extension KeyedDecodingContainer {
 }
 
 protocol LazyLibrarianServing {
+  var backendFlavor: LibraryBackendFlavor { get }
   func searchBooks(query: String) async throws -> [LazyLibrarianBook]
   func requestBook(id: String, titleHint: String?, authorHint: String?) async throws
     -> LazyLibrarianLibraryItem
@@ -297,7 +298,15 @@ protocol LazyLibrarianServing {
   func downloadAudiobook(bookID: String, progress: @escaping (Double) -> Void) async throws -> URL
 }
 
+enum LibraryBackendFlavor {
+  case lazyLibrarian
+  case podible
+  case mock
+}
+
 extension LazyLibrarianServing {
+  var backendFlavor: LibraryBackendFlavor { .lazyLibrarian }
+
   func downloadEpub(bookID: String) async throws -> URL {
     try await downloadEpub(bookID: bookID, progress: { _ in })
   }
@@ -557,6 +566,8 @@ struct LazyLibrarianClient: LazyLibrarianServing {
   let baseURL: URL
   let apiKey: String
   var session: URLSession = .shared
+
+  var backendFlavor: LibraryBackendFlavor { .lazyLibrarian }
 
   #if DEBUG
     private func logResponse(_ label: String, data: Data) {
@@ -1400,6 +1411,8 @@ final actor LazyLibrarianMockClient: LazyLibrarianServing {
   ]
   private var progress: [String: (ebook: Int, audio: Int)] = [:]
 
+  nonisolated var backendFlavor: LibraryBackendFlavor { .mock }
+
   func searchBooks(query: String) async throws -> [LazyLibrarianBook] {
     let canned = [
       LazyLibrarianBook(
@@ -1669,6 +1682,8 @@ struct PodibleKindlingClient: LazyLibrarianServing {
   let rpcURL: URL
   let apiKey: String
   var session: URLSession = .shared
+
+  var backendFlavor: LibraryBackendFlavor { .podible }
 
   func searchBooks(query: String) async throws -> [LazyLibrarianBook] {
     let response: PodibleOpenLibrarySearchResult = try await rpcCall(

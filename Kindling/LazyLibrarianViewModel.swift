@@ -44,7 +44,7 @@ final class LazyLibrarianViewModel: ObservableObject {
       var all = try await client.fetchLibraryItems()
       var filteredAll = filtered(all)
       prunePendingItems(matching: filteredAll)
-      if needsCoverRefresh(all) {
+      if client.backendFlavor == .lazyLibrarian && needsCoverRefresh(all) {
         try? await client.fetchBookCovers(wait: true)
         all = try await client.fetchLibraryItems()
         filteredAll = filtered(all)
@@ -112,8 +112,10 @@ final class LazyLibrarianViewModel: ObservableObject {
           pendingItemsByID[requested.id] = pending
         }
       }
-      markSearchTriggered(bookID: requested.id, library: .ebook)
-      markSearchTriggered(bookID: requested.id, library: .audio)
+      if client.backendFlavor == .lazyLibrarian {
+        markSearchTriggered(bookID: requested.id, library: .ebook)
+        markSearchTriggered(bookID: requested.id, library: .audio)
+      }
       // Update the library list and the search results with the new status.
       if let existingIndex = libraryItems.firstIndex(where: { $0.id == requested.id }) {
         let existing = libraryItems[existingIndex]

@@ -104,7 +104,7 @@ struct LazyLibrarianView: View {
     List {
       if client == nil {
         Text(
-          "LazyLibrarian not configured. Sync is disabled, but you can still play downloaded audiobooks."
+          "Remote library backend not configured. Sync is disabled, but you can still play downloaded audiobooks."
         )
         .foregroundStyle(.secondary)
         .font(.caption)
@@ -162,7 +162,7 @@ struct LazyLibrarianView: View {
           }
         }
         .disabled(client == nil || isSyncing)
-        .help("Sync from LazyLibrarian")
+        .help("Sync from backend")
       }
     }
     .onAppear {
