@@ -7,6 +7,8 @@ class UserSettings: ObservableObject {
   @AppStorage("ircChannel") var ircChannel: String = "#ebooks"
   @AppStorage("searchBot") var searchBot: String = "Search"
   @AppStorage("kindleEmailAddress") var kindleEmailAddress: String = "example@kindle.com"
+  @AppStorage("podibleRPCURL") var podibleRPCURL: String = ""
+  @AppStorage("podibleAPIKey") var podibleAPIKey: String = ""
   @AppStorage("lazyLibrarianURL") var lazyLibrarianURL: String = ""
   @AppStorage("lazyLibrarianAPIKey") var lazyLibrarianAPIKey: String = ""
 }

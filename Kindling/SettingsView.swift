@@ -5,6 +5,22 @@ struct SettingsView: View {
 
   var body: some View {
     Form {
+      Section("Podible Backend") {
+        TextField(
+          "RPC URL (e.g. http://localhost/rpc)",
+          text: userSettings.$podibleRPCURL
+        )
+        #if os(iOS)
+          .textInputAutocapitalization(.never)
+          .keyboardType(.URL)
+        #endif
+        SecureField("API Key", text: userSettings.$podibleAPIKey)
+          .textContentType(.password)
+          #if os(iOS)
+            .textInputAutocapitalization(.never)
+          #endif
+      }
+
       Section("Email") {
         TextField(
           "Kindle Email Address",

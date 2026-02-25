@@ -16,7 +16,16 @@ struct ContentView: View {
 
   var body: some View {
     NavigationStack {
-      if hasLazyLibrarianConfig {
+      if hasPodibleBackendConfig {
+        PodibleBackendView()
+          .toolbar {
+            ToolbarItem {
+              NavigationLink(destination: SettingsView()) {
+                Image(systemName: "gear")
+              }
+            }
+          }
+      } else if hasLazyLibrarianConfig {
         LazyLibrarianView()
           .toolbar {
             ToolbarItem {
@@ -56,6 +65,12 @@ struct ContentView: View {
         }
       }
     }
+  }
+
+  private var hasPodibleBackendConfig: Bool {
+    let url = userSettings.podibleRPCURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    let key = userSettings.podibleAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+    return url.isEmpty == false && key.isEmpty == false
   }
 
   private var hasLazyLibrarianConfig: Bool {
@@ -117,4 +132,15 @@ struct ContentView: View {
 #Preview {
   ContentView()
     .environmentObject(UserSettings())
+}
+
+private struct PodibleBackendView: View {
+  var body: some View {
+    ContentUnavailableView(
+      "Podible Backend",
+      systemImage: "server.rack",
+      description: Text(
+        "Backend cutover is in progress. Library/search UI is being migrated off LazyLibrarian.")
+    )
+  }
 }
