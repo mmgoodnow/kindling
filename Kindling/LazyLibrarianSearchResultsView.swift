@@ -67,7 +67,7 @@ struct PodibleSearchResultRow: View {
       HStack(alignment: .top, spacing: 12) {
         let coverURL = book.coverImageURL.flatMap { url -> URL? in
           if url.scheme != nil { return url }
-          return lazyLibrarianAssetURL(
+          return remoteLibraryAssetURL(
             baseURLString: userSettings.podibleRPCURL,
             path: url.absoluteString
           )
@@ -86,7 +86,7 @@ struct PodibleSearchResultRow: View {
             .foregroundStyle(.secondary)
             .lineLimit(1)
           if let item = effectiveItem {
-            lazyLibrarianStatusCluster(
+            remoteLibraryStatusCluster(
               item: item,
               progress: progress,
               shouldOfferSearch: { status in

@@ -558,7 +558,7 @@ struct PodibleLibraryView: View {
         bookCoverView(
           title: item.title,
           author: item.author,
-          url: lazyLibrarianAssetURL(
+          url: remoteLibraryAssetURL(
             baseURLString: remoteAssetBaseURLString,
             path: item.bookImagePath
           )
@@ -585,7 +585,7 @@ struct PodibleLibraryView: View {
           )
         }
         Spacer(minLength: 0)
-        lazyLibrarianStatusCluster(
+        remoteLibraryStatusCluster(
           item: item,
           progress: progress,
           shouldOfferSearch: { status in
@@ -700,7 +700,7 @@ struct PodibleLibraryView: View {
         )
       }
       if isDownloadingThisBook, let progress = downloadProgress, let kind = downloadKind {
-        lazyLibrarianProgressCircle(
+        remoteLibraryProgressCircle(
           value: Int(progress * 100),
           tint: .secondary,
           icon: kind == .ebook ? "book" : "waveform.mid",
@@ -829,7 +829,7 @@ struct PodibleLibraryView: View {
     let progress = localDownloadProgressByBookID[book.llId]
     let audioStatus = parseAudioStatus(from: book)
     let playbackURL = playbackURL(for: book)
-    let coverURL = lazyLibrarianAssetURL(
+    let coverURL = remoteLibraryAssetURL(
       baseURLString: remoteAssetBaseURLString,
       path: book.coverURLString
     )
@@ -1385,7 +1385,7 @@ private struct PodibleSnatchResultPicker: View {
 private typealias LazyLibrarianSnatchResultPicker = PodibleSnatchResultPicker
 
 @ViewBuilder
-func lazyLibrarianEbookStatusRow(
+func remoteLibraryEbookStatusRow(
   status: PodibleLibraryItemStatus?,
   progressValue: Int?,
   progressFinished: Bool,
@@ -1396,14 +1396,14 @@ func lazyLibrarianEbookStatusRow(
   Group {
     if isComplete == false {
       if progressSeen {
-        lazyLibrarianProgressCircle(
+        remoteLibraryProgressCircle(
           value: progressValue ?? 0,
           tint: progressFinished ? .green : .blue,
           icon: "book",
           snoring: false
         )
       } else {
-        lazyLibrarianProgressCircle(
+        remoteLibraryProgressCircle(
           value: 0,
           tint: .blue,
           icon: "book",
@@ -1418,7 +1418,7 @@ func lazyLibrarianEbookStatusRow(
 }
 
 @ViewBuilder
-func lazyLibrarianAudioStatusRow(
+func remoteLibraryAudioStatusRow(
   status: PodibleLibraryItemStatus?,
   progressValue: Int?,
   progressFinished: Bool,
@@ -1429,14 +1429,14 @@ func lazyLibrarianAudioStatusRow(
   Group {
     if isComplete == false {
       if progressSeen {
-        lazyLibrarianProgressCircle(
+        remoteLibraryProgressCircle(
           value: progressValue ?? 0,
           tint: progressFinished ? .green : .blue,
           icon: "waveform.mid",
           snoring: false
         )
       } else {
-        lazyLibrarianProgressCircle(
+        remoteLibraryProgressCircle(
           value: 0,
           tint: .blue,
           icon: "waveform.mid",
@@ -1451,12 +1451,12 @@ func lazyLibrarianAudioStatusRow(
 }
 
 @ViewBuilder
-func lazyLibrarianProgressCircles(
+func remoteLibraryProgressCircles(
   progress: PodibleLibraryDownloadProgress
 ) -> some View {
   VStack(alignment: .trailing, spacing: 6) {
     HStack(spacing: 6) {
-      lazyLibrarianProgressCircle(
+      remoteLibraryProgressCircle(
         value: progress.ebook,
         tint: progress.ebookFinished ? .green : .blue,
         icon: "book",
@@ -1464,7 +1464,7 @@ func lazyLibrarianProgressCircles(
       )
     }
     HStack(spacing: 6) {
-      lazyLibrarianProgressCircle(
+      remoteLibraryProgressCircle(
         value: progress.audiobook,
         tint: progress.audiobookFinished ? .green : .blue,
         icon: "waveform.mid",
@@ -1475,7 +1475,7 @@ func lazyLibrarianProgressCircles(
 }
 
 @ViewBuilder
-func lazyLibrarianStatusCluster(
+func remoteLibraryStatusCluster(
   item: PodibleLibraryItem,
   progress: PodibleLibraryDownloadProgress?,
   shouldOfferSearch: (PodibleLibraryItemStatus?) -> Bool
@@ -1484,7 +1484,7 @@ func lazyLibrarianStatusCluster(
   let showAudio = item.audioStatus?.isComplete == false
   HStack(spacing: 10) {
     if showEbook {
-      lazyLibrarianEbookStatusRow(
+      remoteLibraryEbookStatusRow(
         status: item.status,
         progressValue: progress?.ebook,
         progressFinished: progress?.ebookFinished ?? false,
@@ -1493,7 +1493,7 @@ func lazyLibrarianStatusCluster(
       )
     }
     if showAudio {
-      lazyLibrarianAudioStatusRow(
+      remoteLibraryAudioStatusRow(
         status: item.audioStatus,
         progressValue: progress?.audiobook,
         progressFinished: progress?.audiobookFinished ?? false,
@@ -1505,7 +1505,7 @@ func lazyLibrarianStatusCluster(
 }
 
 @ViewBuilder
-func lazyLibrarianProgressCircle(
+func remoteLibraryProgressCircle(
   value: Int,
   tint: Color,
   icon: String?,
@@ -1597,7 +1597,7 @@ func coverPlaceholderColor(title: String, author: String) -> Color {
   return palette[index]
 }
 
-func lazyLibrarianAssetURL(baseURLString: String, path: String?) -> URL? {
+func remoteLibraryAssetURL(baseURLString: String, path: String?) -> URL? {
   guard let path else { return nil }
   let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
   if trimmed.lowercased().hasSuffix("nocover.png") {
