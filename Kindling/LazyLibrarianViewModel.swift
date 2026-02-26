@@ -37,7 +37,7 @@ final class PodibleLibraryViewModel: ObservableObject {
     }
   }
 
-  func loadLibraryItems(using client: PodibleLibraryServing) async {
+  func loadLibraryItems(using client: RemoteLibraryServing) async {
     isLoading = true
     errorMessage = nil
     do {
@@ -55,12 +55,12 @@ final class PodibleLibraryViewModel: ObservableObject {
     isLoading = false
   }
 
-  func search(using client: PodibleLibraryServing) async {
+  func search(using client: RemoteLibraryServing) async {
     let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
     await search(using: client, query: trimmed)
   }
 
-  func search(using client: PodibleLibraryServing, query: String) async {
+  func search(using client: RemoteLibraryServing, query: String) async {
     guard query.isEmpty == false else { return }
     if let cached = searchResultsByQuery[query] {
       searchResults = cached
@@ -92,7 +92,7 @@ final class PodibleLibraryViewModel: ObservableObject {
     }
   }
 
-  func request(_ book: PodibleBook, using client: PodibleLibraryServing) async {
+  func request(_ book: PodibleBook, using client: RemoteLibraryServing) async {
     isLoading = true
     errorMessage = nil
     do {
@@ -159,7 +159,7 @@ final class PodibleLibraryViewModel: ObservableObject {
     isLoading = false
   }
 
-  func forceSearch(_ book: PodibleBook, using client: PodibleLibraryServing) async {
+  func forceSearch(_ book: PodibleBook, using client: RemoteLibraryServing) async {
     isLoading = true
     errorMessage = nil
     do {
@@ -176,13 +176,13 @@ final class PodibleLibraryViewModel: ObservableObject {
   }
 
   func triggerSearch(
-    bookID: String, library: PodibleLibraryMedia, using client: PodibleLibraryServing
+    bookID: String, library: PodibleLibraryMedia, using client: RemoteLibraryServing
   ) async {
     await triggerAcquire(bookID: bookID, library: library, using: client)
   }
 
   func triggerAcquire(
-    bookID: String, library: PodibleLibraryMedia, using client: PodibleLibraryServing
+    bookID: String, library: PodibleLibraryMedia, using client: RemoteLibraryServing
   ) async {
     guard canTriggerSearch(bookID: bookID, library: library) else { return }
     do {
@@ -260,7 +260,7 @@ final class PodibleLibraryViewModel: ObservableObject {
     }
   }
 
-  private func refreshLibrarySilently(using client: PodibleLibraryServing) async {
+  private func refreshLibrarySilently(using client: RemoteLibraryServing) async {
     do {
       let all = try await client.fetchLibraryItems()
       let filteredAll = filtered(all)
@@ -302,7 +302,7 @@ final class PodibleLibraryViewModel: ObservableObject {
   }
 
   private func startPollingIfNeeded(
-    for items: [PodibleLibraryItem], client: PodibleLibraryServing
+    for items: [PodibleLibraryItem], client: RemoteLibraryServing
   ) {
     for item in items
     where shouldShowDownloadProgress(status: item.status, audioStatus: item.audioStatus) {
@@ -310,7 +310,7 @@ final class PodibleLibraryViewModel: ObservableObject {
     }
   }
 
-  private func startPolling(bookID: String, client: PodibleLibraryServing) {
+  private func startPolling(bookID: String, client: RemoteLibraryServing) {
     if let existing = downloadPollingTasks[bookID] {
       existing.cancel()
       downloadPollingTasks[bookID] = nil
