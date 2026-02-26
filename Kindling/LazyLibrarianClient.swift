@@ -862,7 +862,7 @@ private struct PodibleAssetFile: Decodable {
   let path: String
 }
 
-struct PodibleKindlingClient: RemoteLibraryServing {
+struct PodibleClient: RemoteLibraryServing {
   let rpcURL: URL
   let apiKey: String
   var session: URLSession = .shared
@@ -1399,4 +1399,5 @@ struct PodibleKindlingClient: RemoteLibraryServing {
   }
 }
 
-typealias KindlingBackendClient = PodibleKindlingClient
+typealias PodibleKindlingClient = PodibleClient
+typealias KindlingBackendClient = PodibleClient
