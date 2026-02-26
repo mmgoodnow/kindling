@@ -10,7 +10,7 @@ struct LibrarySyncService {
     let updatedAuthors: Int
   }
 
-  func syncLibrary(using client: LazyLibrarianServing, modelContext: ModelContext) async throws
+  func syncLibrary(using client: RemoteLibraryServing, modelContext: ModelContext) async throws
     -> Summary
   {
     let items = try await client.fetchLibraryItems()

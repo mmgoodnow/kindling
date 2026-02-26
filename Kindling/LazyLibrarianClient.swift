@@ -302,6 +302,8 @@ protocol LazyLibrarianServing {
   func downloadAudiobook(bookID: String, progress: @escaping (Double) -> Void) async throws -> URL
 }
 
+typealias RemoteLibraryServing = LazyLibrarianServing
+
 extension LazyLibrarianServing {
   var supportsManualResultSelection: Bool { true }
   var supportsImportIssueReporting: Bool { false }
