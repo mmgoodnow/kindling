@@ -172,7 +172,7 @@ struct LocalLibraryView: View {
   private func statusLine(
     status: DownloadStatus,
     progress: Double?,
-    audioStatus: LazyLibrarianLibraryItemStatus
+    audioStatus: PodibleLibraryItemStatus
   ) -> some View {
     HStack(spacing: 6) {
       Text(statusLabel(for: status))
@@ -205,7 +205,7 @@ struct LocalLibraryView: View {
   private func downloadButton(
     for book: LibraryBook,
     status: DownloadStatus,
-    audioStatus: LazyLibrarianLibraryItemStatus
+    audioStatus: PodibleLibraryItemStatus
   ) -> some View {
     let isDownloading = downloadingBookIDs.contains(book.llId)
     let canDownload = audioStatus.isComplete
@@ -323,9 +323,9 @@ struct LocalLibraryView: View {
     }
   }
 
-  private func parseAudioStatus(from book: LibraryBook) -> LazyLibrarianLibraryItemStatus {
+  private func parseAudioStatus(from book: LibraryBook) -> PodibleLibraryItemStatus {
     guard let raw = book.audioStatusRaw else { return .unknown }
-    return LazyLibrarianLibraryItemStatus(rawValue: raw) ?? .unknown
+    return PodibleLibraryItemStatus(rawValue: raw) ?? .unknown
   }
 
   private func ensureFileRecord(for book: LibraryBook) -> LibraryBookFile {
@@ -381,19 +381,19 @@ struct LocalLibraryView: View {
   }
 
   private struct PreviewLazyLibrarianClient: PodibleLibraryServing {
-    func searchBooks(query: String) async throws -> [LazyLibrarianBook] {
+    func searchBooks(query: String) async throws -> [PodibleBook] {
       []
     }
 
     func requestBook(id: String, titleHint: String?, authorHint: String?) async throws
-      -> LazyLibrarianLibraryItem
+      -> PodibleLibraryItem
     {
       throw LazyLibrarianError.notConfigured
     }
 
-    func fetchLibraryItems() async throws -> [LazyLibrarianLibraryItem] {
+    func fetchLibraryItems() async throws -> [PodibleLibraryItem] {
       [
-        LazyLibrarianLibraryItem(
+        PodibleLibraryItem(
           id: "demo-1",
           title: "The Left Hand of Darkness",
           author: "Ursula K. Le Guin",
@@ -404,7 +404,7 @@ struct LocalLibraryView: View {
           audioLibrary: Date().addingTimeInterval(-86400),
           bookImagePath: nil
         ),
-        LazyLibrarianLibraryItem(
+        PodibleLibraryItem(
           id: "demo-2",
           title: "Ancillary Justice",
           author: "Ann Leckie",
@@ -420,23 +420,23 @@ struct LocalLibraryView: View {
 
     func fetchBookCovers(wait: Bool) async throws {}
 
-    func searchBook(id: String, library: LazyLibrarianLibrary) async throws {}
+    func searchBook(id: String, library: PodibleLibraryMedia) async throws {}
 
     func searchItem(
       query: String,
       cat: LazyLibrarianSearchCategory?,
       bookID: String?
-    ) async throws -> [LazyLibrarianSearchResult] {
+    ) async throws -> [PodibleSearchResult] {
       []
     }
 
     func snatchResult(
       bookID: String,
-      library: LazyLibrarianLibrary,
-      result: LazyLibrarianSearchResult
+      library: PodibleLibraryMedia,
+      result: PodibleSearchResult
     ) async throws {}
 
-    func fetchDownloadProgress(limit: Int?) async throws -> [LazyLibrarianDownloadProgressItem] {
+    func fetchDownloadProgress(limit: Int?) async throws -> [PodibleDownloadProgressItem] {
       []
     }
 

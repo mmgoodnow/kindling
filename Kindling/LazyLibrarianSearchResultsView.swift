@@ -37,7 +37,7 @@ struct LazyLibrarianSearchResultsView: View {
 struct LazyLibrarianSearchResultRow: View {
   @ObservedObject var viewModel: LazyLibrarianViewModel
   @EnvironmentObject var userSettings: UserSettings
-  let book: LazyLibrarianBook
+  let book: PodibleBook
   let client: PodibleLibraryServing
   @Binding var pendingItemIDs: Set<String>
 
@@ -50,7 +50,7 @@ struct LazyLibrarianSearchResultRow: View {
     let effectiveItem =
       matchingItem
       ?? (isPending
-        ? LazyLibrarianLibraryItem(
+        ? PodibleLibraryItem(
           id: book.id,
           title: book.title,
           author: book.author,
@@ -153,7 +153,7 @@ struct LazyLibrarianSearchResultRow: View {
 #Preview {
   let viewModel = LazyLibrarianViewModel()
   viewModel.searchResults = [
-    LazyLibrarianBook(
+    PodibleBook(
       id: "1",
       title: "They Both Die at the End",
       author: "Adam Silvera",
@@ -164,7 +164,7 @@ struct LazyLibrarianSearchResultRow: View {
           "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1315601232l/11869272._SX98_.jpg"
       )
     ),
-    LazyLibrarianBook(
+    PodibleBook(
       id: "2",
       title: "The Secret History",
       author: "Donna Tartt",

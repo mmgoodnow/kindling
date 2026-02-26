@@ -48,8 +48,8 @@ struct LazyLibrarianView: View {
 
   private struct SnatchContext: Identifiable {
     let id = UUID()
-    let item: LazyLibrarianLibraryItem
-    let libraries: [LazyLibrarianLibrary]
+    let item: PodibleLibraryItem
+    let libraries: [PodibleLibraryMedia]
   }
 
   private var configuredClient: PodibleLibraryServing? {
@@ -367,8 +367,8 @@ struct LazyLibrarianView: View {
   }
 
   private func presentSnatchPicker(
-    for item: LazyLibrarianLibraryItem,
-    libraries: [LazyLibrarianLibrary]
+    for item: PodibleLibraryItem,
+    libraries: [PodibleLibraryMedia]
   ) {
     guard libraries.isEmpty == false else { return }
     snatchContext = SnatchContext(item: item, libraries: libraries)
@@ -377,7 +377,7 @@ struct LazyLibrarianView: View {
   @MainActor
   private func reportWrongImportedFile(
     bookID: String,
-    library: LazyLibrarianLibrary,
+    library: PodibleLibraryMedia,
     client: PodibleLibraryServing
   ) async {
     downloadErrorMessage = nil
@@ -392,8 +392,8 @@ struct LazyLibrarianView: View {
   private func snatchLibraries(
     canTriggerEbookSearch: Bool,
     canTriggerAudioSearch: Bool
-  ) -> [LazyLibrarianLibrary] {
-    var libraries: [LazyLibrarianLibrary] = []
+  ) -> [PodibleLibraryMedia] {
+    var libraries: [PodibleLibraryMedia] = []
     if canTriggerEbookSearch {
       libraries.append(.ebook)
     }
@@ -546,7 +546,7 @@ struct LazyLibrarianView: View {
   }
 
   private func libraryRow(
-    _ item: LazyLibrarianLibraryItem,
+    _ item: PodibleLibraryItem,
     localBook: LibraryBook?,
     client: PodibleLibraryServing?
   ) -> some View {
@@ -599,7 +599,7 @@ struct LazyLibrarianView: View {
 
   @ViewBuilder
   private func rowControls(
-    item: LazyLibrarianLibraryItem,
+    item: PodibleLibraryItem,
     client: PodibleLibraryServing,
     isDownloadingThisBook: Bool
   ) -> some View {
@@ -616,7 +616,7 @@ struct LazyLibrarianView: View {
     let canAudioExport = item.audioStatus == .open && canDownload
     let canKindleExport =
       canExport && userSettings.kindleEmailAddress.isEmpty == false
-    let wrongFileLibrary: LazyLibrarianLibrary? = {
+    let wrongFileLibrary: PodibleLibraryMedia? = {
       guard client.supportsImportIssueReporting else { return nil }
       if item.audioStatus?.isComplete == true { return .audio }
       if item.status.isComplete { return .ebook }
@@ -786,7 +786,7 @@ struct LazyLibrarianView: View {
   }
 
   private func localAudioControls(
-    item: LazyLibrarianLibraryItem,
+    item: PodibleLibraryItem,
     localBook: LibraryBook?,
     client: PodibleLibraryServing?
   ) -> some View {
@@ -868,7 +868,7 @@ struct LazyLibrarianView: View {
   private func statusLine(
     status: DownloadStatus,
     progress: Double?,
-    audioStatus: LazyLibrarianLibraryItemStatus
+    audioStatus: PodibleLibraryItemStatus
   ) -> some View {
     HStack(spacing: 6) {
       Text(statusLabel(for: status))
@@ -901,7 +901,7 @@ struct LazyLibrarianView: View {
   private func localDownloadButton(
     for book: LibraryBook,
     status: DownloadStatus,
-    audioStatus: LazyLibrarianLibraryItemStatus,
+    audioStatus: PodibleLibraryItemStatus,
     client: PodibleLibraryServing?
   ) -> some View {
     let isDownloading = localDownloadingBookIDs.contains(book.llId)
@@ -928,9 +928,9 @@ struct LazyLibrarianView: View {
 
   @ViewBuilder
   private func localDownloadButton(
-    for item: LazyLibrarianLibraryItem,
+    for item: PodibleLibraryItem,
     status: DownloadStatus,
-    audioStatus: LazyLibrarianLibraryItemStatus,
+    audioStatus: PodibleLibraryItemStatus,
     client: PodibleLibraryServing?
   ) -> some View {
     let isDownloading = localDownloadingBookIDs.contains(item.id)
@@ -1033,25 +1033,24 @@ struct LazyLibrarianView: View {
   }
 
   @MainActor
-  private func startLocalDownload(for item: LazyLibrarianLibraryItem, client: PodibleLibraryServing)
-  {
+  private func startLocalDownload(for item: PodibleLibraryItem, client: PodibleLibraryServing) {
     let book = ensureLocalBook(for: item)
     startLocalDownload(for: book, client: client)
   }
 
   private func audioStatus(
     for book: LibraryBook?,
-    fallback: LazyLibrarianLibraryItemStatus?
-  ) -> LazyLibrarianLibraryItemStatus {
+    fallback: PodibleLibraryItemStatus?
+  ) -> PodibleLibraryItemStatus {
     if let book, let raw = book.audioStatusRaw,
-      let status = LazyLibrarianLibraryItemStatus(rawValue: raw)
+      let status = PodibleLibraryItemStatus(rawValue: raw)
     {
       return status
     }
     return fallback ?? .unknown
   }
 
-  private func parseAudioStatus(from book: LibraryBook) -> LazyLibrarianLibraryItemStatus {
+  private func parseAudioStatus(from book: LibraryBook) -> PodibleLibraryItemStatus {
     audioStatus(for: book, fallback: nil)
   }
 
@@ -1111,7 +1110,7 @@ struct LazyLibrarianView: View {
   }
 
   @MainActor
-  private func ensureLocalBook(for item: LazyLibrarianLibraryItem) -> LibraryBook {
+  private func ensureLocalBook(for item: PodibleLibraryItem) -> LibraryBook {
     if let existing = localBooksById[item.id] {
       let author = fetchOrCreateAuthor(name: item.author)
       updateLocalBook(existing, with: item, author: author)
@@ -1160,7 +1159,7 @@ struct LazyLibrarianView: View {
   @MainActor
   private func updateLocalBook(
     _ book: LibraryBook,
-    with item: LazyLibrarianLibraryItem,
+    with item: PodibleLibraryItem,
     author: Author
   ) {
     var updated = false
@@ -1203,7 +1202,7 @@ struct LazyLibrarianView: View {
     name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
   }
 
-  private func latestLibraryDate(for item: LazyLibrarianLibraryItem) -> Date? {
+  private func latestLibraryDate(for item: PodibleLibraryItem) -> Date? {
     [item.bookLibrary, item.audioLibrary].compactMap { $0 }.max()
   }
 }
@@ -1212,24 +1211,24 @@ typealias RemoteLibraryView = LazyLibrarianView
 typealias PodibleLibraryView = LazyLibrarianView
 
 private struct LazyLibrarianSnatchResultPicker: View {
-  let book: LazyLibrarianLibraryItem
-  let libraries: [LazyLibrarianLibrary]
+  let book: PodibleLibraryItem
+  let libraries: [PodibleLibraryMedia]
   let client: PodibleLibraryServing
-  let onSnatchComplete: (LazyLibrarianLibrary) async -> Void
+  let onSnatchComplete: (PodibleLibraryMedia) async -> Void
 
   @Environment(\.dismiss) private var dismiss
-  @State private var selectedLibrary: LazyLibrarianLibrary
-  @State private var results: [LazyLibrarianSearchResult] = []
+  @State private var selectedLibrary: PodibleLibraryMedia
+  @State private var results: [PodibleSearchResult] = []
   @State private var isLoading = false
   @State private var errorMessage: String?
   @State private var snatchError: String?
   @State private var activeSnatchID: String?
 
   init(
-    book: LazyLibrarianLibraryItem,
-    libraries: [LazyLibrarianLibrary],
+    book: PodibleLibraryItem,
+    libraries: [PodibleLibraryMedia],
     client: PodibleLibraryServing,
-    onSnatchComplete: @escaping (LazyLibrarianLibrary) async -> Void
+    onSnatchComplete: @escaping (PodibleLibraryMedia) async -> Void
   ) {
     self.book = book
     self.libraries = libraries
@@ -1293,7 +1292,7 @@ private struct LazyLibrarianSnatchResultPicker: View {
     }
   }
 
-  private var filteredResults: [LazyLibrarianSearchResult] {
+  private var filteredResults: [PodibleSearchResult] {
     results.filter { result in
       guard let library = result.library else { return true }
       return library == selectedLibrary
@@ -1301,7 +1300,7 @@ private struct LazyLibrarianSnatchResultPicker: View {
   }
 
   @ViewBuilder
-  private func snatchRow(_ result: LazyLibrarianSearchResult) -> some View {
+  private func snatchRow(_ result: PodibleSearchResult) -> some View {
     let title = result.title.isEmpty ? result.url : result.title
     HStack(alignment: .top, spacing: 12) {
       VStack(alignment: .leading, spacing: 4) {
@@ -1363,7 +1362,7 @@ private struct LazyLibrarianSnatchResultPicker: View {
     isLoading = false
   }
 
-  private func snatch(_ result: LazyLibrarianSearchResult) {
+  private func snatch(_ result: PodibleSearchResult) {
     snatchError = nil
     activeSnatchID = result.id
     Task { @MainActor in
@@ -1385,7 +1384,7 @@ private struct LazyLibrarianSnatchResultPicker: View {
 
 @ViewBuilder
 func lazyLibrarianEbookStatusRow(
-  status: LazyLibrarianLibraryItemStatus?,
+  status: PodibleLibraryItemStatus?,
   progressValue: Int?,
   progressFinished: Bool,
   progressSeen: Bool,
@@ -1418,7 +1417,7 @@ func lazyLibrarianEbookStatusRow(
 
 @ViewBuilder
 func lazyLibrarianAudioStatusRow(
-  status: LazyLibrarianLibraryItemStatus?,
+  status: PodibleLibraryItemStatus?,
   progressValue: Int?,
   progressFinished: Bool,
   progressSeen: Bool,
@@ -1475,9 +1474,9 @@ func lazyLibrarianProgressCircles(
 
 @ViewBuilder
 func lazyLibrarianStatusCluster(
-  item: LazyLibrarianLibraryItem,
+  item: PodibleLibraryItem,
   progress: LazyLibrarianViewModel.DownloadProgress?,
-  shouldOfferSearch: (LazyLibrarianLibraryItemStatus?) -> Bool
+  shouldOfferSearch: (PodibleLibraryItemStatus?) -> Bool
 ) -> some View {
   let showEbook = item.status.isComplete == false
   let showAudio = item.audioStatus?.isComplete == false

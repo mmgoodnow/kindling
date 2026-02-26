@@ -86,11 +86,11 @@ struct LibrarySyncService {
     name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
   }
 
-  private func latestLibraryDate(for item: LazyLibrarianLibraryItem) -> Date? {
+  private func latestLibraryDate(for item: PodibleLibraryItem) -> Date? {
     [item.bookLibrary, item.audioLibrary].compactMap { $0 }.max()
   }
 
-  private func updateBook(_ book: LibraryBook, with item: LazyLibrarianLibraryItem, author: Author)
+  private func updateBook(_ book: LibraryBook, with item: PodibleLibraryItem, author: Author)
     -> Int
   {
     var updated = 0

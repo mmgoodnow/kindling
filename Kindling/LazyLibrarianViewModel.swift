@@ -13,22 +13,22 @@ final class LazyLibrarianViewModel: ObservableObject {
   }
 
   @Published var query: String = ""
-  @Published var searchResults: [LazyLibrarianBook] = []
-  @Published var libraryItems: [LazyLibrarianLibraryItem] = []
+  @Published var searchResults: [PodibleBook] = []
+  @Published var libraryItems: [PodibleLibraryItem] = []
   @Published var isLoading: Bool = false
   @Published var errorMessage: String?
   @Published var downloadProgressByBookID: [String: DownloadProgress] = [:]
-  @Published private var pendingItemsByID: [String: LazyLibrarianLibraryItem] = [:]
+  @Published private var pendingItemsByID: [String: PodibleLibraryItem] = [:]
 
   private var downloadPollingTasks: [String: Task<Void, Never>] = [:]
   private let downloadPollIntervalNanoseconds: UInt64 = 500_000_000
   private let searchCooldownInterval: TimeInterval = 20
   private var lastSearchByKey: [SearchCooldownKey: Date] = [:]
-  private var searchResultsByQuery: [String: [LazyLibrarianBook]] = [:]
+  private var searchResultsByQuery: [String: [PodibleBook]] = [:]
 
   private struct SearchCooldownKey: Hashable {
     let bookID: String
-    let library: LazyLibrarianLibrary
+    let library: PodibleLibraryMedia
   }
 
   deinit {
@@ -82,7 +82,7 @@ final class LazyLibrarianViewModel: ObservableObject {
     isLoading = false
   }
 
-  func filteredLibraryItems(query: String) -> [LazyLibrarianLibraryItem] {
+  func filteredLibraryItems(query: String) -> [PodibleLibraryItem] {
     let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
     guard trimmed.isEmpty == false else { return libraryItems }
     let needle = trimmed.lowercased()
@@ -92,7 +92,7 @@ final class LazyLibrarianViewModel: ObservableObject {
     }
   }
 
-  func request(_ book: LazyLibrarianBook, using client: PodibleLibraryServing) async {
+  func request(_ book: PodibleBook, using client: PodibleLibraryServing) async {
     isLoading = true
     errorMessage = nil
     do {
@@ -119,7 +119,7 @@ final class LazyLibrarianViewModel: ObservableObject {
       // Update the library list and the search results with the new status.
       if let existingIndex = libraryItems.firstIndex(where: { $0.id == requested.id }) {
         let existing = libraryItems[existingIndex]
-        let updated = LazyLibrarianLibraryItem(
+        let updated = PodibleLibraryItem(
           id: requested.id,
           title: requested.title,
           author: requested.author,
@@ -137,7 +137,7 @@ final class LazyLibrarianViewModel: ObservableObject {
       if let searchIndex = searchResults.firstIndex(where: {
         $0.id == originalBookID || $0.id == requested.id
       }) {
-        let updated = LazyLibrarianBook(
+        let updated = PodibleBook(
           id: requested.id,
           title: requested.title,
           author: requested.author,
@@ -159,7 +159,7 @@ final class LazyLibrarianViewModel: ObservableObject {
     isLoading = false
   }
 
-  func forceSearch(_ book: LazyLibrarianBook, using client: PodibleLibraryServing) async {
+  func forceSearch(_ book: PodibleBook, using client: PodibleLibraryServing) async {
     isLoading = true
     errorMessage = nil
     do {
@@ -176,13 +176,13 @@ final class LazyLibrarianViewModel: ObservableObject {
   }
 
   func triggerSearch(
-    bookID: String, library: LazyLibrarianLibrary, using client: PodibleLibraryServing
+    bookID: String, library: PodibleLibraryMedia, using client: PodibleLibraryServing
   ) async {
     await triggerAcquire(bookID: bookID, library: library, using: client)
   }
 
   func triggerAcquire(
-    bookID: String, library: LazyLibrarianLibrary, using client: PodibleLibraryServing
+    bookID: String, library: PodibleLibraryMedia, using client: PodibleLibraryServing
   ) async {
     guard canTriggerSearch(bookID: bookID, library: library) else { return }
     do {
@@ -195,8 +195,8 @@ final class LazyLibrarianViewModel: ObservableObject {
     }
   }
 
-  private func filtered(_ items: [LazyLibrarianLibraryItem]) -> [LazyLibrarianLibraryItem] {
-    func isSkippedOrIgnored(_ status: LazyLibrarianLibraryItemStatus?) -> Bool {
+  private func filtered(_ items: [PodibleLibraryItem]) -> [PodibleLibraryItem] {
+    func isSkippedOrIgnored(_ status: PodibleLibraryItemStatus?) -> Bool {
       guard let status else { return true }
       return status == .skipped || status == .ignored
     }
@@ -218,15 +218,15 @@ final class LazyLibrarianViewModel: ObservableObject {
     }
   }
 
-  func beginOptimisticRequest(for book: LazyLibrarianBook) {
+  func beginOptimisticRequest(for book: PodibleBook) {
     addPendingRequestIfNeeded(for: book)
   }
 
-  private func addPendingRequestIfNeeded(for book: LazyLibrarianBook) {
+  private func addPendingRequestIfNeeded(for book: PodibleBook) {
     guard pendingItemsByID[book.id] == nil else { return }
     if libraryItems.contains(where: { $0.id == book.id }) { return }
     let coverPath = book.coverImageURL?.absoluteString ?? book.coverURL?.absoluteString
-    let placeholder = LazyLibrarianLibraryItem(
+    let placeholder = PodibleLibraryItem(
       id: book.id,
       title: book.title,
       author: book.author,
@@ -240,7 +240,7 @@ final class LazyLibrarianViewModel: ObservableObject {
     libraryItems = filtered(libraryItems)
   }
 
-  private func mergePending(into items: [LazyLibrarianLibraryItem]) -> [LazyLibrarianLibraryItem] {
+  private func mergePending(into items: [PodibleLibraryItem]) -> [PodibleLibraryItem] {
     guard pendingItemsByID.isEmpty == false else { return items }
     var merged = items
     for (id, pending) in pendingItemsByID {
@@ -252,7 +252,7 @@ final class LazyLibrarianViewModel: ObservableObject {
     return filtered(merged)
   }
 
-  private func prunePendingItems(matching items: [LazyLibrarianLibraryItem]) {
+  private func prunePendingItems(matching items: [PodibleLibraryItem]) {
     guard pendingItemsByID.isEmpty == false else { return }
     let existingIDs = Set(items.map(\.id))
     for id in existingIDs {
@@ -272,7 +272,7 @@ final class LazyLibrarianViewModel: ObservableObject {
   }
 
   func shouldShowDownloadProgress(
-    status: LazyLibrarianLibraryItemStatus, audioStatus: LazyLibrarianLibraryItemStatus?
+    status: PodibleLibraryItemStatus, audioStatus: PodibleLibraryItemStatus?
   ) -> Bool {
     isActive(status) || isActive(audioStatus)
   }
@@ -281,11 +281,11 @@ final class LazyLibrarianViewModel: ObservableObject {
     downloadProgressByBookID[id]
   }
 
-  func shouldOfferSearch(status: LazyLibrarianLibraryItemStatus?) -> Bool {
+  func shouldOfferSearch(status: PodibleLibraryItemStatus?) -> Bool {
     isActive(status)
   }
 
-  func canTriggerSearch(bookID: String, library: LazyLibrarianLibrary) -> Bool {
+  func canTriggerSearch(bookID: String, library: PodibleLibraryMedia) -> Bool {
     let key = SearchCooldownKey(bookID: bookID, library: library)
     if let last = lastSearchByKey[key] {
       return Date.now.timeIntervalSince(last) >= searchCooldownInterval
@@ -293,16 +293,16 @@ final class LazyLibrarianViewModel: ObservableObject {
     return true
   }
 
-  func noteSearchTriggered(bookID: String, library: LazyLibrarianLibrary) {
+  func noteSearchTriggered(bookID: String, library: PodibleLibraryMedia) {
     markSearchTriggered(bookID: bookID, library: library)
   }
 
-  private func markSearchTriggered(bookID: String, library: LazyLibrarianLibrary) {
+  private func markSearchTriggered(bookID: String, library: PodibleLibraryMedia) {
     lastSearchByKey[SearchCooldownKey(bookID: bookID, library: library)] = .now
   }
 
   private func startPollingIfNeeded(
-    for items: [LazyLibrarianLibraryItem], client: PodibleLibraryServing
+    for items: [PodibleLibraryItem], client: PodibleLibraryServing
   ) {
     for item in items
     where shouldShowDownloadProgress(status: item.status, audioStatus: item.audioStatus) {
@@ -374,8 +374,7 @@ final class LazyLibrarianViewModel: ObservableObject {
     }
   }
 
-  private func mergeProgress(_ items: [LazyLibrarianDownloadProgressItem], forBookID bookID: String)
-  {
+  private func mergeProgress(_ items: [PodibleDownloadProgressItem], forBookID bookID: String) {
     var current =
       downloadProgressByBookID[bookID]
       ?? DownloadProgress(
@@ -392,11 +391,11 @@ final class LazyLibrarianViewModel: ObservableObject {
       let library = item.auxInfo
       let value = max(0, min(100, item.progress ?? 0))
       let finished = item.finished ?? (value >= 100)
-      if library == LazyLibrarianLibrary.ebook.rawValue {
+      if library == PodibleLibraryMedia.ebook.rawValue {
         current.ebook = value
         current.ebookFinished = finished
         current.ebookSeen = true
-      } else if library == LazyLibrarianLibrary.audio.rawValue {
+      } else if library == PodibleLibraryMedia.audio.rawValue {
         current.audiobook = value
         current.audiobookFinished = finished
         current.audiobookSeen = true
@@ -406,7 +405,7 @@ final class LazyLibrarianViewModel: ObservableObject {
     downloadProgressByBookID[bookID] = current
   }
 
-  private func isActive(_ status: LazyLibrarianLibraryItemStatus?) -> Bool {
+  private func isActive(_ status: PodibleLibraryItemStatus?) -> Bool {
     guard let status else { return false }
     switch status {
     case .requested, .wanted, .snatched, .seeding:

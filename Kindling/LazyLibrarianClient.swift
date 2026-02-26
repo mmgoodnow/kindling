@@ -56,6 +56,8 @@ enum LazyLibrarianLibraryItemStatus: String, Decodable {
   }
 }
 
+typealias PodibleLibraryItemStatus = LazyLibrarianLibraryItemStatus
+
 struct LazyLibrarianBook: Identifiable, Hashable, Decodable {
   let id: String
   let title: String
@@ -132,6 +134,8 @@ struct LazyLibrarianBook: Identifiable, Hashable, Decodable {
     link = try? container.decodeIfPresent(URL.self, forKey: .link)
   }
 }
+
+typealias PodibleBook = LazyLibrarianBook
 
 struct LazyLibrarianLibraryItem: Identifiable, Hashable, Decodable {
   let id: String
@@ -227,6 +231,8 @@ struct LazyLibrarianLibraryItem: Identifiable, Hashable, Decodable {
     }
   }
 }
+
+typealias PodibleLibraryItem = LazyLibrarianLibraryItem
 
 private enum LazyLibrarianDateParser {
   private static let utcCalendar: Calendar = {
@@ -349,6 +355,8 @@ enum LazyLibrarianLibrary: String {
   case audio = "AudioBook"
 }
 
+typealias PodibleLibraryMedia = LazyLibrarianLibrary
+
 enum LazyLibrarianSearchCategory: String {
   case general
   case book
@@ -409,6 +417,8 @@ struct LazyLibrarianDownloadProgressItem: Hashable, Decodable {
     finished = try? container.decodeIfPresent(Bool.self, forKey: .finished)
   }
 }
+
+typealias PodibleDownloadProgressItem = LazyLibrarianDownloadProgressItem
 
 struct LazyLibrarianSearchResult: Identifiable, Hashable {
   let id: String
@@ -585,6 +595,8 @@ struct LazyLibrarianSearchResult: Identifiable, Hashable {
     return Int64(value * multiplier)
   }
 }
+
+typealias PodibleSearchResult = LazyLibrarianSearchResult
 
 // Preview/testing helper that simulates LazyLibrarian without network calls.
 final actor LazyLibrarianMockClient: RemoteLibraryServing {
