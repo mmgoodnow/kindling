@@ -34,6 +34,7 @@ struct PodibleLibraryView: View {
   @StateObject private var player = AudioPlayerController()
   @State private var isShowingPlayer = false
   @State private var isShowingWipeLocalLibraryConfirmation = false
+  @State private var isWipingLocalLibrary = false
 
   let clientOverride: RemoteLibraryServing?
 
@@ -102,24 +103,34 @@ struct PodibleLibraryView: View {
           .font(.caption)
       }
 
-      if let lastSync {
+      if isWipingLocalLibrary == false {
+        if let lastSync {
+          HStack(spacing: 8) {
+            Text("Last sync")
+            Text(lastSync, style: .time)
+              .foregroundStyle(.secondary)
+          }
+          .font(.caption)
+        }
+
+        if let lastSummary {
+          summaryRow(lastSummary)
+        }
+      }
+
+      if isWipingLocalLibrary {
         HStack(spacing: 8) {
-          Text("Last sync")
-          Text(lastSync, style: .time)
+          ProgressView()
+          Text("Wiping local library…")
             .foregroundStyle(.secondary)
         }
-        .font(.caption)
-      }
-
-      if let lastSummary {
-        summaryRow(lastSummary)
-      }
-
-      let trimmedQuery = viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines)
-      if trimmedQuery.isEmpty {
-        libraryListing(client: client)
       } else {
-        searchListing(query: trimmedQuery, client: client)
+        let trimmedQuery = viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedQuery.isEmpty {
+          libraryListing(client: client)
+        } else {
+          searchListing(query: trimmedQuery, client: client)
+        }
       }
     }
     #if os(iOS)
@@ -135,7 +146,7 @@ struct PodibleLibraryView: View {
             Image(systemName: "arrow.triangle.2.circlepath")
           }
         }
-        .disabled(client == nil || isSyncing)
+        .disabled(client == nil || isSyncing || isWipingLocalLibrary)
         .help("Sync from backend")
       }
       ToolbarItem {
@@ -144,7 +155,10 @@ struct PodibleLibraryView: View {
         } label: {
           Image(systemName: "trash")
         }
-        .disabled(isSyncing || downloadingBookID != nil || localDownloadingBookIDs.isEmpty == false)
+        .disabled(
+          isSyncing || isWipingLocalLibrary || downloadingBookID != nil
+            || localDownloadingBookIDs.isEmpty == false
+        )
         .help("Wipe local library cache and downloads")
       }
     }
@@ -163,7 +177,7 @@ struct PodibleLibraryView: View {
       )
     }
     .onAppear {
-      guard let client else { return }
+      guard let client, isWipingLocalLibrary == false else { return }
       Task {
         if localBooks.isEmpty || lastSync == nil {
           await syncFromRemote(using: client)
@@ -172,18 +186,19 @@ struct PodibleLibraryView: View {
       }
     }
     .refreshable {
-      guard let client else { return }
+      guard let client, isWipingLocalLibrary == false else { return }
       await refresh(using: client)
     }
     .searchable(text: $viewModel.query, prompt: "Search")
     .onSubmit(of: .search) {
-      guard let client else { return }
+      guard let client, isWipingLocalLibrary == false else { return }
       Task {
         await viewModel.search(using: client)
       }
     }
     .onChange(of: viewModel.query) { _, newValue in
       searchTask?.cancel()
+      guard isWipingLocalLibrary == false else { return }
       let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
       if trimmed.isEmpty {
         viewModel.searchResults = []
@@ -528,6 +543,8 @@ struct PodibleLibraryView: View {
 
   @MainActor
   private func wipeLocalLibrary() {
+    guard isWipingLocalLibrary == false else { return }
+    isWipingLocalLibrary = true
     player.stop()
     isShowingPlayer = false
     isShowingShareSheet = false
@@ -538,22 +555,31 @@ struct PodibleLibraryView: View {
     syncErrorMessage = nil
     localDownloadProgressByBookID.removeAll()
     localDownloadingBookIDs.removeAll()
+    viewModel.libraryItems = []
+    viewModel.searchResults = []
+    viewModel.downloadProgressByBookID.removeAll()
+    viewModel.errorMessage = nil
 
-    do {
-      try removeLocalLibraryFiles()
-      try deleteLocalLibraryRows()
-      viewModel.downloadProgressByBookID.removeAll()
-      try modelContext.save()
-    } catch {
-      syncErrorMessage = "Failed to wipe local library: \(error.localizedDescription)"
+    Task { @MainActor in
+      // Let SwiftUI re-render without local rows before deleting SwiftData objects.
+      await Task.yield()
+      do {
+        try removeLocalLibraryFiles()
+        try deleteLocalLibraryRows()
+        try modelContext.save()
+      } catch {
+        syncErrorMessage = "Failed to wipe local library: \(error.localizedDescription)"
+      }
+      isWipingLocalLibrary = false
     }
   }
 
   private func deleteLocalLibraryRows() throws {
-    try deleteAll(LibraryBookFile.self)
-    try deleteAll(LocalBookState.self)
     try deleteAll(LibrarySyncState.self)
     try deleteAll(LibraryBook.self)
+    // LibraryBook.files is nullify, so file rows are cleaned up explicitly after books are gone.
+    try deleteAll(LibraryBookFile.self)
+    try deleteAll(LocalBookState.self)
     try deleteAll(Series.self)
     try deleteAll(Author.self)
   }
@@ -596,7 +622,10 @@ struct PodibleLibraryView: View {
     client: RemoteLibraryServing?
   ) -> some View {
     let progress = viewModel.progressForBookID(item.id)
-    let isDownloadingThisBook = downloadingBookID == item.id
+    let ebookStatus = item.ebookStatus ?? item.status
+    let rowProgressPercent = progress?.combinedProgressPercent
+    let rowIsAcquiring = viewModel.shouldShowDownloadProgress(
+      status: ebookStatus, audioStatus: item.audioStatus)
 
     return VStack(alignment: .leading, spacing: 8) {
       HStack(alignment: .top, spacing: 12) {
@@ -619,8 +648,8 @@ struct PodibleLibraryView: View {
           if let client {
             rowControls(
               item: item,
-              client: client,
-              isDownloadingThisBook: isDownloadingThisBook
+              localBook: localBook,
+              client: client
             )
           }
           localAudioControls(
@@ -640,41 +669,50 @@ struct PodibleLibraryView: View {
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.vertical, 4)
+    .background {
+      remoteLibraryRowProgressBackground(
+        percent: rowProgressPercent,
+        isAcquiring: rowIsAcquiring
+      )
+    }
+    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
   }
 
   @ViewBuilder
   private func rowControls(
     item: PodibleLibraryItem,
-    client: RemoteLibraryServing,
-    isDownloadingThisBook: Bool
+    localBook: LibraryBook?,
+    client: RemoteLibraryServing
   ) -> some View {
-    let canEbookSearch = viewModel.shouldOfferSearch(status: item.status)
-    let canAudioSearch = viewModel.shouldOfferSearch(status: item.audioStatus)
-    let canTriggerEbookSearch =
-      canEbookSearch
-      && viewModel.canTriggerSearch(bookID: item.id, library: .ebook)
-    let canTriggerAudioSearch =
-      canAudioSearch
-      && viewModel.canTriggerSearch(bookID: item.id, library: .audio)
-    let canDownload = isDownloadingThisBook == false
-    let canExport = item.status == .open && canDownload
-    let canAudioExport = item.audioStatus == .open && canDownload
+    let ebookStatus = item.ebookStatus ?? item.status
+    let hasEbookAvailable = item.bookLibrary != nil || ebookStatus.isComplete
     let canKindleExport =
-      canExport && userSettings.kindleEmailAddress.isEmpty == false
-    let wrongFileLibrary: PodibleLibraryMedia? = {
+      hasEbookAvailable && userSettings.kindleEmailAddress.isEmpty == false
+    let localAudioStatus = audioStatus(for: localBook, fallback: item.audioStatus)
+    let localFileStatus = localBook?.files.first?.downloadStatus ?? .notStarted
+    let localPlaybackURL = localBook.flatMap { playbackURL(for: $0) }
+    let isLocalDownloading = localDownloadingBookIDs.contains(localBook?.llId ?? item.id)
+    let canStartLocalAudioDownload =
+      localPlaybackURL == nil
+      && localAudioStatus.isComplete
+      && localFileStatus != .completed
+      && localFileStatus != .downloading
+      && isLocalDownloading == false
+    let reportIssueLibrary: PodibleLibraryMedia? = {
       guard client.supportsImportIssueReporting else { return nil }
-      if item.audioStatus?.isComplete == true { return .audio }
-      if item.status.isComplete { return .ebook }
-      return nil
+      // Prefer audio because that's the most common recovery path in Kindling, but still
+      // fall back to ebook when a row doesn't expose audio state.
+      if localFileStatus == .completed { return .audio }
+      if item.audioStatus != nil { return .audio }
+      return .ebook
     }()
 
-    let canRefresh = canEbookSearch || canAudioSearch
-    let canTriggerRefresh = canTriggerEbookSearch || canTriggerAudioSearch
     let controls = HStack(spacing: 8) {
       trailingControlButton(
-        label: "Download & Export",
-        systemName: "square.and.arrow.up",
-        isEnabled: canExport,
+        label: "Share eBook",
+        systemName: "book",
+        isEnabled: hasEbookAvailable,
         action: {
           Task {
             await startEbookDownload(
@@ -685,22 +723,18 @@ struct PodibleLibraryView: View {
           }
         }
       )
-      if item.audioStatus == .open {
-        trailingControlButton(
-          label: "Download Audiobook",
-          systemName: "waveform",
-          isEnabled: canAudioExport,
-          action: {
-            Task {
-              await startAudiobookDownload(
-                bookID: item.id,
-                title: item.title,
-                client: client
-              )
-            }
+      trailingControlButton(
+        label: localPlaybackURL == nil ? "Download or Play Audiobook" : "Play Audiobook",
+        systemName: "headphones",
+        isEnabled: (localPlaybackURL != nil && localBook != nil) || canStartLocalAudioDownload,
+        action: {
+          if let localBook, let localPlaybackURL {
+            startPlayback(for: localBook, url: localPlaybackURL)
+            return
           }
-        )
-      }
+          startLocalDownload(for: item, client: client)
+        }
+      )
       trailingControlButton(
         label: "Email to Kindle",
         systemName: "paperplane",
@@ -715,55 +749,21 @@ struct PodibleLibraryView: View {
           }
         }
       )
-      if let wrongFileLibrary {
-        trailingControlButton(
-          label: "Wrong File",
-          systemName: "exclamationmark.triangle",
-          action: {
-            Task {
-              await reportWrongImportedFile(
-                bookID: item.id,
-                library: wrongFileLibrary,
-                client: client
-              )
-            }
+      trailingControlButton(
+        label: "Report Issue",
+        systemName: "exclamationmark.triangle",
+        isEnabled: reportIssueLibrary != nil,
+        action: {
+          guard let reportIssueLibrary else { return }
+          Task {
+            await reportWrongImportedFile(
+              bookID: item.id,
+              library: reportIssueLibrary,
+              client: client
+            )
           }
-        )
-      }
-      if isDownloadingThisBook, let progress = downloadProgress, let kind = downloadKind {
-        remoteLibraryProgressCircle(
-          value: Int(progress * 100),
-          tint: .secondary,
-          icon: kind == .ebook ? "book" : "waveform.mid",
-          snoring: false
-        )
-      }
-      if canRefresh {
-        trailingControlButton(
-          label: "Refresh",
-          systemName: "arrow.clockwise",
-          isEnabled: canTriggerRefresh,
-          action: {
-            Task {
-              if canTriggerEbookSearch {
-                await viewModel.triggerAcquire(
-                  bookID: item.id,
-                  library: .ebook,
-                  using: client
-                )
-              }
-              if canTriggerAudioSearch {
-                await viewModel.triggerAcquire(
-                  bookID: item.id,
-                  library: .audio,
-                  using: client
-                )
-              }
-              await viewModel.loadLibraryItems(using: client)
-            }
-          }
-        )
-      }
+        }
+      )
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .frame(height: 44)
@@ -779,10 +779,11 @@ struct PodibleLibraryView: View {
     Button(action: action) {
       Image(systemName: systemName)
         .font(.title3.weight(.medium))
-        .foregroundStyle(.accent)
+        .foregroundStyle(isEnabled ? .accent : .secondary)
         .imageScale(.large)
         .frame(width: 44, height: 44, alignment: .leading)
         .contentShape(Rectangle())
+        .opacity(isEnabled ? 1 : 0.4)
     }
     .buttonStyle(.borderless)
     .disabled(!isEnabled)
@@ -797,9 +798,10 @@ struct PodibleLibraryView: View {
   ) -> some View {
     Button(action: action) {
       content()
-        .foregroundStyle(.accent)
+        .foregroundStyle(isEnabled ? .accent : .secondary)
         .frame(width: 44, height: 44, alignment: .leading)
         .contentShape(Rectangle())
+        .opacity(isEnabled ? 1 : 0.4)
     }
     .buttonStyle(.borderless)
     .disabled(!isEnabled)
@@ -821,35 +823,15 @@ struct PodibleLibraryView: View {
     localBook: LibraryBook?,
     client: RemoteLibraryServing?
   ) -> some View {
-    let audioStatus = audioStatus(for: localBook, fallback: item.audioStatus)
+    _ = client
     let status = localBook?.files.first?.downloadStatus ?? .notStarted
     let progress = localDownloadProgressByBookID[item.id]
-    let localPlaybackURL = localBook.flatMap { playbackURL(for: $0) }
 
-    let actionView: AnyView
-    if let localBook, let localPlaybackURL {
-      actionView = AnyView(playButton(for: localBook, url: localPlaybackURL))
-    } else {
-      actionView = AnyView(
-        localDownloadButton(
-          for: item,
-          status: status,
-          audioStatus: audioStatus,
-          client: client
-        )
-      )
-    }
-
-    let progressView = ProgressView(value: progress ?? 0)
-      .frame(maxWidth: 120)
-      .opacity(progress == nil ? 0 : 1)
-
-    return HStack(spacing: 8) {
-      actionView
-      progressView
-      Text(statusLabel(for: status))
-        .font(.caption)
-        .foregroundStyle(.secondary)
+    return Group {
+      if let progress {
+        ProgressView(value: progress)
+          .frame(maxWidth: 120)
+      }
     }
   }
 
@@ -902,7 +884,6 @@ struct PodibleLibraryView: View {
     audioStatus: PodibleLibraryItemStatus
   ) -> some View {
     HStack(spacing: 6) {
-      Text(statusLabel(for: status))
       Text("Audio: \(audioStatus.rawValue)")
       if let progress {
         ProgressView(value: progress)
@@ -911,21 +892,6 @@ struct PodibleLibraryView: View {
     }
     .foregroundStyle(.secondary)
     .font(.caption)
-  }
-
-  private func statusLabel(for status: DownloadStatus) -> String {
-    switch status {
-    case .notStarted:
-      return "Not downloaded"
-    case .downloading:
-      return "Downloading"
-    case .paused:
-      return "Paused"
-    case .failed:
-      return "Failed"
-    case .completed:
-      return "Downloaded"
-    }
   }
 
   @ViewBuilder
@@ -1158,7 +1124,7 @@ struct PodibleLibraryView: View {
       addedAt: item.bookAdded,
       updatedAt: latestLibraryDate(for: item),
       seriesIndex: nil,
-      bookStatusRaw: item.status.rawValue,
+      bookStatusRaw: (item.ebookStatus ?? item.status).rawValue,
       audioStatusRaw: item.audioStatus?.rawValue,
       author: author,
       series: nil
@@ -1216,8 +1182,9 @@ struct PodibleLibraryView: View {
       book.author = author
       updated = true
     }
-    if book.bookStatusRaw != item.status.rawValue {
-      book.bookStatusRaw = item.status.rawValue
+    let ebookRaw = (item.ebookStatus ?? item.status).rawValue
+    if book.bookStatusRaw != ebookRaw {
+      book.bookStatusRaw = ebookRaw
       updated = true
     }
     if book.audioStatusRaw != item.audioStatus?.rawValue {
@@ -1239,6 +1206,25 @@ struct PodibleLibraryView: View {
 }
 
 typealias RemoteLibraryView = PodibleLibraryView
+
+extension PodibleLibraryDownloadProgress {
+  var combinedProgressPercent: Int? {
+    var values: [Int] = []
+    if ebookSeen || ebookFinished {
+      values.append(ebookFinished ? 100 : ebook)
+    }
+    if audiobookSeen || audiobookFinished {
+      values.append(audiobookFinished ? 100 : audiobook)
+    }
+    guard values.isEmpty == false else { return nil }
+    let total = values.reduce(0, +)
+    return Int((Double(total) / Double(values.count)).rounded())
+  }
+
+  var hasCombinedProgress: Bool {
+    combinedProgressPercent != nil
+  }
+}
 
 @ViewBuilder
 func remoteLibraryEbookStatusRow(
@@ -1336,27 +1322,73 @@ func remoteLibraryStatusCluster(
   progress: PodibleLibraryDownloadProgress?,
   shouldOfferSearch: (PodibleLibraryItemStatus?) -> Bool
 ) -> some View {
-  let showEbook = item.status.isComplete == false
-  let showAudio = item.audioStatus?.isComplete == false
-  HStack(spacing: 10) {
-    if showEbook {
-      remoteLibraryEbookStatusRow(
-        status: item.status,
-        progressValue: progress?.ebook,
-        progressFinished: progress?.ebookFinished ?? false,
-        progressSeen: progress?.ebookSeen ?? false,
-        shouldOfferSearch: shouldOfferSearch(item.status)
-      )
+  let ebookStatus = item.ebookStatus ?? item.status
+  let ebookIncomplete = ebookStatus.isComplete == false
+  let audioIncomplete = item.audioStatus?.isComplete == false
+  let hasPendingAcquisition = ebookIncomplete || audioIncomplete
+  let showCombinedProgress = progress?.hasCombinedProgress ?? false
+  let shouldOfferAnySearch = shouldOfferSearch(ebookStatus) || shouldOfferSearch(item.audioStatus)
+
+  Group {
+    if hasPendingAcquisition {
+      if showCombinedProgress {
+        EmptyView()
+      } else if shouldOfferAnySearch {
+        remoteLibraryPendingIndicator()
+      }
     }
-    if showAudio {
-      remoteLibraryAudioStatusRow(
-        status: item.audioStatus,
-        progressValue: progress?.audiobook,
-        progressFinished: progress?.audiobookFinished ?? false,
-        progressSeen: progress?.audiobookSeen ?? false,
-        shouldOfferSearch: shouldOfferSearch(item.audioStatus)
-      )
+  }
+}
+
+@ViewBuilder
+func remoteLibraryCombinedProgressBar(percent: Int) -> some View {
+  let clamped = max(0, min(100, percent))
+  HStack(spacing: 6) {
+    Image(systemName: "arrow.down.circle")
+      .font(.system(size: 12, weight: .semibold))
+      .foregroundStyle(.secondary)
+    ProgressView(value: Double(clamped), total: 100)
+      .frame(width: 64)
+      .controlSize(.small)
+    Text("\(clamped)%")
+      .font(.caption2.monospacedDigit())
+      .foregroundStyle(.secondary)
+  }
+}
+
+@ViewBuilder
+func remoteLibraryRowProgressBackground(
+  percent: Int?,
+  isAcquiring: Bool
+) -> some View {
+  let clamped = percent.map { max(0, min(100, $0)) }
+  GeometryReader { proxy in
+    let width = proxy.size.width
+    let fillWidth = clamped.map { width * CGFloat($0) / 100.0 } ?? 0
+    ZStack(alignment: .leading) {
+      RoundedRectangle(cornerRadius: 10, style: .continuous)
+        .fill(.secondary.opacity(isAcquiring ? 0.03 : 0))
+      if let clamped, isAcquiring {
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+          .fill(.accent.opacity(0.07))
+          .frame(width: fillWidth, alignment: .leading)
+          .animation(.easeInOut(duration: 0.25), value: clamped)
+      }
     }
+  }
+  .allowsHitTesting(false)
+}
+
+@ViewBuilder
+func remoteLibraryPendingIndicator() -> some View {
+  HStack(spacing: 6) {
+    Image(systemName: "arrow.triangle.2.circlepath")
+      .font(.system(size: 12, weight: .semibold))
+      .foregroundStyle(.secondary)
+      .symbolEffect(.pulse.byLayer, options: .repeating)
+    Text("Acquiring")
+      .font(.caption2)
+      .foregroundStyle(.secondary)
   }
 }
 

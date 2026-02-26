@@ -124,6 +124,7 @@ final class PodibleLibraryViewModel: ObservableObject {
           title: requested.title,
           author: requested.author,
           status: requested.status,
+          ebookStatus: requested.ebookStatus ?? existing.ebookStatus,
           audioStatus: requested.audioStatus,
           bookAdded: requested.bookAdded ?? existing.bookAdded,
           bookLibrary: requested.bookLibrary ?? existing.bookLibrary,
@@ -209,6 +210,7 @@ final class PodibleLibraryViewModel: ObservableObject {
       title: book.title,
       author: book.author,
       status: .requested,
+      ebookStatus: .requested,
       audioStatus: .requested,
       bookAdded: .now,
       bookImagePath: coverPath

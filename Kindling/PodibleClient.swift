@@ -138,6 +138,7 @@ struct PodibleLibraryItem: Identifiable, Hashable, Decodable {
   let title: String
   let author: String
   let status: PodibleLibraryItemStatus
+  let ebookStatus: PodibleLibraryItemStatus?
   let audioStatus: PodibleLibraryItemStatus?
   let bookAdded: Date?
   let bookLibrary: Date?
@@ -149,6 +150,7 @@ struct PodibleLibraryItem: Identifiable, Hashable, Decodable {
     title: String,
     author: String,
     status: PodibleLibraryItemStatus,
+    ebookStatus: PodibleLibraryItemStatus? = nil,
     audioStatus: PodibleLibraryItemStatus? = nil,
     bookAdded: Date? = nil,
     bookLibrary: Date? = nil,
@@ -159,6 +161,7 @@ struct PodibleLibraryItem: Identifiable, Hashable, Decodable {
     self.title = title
     self.author = author
     self.status = status
+    self.ebookStatus = ebookStatus
     self.audioStatus = audioStatus
     self.bookAdded = bookAdded
     self.bookLibrary = bookLibrary
@@ -176,6 +179,8 @@ struct PodibleLibraryItem: Identifiable, Hashable, Decodable {
     case authorUpper = "AuthorName"
     case status = "status"
     case statusAlt = "Status"
+    case ebookStatus = "ebookStatus"
+    case ebookStatusAlt = "EbookStatus"
     case audioStatus = "AudioStatus"
     case bookAdded = "BookAdded"
     case bookLibrary = "BookLibrary"
@@ -194,6 +199,9 @@ struct PodibleLibraryItem: Identifiable, Hashable, Decodable {
       ?? (try? container.decode(PodibleLibraryItemStatus.self, forKey: .statusAlt))
       ?? (try? container.decode(PodibleLibraryItemStatus.self, forKey: .audioStatus))
       ?? .unknown
+    ebookStatus =
+      (try? container.decode(PodibleLibraryItemStatus.self, forKey: .ebookStatus))
+      ?? (try? container.decode(PodibleLibraryItemStatus.self, forKey: .ebookStatusAlt))
     audioStatus = (try? container.decode(PodibleLibraryItemStatus.self, forKey: .audioStatus))
     bookImagePath = try? container.decodeIfPresent(
       String.self, forKeys: [.bookImageUpper, .bookImageLower])
@@ -988,6 +996,7 @@ struct PodibleClient: PodibleLibraryServing {
       title: book.title,
       author: book.author,
       status: mapPodibleStatus(book.status),
+      ebookStatus: ebookStatus,
       audioStatus: audioStatus,
       bookAdded: addedAt,
       bookLibrary: ebookStatus.isComplete ? updatedAt : nil,
