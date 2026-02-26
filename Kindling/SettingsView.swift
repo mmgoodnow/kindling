@@ -28,22 +28,6 @@ struct SettingsView: View {
         )
       }
 
-      Section("LazyLibrarian") {
-        TextField(
-          "Base URL (e.g. http://localhost:5299)",
-          text: userSettings.$lazyLibrarianURL
-        )
-        #if os(iOS)
-          .textInputAutocapitalization(.never)
-          .keyboardType(.URL)
-        #endif
-        SecureField("API Key", text: userSettings.$lazyLibrarianAPIKey)
-          .textContentType(.password)
-          #if os(iOS)
-            .textInputAutocapitalization(.never)
-          #endif
-      }
-
       Section("IRC") {
         TextField("Server", text: userSettings.$ircServer)
         TextField(

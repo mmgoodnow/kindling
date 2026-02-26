@@ -25,15 +25,6 @@ struct ContentView: View {
               }
             }
           }
-      } else if hasLazyLibrarianConfig {
-        LazyLibrarianView()
-          .toolbar {
-            ToolbarItem {
-              NavigationLink(destination: SettingsView()) {
-                Image(systemName: "gear")
-              }
-            }
-          }
       } else {
         Group {
           if let downloader {
@@ -70,16 +61,6 @@ struct ContentView: View {
   private var hasPodibleBackendConfig: Bool {
     let url = userSettings.podibleRPCURL.trimmingCharacters(in: .whitespacesAndNewlines)
     let key = userSettings.podibleAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-    return url.isEmpty == false && key.isEmpty == false
-  }
-
-  private var hasLazyLibrarianConfig: Bool {
-    let url = userSettings.lazyLibrarianURL.trimmingCharacters(
-      in: .whitespacesAndNewlines
-    )
-    let key = userSettings.lazyLibrarianAPIKey.trimmingCharacters(
-      in: .whitespacesAndNewlines
-    )
     return url.isEmpty == false && key.isEmpty == false
   }
 
