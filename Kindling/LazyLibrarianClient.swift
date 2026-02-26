@@ -26,8 +26,6 @@ enum PodibleError: LocalizedError {
   }
 }
 
-typealias LazyLibrarianError = PodibleError
-
 enum PodibleLibraryItemStatus: String, Decodable {
   case requested = "Requested"
   case wanted = "Wanted"
@@ -200,12 +198,12 @@ struct PodibleLibraryItem: Identifiable, Hashable, Decodable {
     bookImagePath = try? container.decodeIfPresent(
       String.self, forKeys: [.bookImageUpper, .bookImageLower])
     if let raw = try? container.decodeIfPresent(String.self, forKey: .bookLibrary) {
-      bookLibrary = LazyLibrarianDateParser.parse(raw)
+      bookLibrary = PodibleDateParser.parse(raw)
     } else {
       bookLibrary = nil
     }
     if let raw = try? container.decodeIfPresent(String.self, forKey: .audioLibrary) {
-      audioLibrary = LazyLibrarianDateParser.parse(raw)
+      audioLibrary = PodibleDateParser.parse(raw)
     } else {
       audioLibrary = nil
     }
@@ -218,8 +216,8 @@ struct PodibleLibraryItem: Identifiable, Hashable, Decodable {
       bookAdded = a
     case (nil, nil):
       if let raw = try? container.decodeIfPresent(String.self, forKey: .bookAdded) {
-        if let parsed = LazyLibrarianDateParser.parse(raw) {
-          bookAdded = LazyLibrarianDateParser.endOfDay(parsed)
+        if let parsed = PodibleDateParser.parse(raw) {
+          bookAdded = PodibleDateParser.endOfDay(parsed)
         } else {
           bookAdded = nil
         }
@@ -266,8 +264,6 @@ private enum PodibleDateParser {
   }
 }
 
-private typealias LazyLibrarianDateParser = PodibleDateParser
-
 extension KeyedDecodingContainer {
   fileprivate func decodeIfPresent(_ type: String.Type, forKeys keys: [Key]) throws -> String {
     for key in keys {
@@ -275,7 +271,7 @@ extension KeyedDecodingContainer {
         return value
       }
     }
-    throw LazyLibrarianError.badResponse
+    throw PodibleError.badResponse
   }
 }
 
@@ -311,11 +307,11 @@ extension PodibleLibraryServing {
   func addLibraryBook(openLibraryKey: String, titleHint: String?, authorHint: String?) async throws
     -> PodibleLibraryItem
   {
-    throw LazyLibrarianError.unsupported("This backend does not support adding library books.")
+    throw PodibleError.unsupported("This backend does not support adding library books.")
   }
 
   func acquireLibraryMedia(bookID: String, library: PodibleLibraryMedia) async throws {
-    throw LazyLibrarianError.unsupported("This backend does not support media acquisition.")
+    throw PodibleError.unsupported("This backend does not support media acquisition.")
   }
 
   func downloadEpub(bookID: String) async throws -> URL {
@@ -331,7 +327,7 @@ extension PodibleLibraryServing {
   }
 
   func reportImportIssue(bookID: String, library: PodibleLibraryMedia) async throws {
-    throw LazyLibrarianError.unsupported(
+    throw PodibleError.unsupported(
       "This backend does not support reporting wrong imported files.")
   }
 }
@@ -341,15 +337,11 @@ enum PodibleLibraryMedia: String {
   case audio = "AudioBook"
 }
 
-typealias LazyLibrarianLibrary = PodibleLibraryMedia
-
 enum PodibleSearchCategory: String {
   case general
   case book
   case audio
 }
-
-typealias LazyLibrarianSearchCategory = PodibleSearchCategory
 
 extension PodibleLibraryMedia {
   var searchCategory: PodibleSearchCategory {
@@ -896,7 +888,7 @@ struct PodibleClient: PodibleLibraryServing {
       params: ["openLibraryKey": openLibraryKey]
     )
     guard let book = response.book else {
-      throw LazyLibrarianError.badResponse
+      throw PodibleError.badResponse
     }
     return toLibraryItem(book)
   }
@@ -1037,7 +1029,7 @@ struct PodibleClient: PodibleLibraryServing {
     let numericBookID = try parseBookID(bookID)
     let assets = try await fetchAssets(bookID: numericBookID)
     guard let asset = assets.first(where: { $0.kind == "ebook" }) else {
-      throw LazyLibrarianError.server("No ebook asset available.")
+      throw PodibleError.server("No ebook asset available.")
     }
     let fallbackFilename: String = {
       if let path = asset.files.first?.path, path.isEmpty == false {
@@ -1057,7 +1049,7 @@ struct PodibleClient: PodibleLibraryServing {
     let numericBookID = try parseBookID(bookID)
     let assets = try await fetchAssets(bookID: numericBookID)
     guard let asset = preferredAudioAsset(from: assets) else {
-      throw LazyLibrarianError.server("No audiobook asset available.")
+      throw PodibleError.server("No audiobook asset available.")
     }
     let ext = asset.streamExt.isEmpty ? "mp3" : asset.streamExt
     let fallbackFilename = "\(bookID)-audio-\(asset.id).\(ext)"
@@ -1104,7 +1096,7 @@ struct PodibleClient: PodibleLibraryServing {
     request.httpMethod = "GET"
     let (data, response) = try await session.data(for: request)
     guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-      throw LazyLibrarianError.server("Failed to fetch backend assets.")
+      throw PodibleError.server("Failed to fetch backend assets.")
     }
     let decoder = JSONDecoder()
     decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -1113,7 +1105,7 @@ struct PodibleClient: PodibleLibraryServing {
 
   private func parseBookID(_ raw: String) throws -> Int {
     guard let value = Int(raw), value > 0 else {
-      throw LazyLibrarianError.badResponse
+      throw PodibleError.badResponse
     }
     return value
   }
@@ -1121,8 +1113,8 @@ struct PodibleClient: PodibleLibraryServing {
   private func toLibraryItem(_ book: PodibleLibraryBook) -> PodibleLibraryItem {
     let ebookStatus = mapPodibleStatus(book.ebookStatus)
     let audioStatus = mapPodibleStatus(book.audioStatus)
-    let addedAt = LazyLibrarianDateParser.parse(book.addedAt)
-    let updatedAt = LazyLibrarianDateParser.parse(book.updatedAt)
+    let addedAt = PodibleDateParser.parse(book.addedAt)
+    let updatedAt = PodibleDateParser.parse(book.updatedAt)
     return PodibleLibraryItem(
       id: String(book.id),
       title: book.title,
@@ -1207,33 +1199,33 @@ struct PodibleClient: PodibleLibraryServing {
   private func authorizedRPCURL() throws -> URL {
     guard var components = URLComponents(url: normalizedRPCURL(), resolvingAgainstBaseURL: false)
     else {
-      throw LazyLibrarianError.badURL
+      throw PodibleError.badURL
     }
     var items = components.queryItems ?? []
     items.append(URLQueryItem(name: "api_key", value: apiKey))
     components.queryItems = items
     guard let url = components.url else {
-      throw LazyLibrarianError.badURL
+      throw PodibleError.badURL
     }
     return url
   }
 
   private func authorizedWebURL(path: String, queryItems: [URLQueryItem] = []) throws -> URL {
     guard let base = URL(string: "/", relativeTo: baseWebURL())?.absoluteURL else {
-      throw LazyLibrarianError.badURL
+      throw PodibleError.badURL
     }
     guard let url = URL(string: path, relativeTo: base)?.absoluteURL else {
-      throw LazyLibrarianError.badURL
+      throw PodibleError.badURL
     }
     guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-      throw LazyLibrarianError.badURL
+      throw PodibleError.badURL
     }
     var items = components.queryItems ?? []
     items.append(URLQueryItem(name: "api_key", value: apiKey))
     items.append(contentsOf: queryItems)
     components.queryItems = items
     guard let final = components.url else {
-      throw LazyLibrarianError.badURL
+      throw PodibleError.badURL
     }
     return final
   }
@@ -1254,17 +1246,17 @@ struct PodibleClient: PodibleLibraryServing {
 
     let (data, response) = try await session.data(for: request)
     guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-      throw LazyLibrarianError.server("Backend returned an error for \(method).")
+      throw PodibleError.server("Backend returned an error for \(method).")
     }
 
     let decoder = JSONDecoder()
     decoder.keyDecodingStrategy = .convertFromSnakeCase
     let envelope = try decoder.decode(PodibleRPCEnvelope<Result>.self, from: data)
     if let error = envelope.error {
-      throw LazyLibrarianError.server(error.message)
+      throw PodibleError.server(error.message)
     }
     guard let result = envelope.result else {
-      throw LazyLibrarianError.badResponse
+      throw PodibleError.badResponse
     }
     return result
   }
@@ -1376,7 +1368,7 @@ struct PodibleClient: PodibleLibraryServing {
           return
         }
         guard let tempURL, let http = task.response as? HTTPURLResponse else {
-          continuation?.resume(throwing: LazyLibrarianError.badResponse)
+          continuation?.resume(throwing: PodibleError.badResponse)
           return
         }
         continuation?.resume(returning: (tempURL, http))
