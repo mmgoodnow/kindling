@@ -28,6 +28,8 @@ struct PodibleLibraryView: View {
   @State private var pendingSearchItemIDs: Set<String> = []
   @State private var searchTask: Task<Void, Never>?
   @State private var isSyncing = false
+  @State private var isSyncSpinnerVisible = false
+  @State private var syncSpinnerTask: Task<Void, Never>?
   @State private var syncErrorMessage: String?
   @State private var localDownloadProgressByBookID: [String: Double] = [:]
   @State private var localDownloadingBookIDs: Set<String> = []
@@ -139,7 +141,7 @@ struct PodibleLibraryView: View {
     .toolbar {
       ToolbarItem {
         Button(action: { startSync(using: client) }) {
-          if isSyncing {
+          if isSyncSpinnerVisible {
             ProgressView()
           } else {
             Image(systemName: "arrow.triangle.2.circlepath")
@@ -367,6 +369,7 @@ struct PodibleLibraryView: View {
   private func syncFromRemote(using client: RemoteLibraryServing) async {
     guard isSyncing == false else { return }
     isSyncing = true
+    scheduleSyncSpinner()
     syncErrorMessage = nil
     do {
       let summary = try await LibrarySyncService().syncLibrary(
@@ -377,7 +380,29 @@ struct PodibleLibraryView: View {
     } catch {
       syncErrorMessage = error.localizedDescription
     }
+    cancelSyncSpinner()
     isSyncing = false
+  }
+
+  @MainActor
+  private func scheduleSyncSpinner() {
+    syncSpinnerTask?.cancel()
+    isSyncSpinnerVisible = false
+    syncSpinnerTask = Task {
+      try? await Task.sleep(nanoseconds: 200_000_000)
+      guard Task.isCancelled == false else { return }
+      await MainActor.run {
+        guard isSyncing else { return }
+        isSyncSpinnerVisible = true
+      }
+    }
+  }
+
+  @MainActor
+  private func cancelSyncSpinner() {
+    syncSpinnerTask?.cancel()
+    syncSpinnerTask = nil
+    isSyncSpinnerVisible = false
   }
 
   @MainActor
