@@ -365,7 +365,7 @@ struct LocalLibraryView: View {
 #if DEBUG
   #Preview {
     NavigationStack {
-      LocalLibraryView(client: PreviewLazyLibrarianClient())
+      LocalLibraryView(client: PreviewPodibleClient())
     }
     .modelContainer(
       for: [
@@ -380,7 +380,7 @@ struct LocalLibraryView: View {
     )
   }
 
-  private struct PreviewLazyLibrarianClient: PodibleLibraryServing {
+  private struct PreviewPodibleClient: PodibleLibraryServing {
     func searchBooks(query: String) async throws -> [PodibleBook] {
       []
     }
@@ -390,7 +390,7 @@ struct LocalLibraryView: View {
       titleHint: String?,
       authorHint: String?
     ) async throws -> PodibleLibraryItem {
-      throw LazyLibrarianError.notConfigured
+      throw PodibleError.notConfigured
     }
 
     func fetchLibraryItems() async throws -> [PodibleLibraryItem] {
@@ -424,7 +424,7 @@ struct LocalLibraryView: View {
 
     func searchItem(
       query: String,
-      cat: LazyLibrarianSearchCategory?,
+      cat: PodibleSearchCategory?,
       bookID: String?
     ) async throws -> [PodibleSearchResult] {
       []
@@ -443,13 +443,13 @@ struct LocalLibraryView: View {
     func downloadEpub(bookID: String, progress: @escaping (Double) -> Void) async throws
       -> URL
     {
-      throw LazyLibrarianError.notConfigured
+      throw PodibleError.notConfigured
     }
 
     func downloadAudiobook(bookID: String, progress: @escaping (Double) -> Void) async throws
       -> URL
     {
-      throw LazyLibrarianError.notConfigured
+      throw PodibleError.notConfigured
     }
   }
 #endif

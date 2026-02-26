@@ -24,7 +24,7 @@ struct CLI {
       let key = env.apiKey,
       let url = URL(string: base)
     else {
-      throw LazyLibrarianError.notConfigured
+      throw PodibleError.notConfigured
     }
     let client = PodibleClient(rpcURL: url, apiKey: key)
 
