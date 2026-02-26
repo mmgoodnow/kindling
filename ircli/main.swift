@@ -26,7 +26,7 @@ struct CLI {
     else {
       throw LazyLibrarianError.notConfigured
     }
-    let client = PodibleKindlingClient(rpcURL: url, apiKey: key)
+    let client = KindlingBackendClient(rpcURL: url, apiKey: key)
 
     switch args[1] {
     case "find":

@@ -1383,3 +1383,5 @@ struct PodibleKindlingClient: LazyLibrarianServing {
     }
   }
 }
+
+typealias KindlingBackendClient = PodibleKindlingClient

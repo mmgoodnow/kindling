@@ -60,7 +60,7 @@ struct LazyLibrarianView: View {
       userSettings.podibleRPCURL.isEmpty == false,
       userSettings.podibleAPIKey.isEmpty == false
     {
-      return PodibleKindlingClient(
+      return KindlingBackendClient(
         rpcURL: url,
         apiKey: userSettings.podibleAPIKey
       )
