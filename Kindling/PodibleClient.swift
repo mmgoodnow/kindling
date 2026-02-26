@@ -758,7 +758,16 @@ private struct PodibleLibraryCreateResult: Decodable {
 }
 
 private struct PodibleLibraryInProgressResult: Decodable {
-  let items: [PodibleLibraryBook]
+  let items: [PodibleLibraryInProgressRow]
+}
+
+private struct PodibleLibraryInProgressRow: Decodable {
+  let bookId: Int
+  let status: String
+  let audioStatus: String
+  let ebookStatus: String
+  let fullPseudoProgress: Double?
+  let updatedAt: String?
 }
 
 private struct PodibleOpenLibrarySearchResult: Decodable {
@@ -980,7 +989,20 @@ struct PodibleClient: PodibleLibraryServing {
       method: "library.inProgress",
       params: params
     )
-    return response.items.map(toLibraryItem(_:))
+    return response.items.map { row in
+      PodibleLibraryItem(
+        id: String(row.bookId),
+        title: "",
+        author: "",
+        status: mapPodibleStatus(row.status),
+        ebookStatus: mapPodibleStatus(row.ebookStatus),
+        audioStatus: mapPodibleStatus(row.audioStatus),
+        bookAdded: nil,
+        updatedAt: row.updatedAt.flatMap(PodibleDateParser.parse),
+        fullPseudoProgress: row.fullPseudoProgress.map { Int($0.rounded()) },
+        bookImagePath: nil
+      )
+    }
   }
 
   func downloadEpub(bookID: String, progress: @escaping (Double) -> Void) async throws -> URL {
