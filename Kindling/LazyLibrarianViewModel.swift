@@ -102,9 +102,16 @@ final class LazyLibrarianViewModel: ObservableObject {
     isLoading = true
     errorMessage = nil
     do {
+      let originalBookID = book.id
       addPendingRequestIfNeeded(for: book)
       let requested = try await client.requestBook(
         id: book.id, titleHint: book.title, authorHint: book.author)
+      if requested.id != originalBookID {
+        if let pending = pendingItemsByID.removeValue(forKey: originalBookID) {
+          pendingItemsByID[requested.id] = pending
+        }
+        libraryItems.removeAll { $0.id == originalBookID }
+      }
       if let pending = pendingItemsByID[requested.id] {
         if requested.bookImagePath != nil {
           pendingItemsByID[requested.id] = requested
@@ -134,7 +141,9 @@ final class LazyLibrarianViewModel: ObservableObject {
       } else {
         libraryItems.append(requested)
       }
-      if let searchIndex = searchResults.firstIndex(where: { $0.id == requested.id }) {
+      if let searchIndex = searchResults.firstIndex(where: {
+        $0.id == originalBookID || $0.id == requested.id
+      }) {
         let updated = LazyLibrarianBook(
           id: requested.id,
           title: requested.title,
