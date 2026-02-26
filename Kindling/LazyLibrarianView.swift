@@ -35,9 +35,9 @@ struct LazyLibrarianView: View {
   @State private var isShowingPlayer = false
   @State private var snatchContext: SnatchContext?
 
-  let clientOverride: RemoteLibraryServing?
+  let clientOverride: PodibleLibraryServing?
 
-  init(client: RemoteLibraryServing? = nil) {
+  init(client: PodibleLibraryServing? = nil) {
     self.clientOverride = client
   }
 
@@ -52,7 +52,7 @@ struct LazyLibrarianView: View {
     let libraries: [LazyLibrarianLibrary]
   }
 
-  private var configuredClient: RemoteLibraryServing? {
+  private var configuredClient: PodibleLibraryServing? {
     if let clientOverride {
       return clientOverride
     }
@@ -94,7 +94,7 @@ struct LazyLibrarianView: View {
   }
 
   @ViewBuilder
-  private func content(client: RemoteLibraryServing?) -> some View {
+  private func content(client: PodibleLibraryServing?) -> some View {
     List {
       if client == nil {
         Text(
@@ -251,7 +251,7 @@ struct LazyLibrarianView: View {
   }
 
   @ViewBuilder
-  private func libraryListing(client: RemoteLibraryServing?) -> some View {
+  private func libraryListing(client: PodibleLibraryServing?) -> some View {
     let remoteItems = viewModel.libraryItems
     let remoteIds = Set(remoteItems.map(\.id))
     let localOnly = localBooks.filter { remoteIds.contains($0.llId) == false }
@@ -285,7 +285,7 @@ struct LazyLibrarianView: View {
   }
 
   @ViewBuilder
-  private func searchListing(query: String, client: RemoteLibraryServing?) -> some View {
+  private func searchListing(query: String, client: PodibleLibraryServing?) -> some View {
     let localMatches = filteredLocalBooks(query: query)
     let localIds = Set(localMatches.map(\.llId))
     let remoteResults = viewModel.searchResults.filter { localIds.contains($0.id) == false }
@@ -319,7 +319,7 @@ struct LazyLibrarianView: View {
     }
   }
 
-  private func startSync(using client: RemoteLibraryServing?) {
+  private func startSync(using client: PodibleLibraryServing?) {
     guard let client else { return }
     guard isSyncing == false else { return }
     Task {
@@ -328,7 +328,7 @@ struct LazyLibrarianView: View {
   }
 
   @MainActor
-  private func syncFromRemote(using client: RemoteLibraryServing) async {
+  private func syncFromRemote(using client: PodibleLibraryServing) async {
     guard isSyncing == false else { return }
     isSyncing = true
     syncErrorMessage = nil
@@ -361,7 +361,7 @@ struct LazyLibrarianView: View {
   }
 
   @MainActor
-  private func refresh(using client: RemoteLibraryServing) async {
+  private func refresh(using client: PodibleLibraryServing) async {
     await syncFromRemote(using: client)
     await viewModel.loadLibraryItems(using: client)
   }
@@ -378,7 +378,7 @@ struct LazyLibrarianView: View {
   private func reportWrongImportedFile(
     bookID: String,
     library: LazyLibrarianLibrary,
-    client: RemoteLibraryServing
+    client: PodibleLibraryServing
   ) async {
     downloadErrorMessage = nil
     do {
@@ -406,7 +406,7 @@ struct LazyLibrarianView: View {
   private func startEbookDownload(
     bookID: String,
     title: String,
-    client: RemoteLibraryServing
+    client: PodibleLibraryServing
   ) async {
     if let cachedURL = cachedEbookURL(title: title) {
       let filename = sanitizeFilename(title).appending(".\(cachedURL.pathExtension)")
@@ -438,7 +438,7 @@ struct LazyLibrarianView: View {
   private func startKindleExport(
     bookID: String,
     title: String,
-    client: RemoteLibraryServing
+    client: PodibleLibraryServing
   ) async {
     if let cachedURL = cachedEbookURL(title: title) {
       let filename = sanitizeFilename(title).appending(".\(cachedURL.pathExtension)")
@@ -476,7 +476,7 @@ struct LazyLibrarianView: View {
   private func startAudiobookDownload(
     bookID: String,
     title: String,
-    client: RemoteLibraryServing
+    client: PodibleLibraryServing
   ) async {
     downloadingBookID = bookID
     downloadKind = .audiobook
@@ -548,7 +548,7 @@ struct LazyLibrarianView: View {
   private func libraryRow(
     _ item: LazyLibrarianLibraryItem,
     localBook: LibraryBook?,
-    client: RemoteLibraryServing?
+    client: PodibleLibraryServing?
   ) -> some View {
     let progress = viewModel.progressForBookID(item.id)
     let isDownloadingThisBook = downloadingBookID == item.id
@@ -600,7 +600,7 @@ struct LazyLibrarianView: View {
   @ViewBuilder
   private func rowControls(
     item: LazyLibrarianLibraryItem,
-    client: RemoteLibraryServing,
+    client: PodibleLibraryServing,
     isDownloadingThisBook: Bool
   ) -> some View {
     let canEbookSearch = viewModel.shouldOfferSearch(status: item.status)
@@ -788,7 +788,7 @@ struct LazyLibrarianView: View {
   private func localAudioControls(
     item: LazyLibrarianLibraryItem,
     localBook: LibraryBook?,
-    client: RemoteLibraryServing?
+    client: PodibleLibraryServing?
   ) -> some View {
     let audioStatus = audioStatus(for: localBook, fallback: item.audioStatus)
     let status = localBook?.files.first?.downloadStatus ?? .notStarted
@@ -823,7 +823,7 @@ struct LazyLibrarianView: View {
   }
 
   @ViewBuilder
-  private func localLibraryRow(_ book: LibraryBook, client: RemoteLibraryServing?) -> some View {
+  private func localLibraryRow(_ book: LibraryBook, client: PodibleLibraryServing?) -> some View {
     let file = book.files.first
     let status = file?.downloadStatus ?? .notStarted
     let progress = localDownloadProgressByBookID[book.llId]
@@ -902,7 +902,7 @@ struct LazyLibrarianView: View {
     for book: LibraryBook,
     status: DownloadStatus,
     audioStatus: LazyLibrarianLibraryItemStatus,
-    client: RemoteLibraryServing?
+    client: PodibleLibraryServing?
   ) -> some View {
     let isDownloading = localDownloadingBookIDs.contains(book.llId)
     let canDownload = audioStatus.isComplete && client != nil
@@ -931,7 +931,7 @@ struct LazyLibrarianView: View {
     for item: LazyLibrarianLibraryItem,
     status: DownloadStatus,
     audioStatus: LazyLibrarianLibraryItemStatus,
-    client: RemoteLibraryServing?
+    client: PodibleLibraryServing?
   ) -> some View {
     let isDownloading = localDownloadingBookIDs.contains(item.id)
     let canDownload = audioStatus.isComplete && client != nil
@@ -975,7 +975,7 @@ struct LazyLibrarianView: View {
   }
 
   @MainActor
-  private func startLocalDownload(for book: LibraryBook, client: RemoteLibraryServing) {
+  private func startLocalDownload(for book: LibraryBook, client: PodibleLibraryServing) {
     guard localDownloadingBookIDs.contains(book.llId) == false else { return }
     localDownloadingBookIDs.insert(book.llId)
     localDownloadProgressByBookID[book.llId] = 0
@@ -1033,7 +1033,7 @@ struct LazyLibrarianView: View {
   }
 
   @MainActor
-  private func startLocalDownload(for item: LazyLibrarianLibraryItem, client: RemoteLibraryServing)
+  private func startLocalDownload(for item: LazyLibrarianLibraryItem, client: PodibleLibraryServing)
   {
     let book = ensureLocalBook(for: item)
     startLocalDownload(for: book, client: client)
@@ -1209,11 +1209,12 @@ struct LazyLibrarianView: View {
 }
 
 typealias RemoteLibraryView = LazyLibrarianView
+typealias PodibleLibraryView = LazyLibrarianView
 
 private struct LazyLibrarianSnatchResultPicker: View {
   let book: LazyLibrarianLibraryItem
   let libraries: [LazyLibrarianLibrary]
-  let client: RemoteLibraryServing
+  let client: PodibleLibraryServing
   let onSnatchComplete: (LazyLibrarianLibrary) async -> Void
 
   @Environment(\.dismiss) private var dismiss
@@ -1227,7 +1228,7 @@ private struct LazyLibrarianSnatchResultPicker: View {
   init(
     book: LazyLibrarianLibraryItem,
     libraries: [LazyLibrarianLibrary],
-    client: RemoteLibraryServing,
+    client: PodibleLibraryServing,
     onSnatchComplete: @escaping (LazyLibrarianLibrary) async -> Void
   ) {
     self.book = book

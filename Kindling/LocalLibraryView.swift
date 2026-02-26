@@ -13,7 +13,7 @@ struct LocalLibraryView: View {
   @Query(filter: #Predicate<LibrarySyncState> { $0.scope == "library" })
   private var syncStates: [LibrarySyncState]
 
-  let client: RemoteLibraryServing
+  let client: PodibleLibraryServing
 
   @State private var isSyncing = false
   @State private var errorMessage: String?
@@ -380,7 +380,7 @@ struct LocalLibraryView: View {
     )
   }
 
-  private struct PreviewLazyLibrarianClient: RemoteLibraryServing {
+  private struct PreviewLazyLibrarianClient: PodibleLibraryServing {
     func searchBooks(query: String) async throws -> [LazyLibrarianBook] {
       []
     }

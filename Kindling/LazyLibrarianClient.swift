@@ -300,6 +300,7 @@ protocol RemoteLibraryServing {
 }
 
 typealias LazyLibrarianServing = RemoteLibraryServing
+typealias PodibleLibraryServing = RemoteLibraryServing
 
 extension RemoteLibraryServing {
   var supportsManualResultSelection: Bool { true }

@@ -17,7 +17,7 @@ struct ContentView: View {
   var body: some View {
     NavigationStack {
       if hasPodibleBackendConfig {
-        RemoteLibraryView()
+        PodibleLibraryView()
           .toolbar {
             ToolbarItem {
               NavigationLink(destination: SettingsView()) {

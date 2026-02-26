@@ -37,7 +37,7 @@ final class LazyLibrarianViewModel: ObservableObject {
     }
   }
 
-  func loadLibraryItems(using client: RemoteLibraryServing) async {
+  func loadLibraryItems(using client: PodibleLibraryServing) async {
     isLoading = true
     errorMessage = nil
     do {
@@ -55,12 +55,12 @@ final class LazyLibrarianViewModel: ObservableObject {
     isLoading = false
   }
 
-  func search(using client: RemoteLibraryServing) async {
+  func search(using client: PodibleLibraryServing) async {
     let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
     await search(using: client, query: trimmed)
   }
 
-  func search(using client: RemoteLibraryServing, query: String) async {
+  func search(using client: PodibleLibraryServing, query: String) async {
     guard query.isEmpty == false else { return }
     if let cached = searchResultsByQuery[query] {
       searchResults = cached
@@ -92,7 +92,7 @@ final class LazyLibrarianViewModel: ObservableObject {
     }
   }
 
-  func request(_ book: LazyLibrarianBook, using client: RemoteLibraryServing) async {
+  func request(_ book: LazyLibrarianBook, using client: PodibleLibraryServing) async {
     isLoading = true
     errorMessage = nil
     do {
@@ -159,7 +159,7 @@ final class LazyLibrarianViewModel: ObservableObject {
     isLoading = false
   }
 
-  func forceSearch(_ book: LazyLibrarianBook, using client: RemoteLibraryServing) async {
+  func forceSearch(_ book: LazyLibrarianBook, using client: PodibleLibraryServing) async {
     isLoading = true
     errorMessage = nil
     do {
@@ -176,13 +176,13 @@ final class LazyLibrarianViewModel: ObservableObject {
   }
 
   func triggerSearch(
-    bookID: String, library: LazyLibrarianLibrary, using client: RemoteLibraryServing
+    bookID: String, library: LazyLibrarianLibrary, using client: PodibleLibraryServing
   ) async {
     await triggerAcquire(bookID: bookID, library: library, using: client)
   }
 
   func triggerAcquire(
-    bookID: String, library: LazyLibrarianLibrary, using client: RemoteLibraryServing
+    bookID: String, library: LazyLibrarianLibrary, using client: PodibleLibraryServing
   ) async {
     guard canTriggerSearch(bookID: bookID, library: library) else { return }
     do {
@@ -260,7 +260,7 @@ final class LazyLibrarianViewModel: ObservableObject {
     }
   }
 
-  private func refreshLibrarySilently(using client: RemoteLibraryServing) async {
+  private func refreshLibrarySilently(using client: PodibleLibraryServing) async {
     do {
       let all = try await client.fetchLibraryItems()
       let filteredAll = filtered(all)
@@ -302,7 +302,7 @@ final class LazyLibrarianViewModel: ObservableObject {
   }
 
   private func startPollingIfNeeded(
-    for items: [LazyLibrarianLibraryItem], client: RemoteLibraryServing
+    for items: [LazyLibrarianLibraryItem], client: PodibleLibraryServing
   ) {
     for item in items
     where shouldShowDownloadProgress(status: item.status, audioStatus: item.audioStatus) {
@@ -310,7 +310,7 @@ final class LazyLibrarianViewModel: ObservableObject {
     }
   }
 
-  private func startPolling(bookID: String, client: RemoteLibraryServing) {
+  private func startPolling(bookID: String, client: PodibleLibraryServing) {
     if let existing = downloadPollingTasks[bookID] {
       existing.cancel()
       downloadPollingTasks[bookID] = nil
@@ -426,3 +426,4 @@ final class LazyLibrarianViewModel: ObservableObject {
 }
 
 typealias RemoteLibraryViewModel = LazyLibrarianViewModel
+typealias PodibleLibraryViewModel = LazyLibrarianViewModel
