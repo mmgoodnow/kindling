@@ -88,7 +88,7 @@ struct LazyLibrarianView: View {
             await viewModel.loadLibraryItems(using: client)
           }
         } else {
-          Text("LazyLibrarian is not configured.")
+          Text("Remote library backend is not configured.")
         }
       }
   }
@@ -263,7 +263,7 @@ struct LazyLibrarianView: View {
         description: Text(
           client == nil
             ? "Add audiobooks to your local library to get started."
-            : "Tap Sync to pull your LazyLibrarian library."
+            : "Tap Sync to pull your remote library."
         )
       )
     } else if remoteItems.isEmpty {

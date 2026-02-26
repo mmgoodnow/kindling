@@ -66,7 +66,7 @@ struct LocalLibraryView: View {
         ContentUnavailableView(
           "No Local Books",
           systemImage: "tray",
-          description: Text("Tap Sync to pull your LazyLibrarian library.")
+          description: Text("Tap Sync to pull your remote library.")
         )
       } else {
         ForEach(books) { book in
@@ -85,7 +85,7 @@ struct LocalLibraryView: View {
           }
         }
         .disabled(isSyncing)
-        .help("Sync from LazyLibrarian")
+        .help("Sync from remote library")
       }
     }
     .onAppear {

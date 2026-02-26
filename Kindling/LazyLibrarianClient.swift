@@ -11,11 +11,11 @@ enum LazyLibrarianError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .notConfigured:
-      return "LazyLibrarian is not configured."
+      return "Remote library backend is not configured."
     case .badURL:
-      return "The LazyLibrarian URL looks invalid."
+      return "The backend URL looks invalid."
     case .badResponse:
-      return "Could not parse LazyLibrarian's response."
+      return "Could not parse the backend response."
     case .server(let message):
       return message
     case .api(let message):

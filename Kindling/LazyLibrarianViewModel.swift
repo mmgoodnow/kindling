@@ -163,7 +163,7 @@ final class LazyLibrarianViewModel: ObservableObject {
     } catch {
       if shouldIgnoreError(error) == false {
         self.errorMessage = error.localizedDescription
-        print("[LazyLibrarian] request error for \(book.id): \(error.localizedDescription)")
+        print("[LibraryBackend] request error for \(book.id): \(error.localizedDescription)")
       }
     }
     isLoading = false
