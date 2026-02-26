@@ -732,6 +732,16 @@ struct PodibleLibraryView: View {
       )
     }
     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+      if let client, client.supportsLibraryDelete {
+        Button(role: .destructive) {
+          pendingRemoteDeleteItem = item
+          isShowingDeleteRemoteBookConfirmation = true
+        } label: {
+          Label("Delete", systemImage: "trash")
+        }
+      }
+    }
   }
 
   @ViewBuilder
@@ -765,8 +775,6 @@ struct PodibleLibraryView: View {
       if item.audioStatus != nil { return .audio }
       return .ebook
     }()
-    let canDeleteRemoteBook = client.supportsLibraryDelete
-
     let controls = HStack(spacing: 8) {
       trailingControlButton(
         label: "Share eBook",
@@ -821,15 +829,6 @@ struct PodibleLibraryView: View {
               client: client
             )
           }
-        }
-      )
-      trailingControlButton(
-        label: "Delete Remote Book",
-        systemName: "trash",
-        isEnabled: canDeleteRemoteBook,
-        action: {
-          pendingRemoteDeleteItem = item
-          isShowingDeleteRemoteBookConfirmation = true
         }
       )
     }
