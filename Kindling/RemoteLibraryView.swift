@@ -37,6 +37,7 @@ struct PodibleLibraryView: View {
   @State private var isShowingPlayer = false
   @State private var isShowingWipeLocalLibraryConfirmation = false
   @State private var isWipingLocalLibrary = false
+  @State private var pendingReportIssueBook: PendingReportIssueBook?
 
   let clientOverride: RemoteLibraryServing?
 
@@ -47,6 +48,11 @@ struct PodibleLibraryView: View {
   private enum DownloadKind {
     case ebook
     case audiobook
+  }
+
+  private struct PendingReportIssueBook {
+    let id: String
+    let title: String
   }
 
   private var configuredClient: RemoteLibraryServing? {
@@ -176,6 +182,32 @@ struct PodibleLibraryView: View {
       Text(
         "Removes local SwiftData library records, sync state, and downloaded local files. The remote podible library is not changed."
       )
+    }
+    .confirmationDialog(
+      "Report Issue",
+      isPresented: Binding(
+        get: { pendingReportIssueBook != nil },
+        set: { isPresented in
+          if isPresented == false {
+            pendingReportIssueBook = nil
+          }
+        }
+      ),
+      titleVisibility: .visible
+    ) {
+      Button("Audio Issue") {
+        submitReportIssue(library: .audio)
+      }
+      Button("eBook Issue") {
+        submitReportIssue(library: .ebook)
+      }
+      Button("Cancel", role: .cancel) {
+        pendingReportIssueBook = nil
+      }
+    } message: {
+      if let pendingReportIssueBook {
+        Text("What kind of issue is wrong for “\(pendingReportIssueBook.title)”?")
+      }
     }
     .onAppear {
       guard let client, isWipingLocalLibrary == false else { return }
@@ -461,6 +493,23 @@ struct PodibleLibraryView: View {
       await viewModel.loadLibraryItems(using: client)
     } catch {
       downloadErrorMessage = error.localizedDescription
+    }
+  }
+
+  @MainActor
+  private func submitReportIssue(library: PodibleLibraryMedia) {
+    guard let pendingReportIssueBook else { return }
+    guard let client = configuredClient, client.supportsImportIssueReporting else {
+      self.pendingReportIssueBook = nil
+      return
+    }
+    self.pendingReportIssueBook = nil
+    Task {
+      await reportWrongImportedFile(
+        bookID: pendingReportIssueBook.id,
+        library: library,
+        client: client
+      )
     }
   }
 
@@ -797,7 +846,6 @@ struct PodibleLibraryView: View {
         isAcquiring: rowIsAcquiring
       )
     }
-    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
       if let client, client.supportsLibraryDelete {
         Button(role: .destructive) {
@@ -807,6 +855,14 @@ struct PodibleLibraryView: View {
         } label: {
           Label("Delete", systemImage: "trash")
         }
+      }
+      if let client, client.supportsImportIssueReporting {
+        Button {
+          pendingReportIssueBook = PendingReportIssueBook(id: item.id, title: item.title)
+        } label: {
+          Label("Report Issue", systemImage: "exclamationmark.triangle")
+        }
+        .tint(.orange)
       }
     }
   }
@@ -837,14 +893,6 @@ struct PodibleLibraryView: View {
       && localFileStatus != .downloading
       && hasRemoteClient
       && isLocalDownloading == false
-    let reportIssueLibrary: PodibleLibraryMedia? = {
-      guard let client, client.supportsImportIssueReporting else { return nil }
-      // Prefer audio because that's the most common recovery path in Kindling, but still
-      // fall back to ebook when a row doesn't expose audio state.
-      if localFileStatus == .completed { return .audio }
-      if item.audioStatus != nil { return .audio }
-      return .ebook
-    }()
     let controls = HStack(spacing: 8) {
       trailingControlButton(
         label: "Share eBook",
@@ -884,22 +932,6 @@ struct PodibleLibraryView: View {
             await startKindleExport(
               bookID: item.id,
               title: item.title,
-              client: client
-            )
-          }
-        }
-      )
-      trailingControlButton(
-        label: "Report Issue",
-        systemName: "exclamationmark.triangle",
-        isEnabled: reportIssueLibrary != nil,
-        action: {
-          guard let reportIssueLibrary else { return }
-          guard let client else { return }
-          Task {
-            await reportWrongImportedFile(
-              bookID: item.id,
-              library: reportIssueLibrary,
               client: client
             )
           }
@@ -1462,16 +1494,12 @@ func remoteLibraryStatusCluster(
   let ebookIncomplete = ebookStatus.isComplete == false
   let audioIncomplete = item.audioStatus?.isComplete == false
   let hasPendingAcquisition = ebookIncomplete || audioIncomplete
-  let showCombinedProgress = (item.fullPseudoProgress ?? 0) > 0
+  let isProgressComplete = (item.fullPseudoProgress ?? 0) >= 100
   let shouldOfferAnySearch = shouldOfferSearch(ebookStatus) || shouldOfferSearch(item.audioStatus)
 
   Group {
-    if hasPendingAcquisition {
-      if showCombinedProgress {
-        EmptyView()
-      } else if shouldOfferAnySearch {
-        remoteLibraryPendingIndicator()
-      }
+    if hasPendingAcquisition, isProgressComplete == false, shouldOfferAnySearch {
+      remoteLibraryPendingIndicator()
     }
   }
 }
@@ -1502,10 +1530,10 @@ func remoteLibraryRowProgressBackground(
     let width = proxy.size.width
     let fillWidth = clamped.map { width * CGFloat($0) / 100.0 } ?? 0
     ZStack(alignment: .leading) {
-      RoundedRectangle(cornerRadius: 10, style: .continuous)
+      Rectangle()
         .fill(.secondary.opacity(isAcquiring ? 0.03 : 0))
       if let clamped, isAcquiring {
-        RoundedRectangle(cornerRadius: 10, style: .continuous)
+        Rectangle()
           .fill(.accent.opacity(0.07))
           .frame(width: fillWidth, alignment: .leading)
           .animation(.easeInOut(duration: 0.5), value: clamped)
@@ -1526,6 +1554,7 @@ func remoteLibraryPendingIndicator() -> some View {
       .font(.caption2)
       .foregroundStyle(.secondary)
   }
+  .padding(4)
 }
 
 @ViewBuilder
