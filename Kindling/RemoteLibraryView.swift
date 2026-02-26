@@ -103,21 +103,6 @@ struct PodibleLibraryView: View {
           .font(.caption)
       }
 
-      if isWipingLocalLibrary == false {
-        if let lastSync {
-          HStack(spacing: 8) {
-            Text("Last sync")
-            Text(lastSync, style: .time)
-              .foregroundStyle(.secondary)
-          }
-          .font(.caption)
-        }
-
-        if let lastSummary {
-          summaryRow(lastSummary)
-        }
-      }
-
       if isWipingLocalLibrary {
         HStack(spacing: 8) {
           ProgressView()
@@ -131,6 +116,20 @@ struct PodibleLibraryView: View {
         } else {
           searchListing(query: trimmedQuery, client: client)
         }
+      }
+
+      if let syncFooterText, isWipingLocalLibrary == false {
+        HStack {
+          Spacer(minLength: 0)
+          Text(syncFooterText)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+          Spacer(minLength: 0)
+        }
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
       }
     }
     #if os(iOS)
@@ -254,6 +253,25 @@ struct PodibleLibraryView: View {
       insertedAuthors: syncState.insertedAuthors,
       updatedAuthors: syncState.updatedAuthors
     )
+  }
+
+  private var syncFooterText: String? {
+    let summary = lastSummary
+    let added = summary.map { $0.insertedBooks + $0.insertedAuthors }
+    let updated = summary.map { $0.updatedBooks + $0.updatedAuthors }
+
+    var parts: [String] = []
+    if let lastSync {
+      let formatter = RelativeDateTimeFormatter()
+      formatter.unitsStyle = .short
+      let relative = formatter.localizedString(for: lastSync, relativeTo: .now)
+      parts.append("Synced \(relative)")
+    }
+    if let added, let updated {
+      parts.append("\(added) added")
+      parts.append("\(updated) updated")
+    }
+    return parts.isEmpty ? nil : parts.joined(separator: "  •  ")
   }
 
   @ViewBuilder
