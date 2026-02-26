@@ -281,7 +281,7 @@ extension KeyedDecodingContainer {
   }
 }
 
-protocol RemoteLibraryServing {
+protocol PodibleLibraryServing {
   var supportsManualResultSelection: Bool { get }
   var supportsImportIssueReporting: Bool { get }
   func searchBooks(query: String) async throws -> [LazyLibrarianBook]
@@ -305,10 +305,10 @@ protocol RemoteLibraryServing {
   func downloadAudiobook(bookID: String, progress: @escaping (Double) -> Void) async throws -> URL
 }
 
-typealias LazyLibrarianServing = RemoteLibraryServing
-typealias PodibleLibraryServing = RemoteLibraryServing
+typealias RemoteLibraryServing = PodibleLibraryServing
+typealias LazyLibrarianServing = PodibleLibraryServing
 
-extension RemoteLibraryServing {
+extension PodibleLibraryServing {
   var supportsManualResultSelection: Bool { true }
   var supportsImportIssueReporting: Bool { false }
 
@@ -599,7 +599,7 @@ struct LazyLibrarianSearchResult: Identifiable, Hashable {
 typealias PodibleSearchResult = LazyLibrarianSearchResult
 
 // Preview/testing helper that simulates LazyLibrarian without network calls.
-final actor LazyLibrarianMockClient: RemoteLibraryServing {
+final actor LazyLibrarianMockClient: PodibleLibraryServing {
   private var libraryItems: [LazyLibrarianLibraryItem] = [
     LazyLibrarianLibraryItem(
       id: "1", title: "Project Hail Mary", author: "Andy Weir", status: .downloaded,
@@ -877,7 +877,7 @@ private struct PodibleAssetFile: Decodable {
   let path: String
 }
 
-struct PodibleClient: RemoteLibraryServing {
+struct PodibleClient: PodibleLibraryServing {
   let rpcURL: URL
   let apiKey: String
   var session: URLSession = .shared
