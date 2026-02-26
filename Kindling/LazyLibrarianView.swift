@@ -629,6 +629,7 @@ struct LazyLibrarianView: View {
       canTriggerEbookSearch: canTriggerEbookSearch,
       canTriggerAudioSearch: canTriggerAudioSearch
     )
+    let canChooseResult = client.backendFlavor == .podible && snatchLibraries.isEmpty == false
     let controls = HStack(spacing: 8) {
       trailingControlButton(
         label: "Download & Export",
@@ -689,6 +690,15 @@ struct LazyLibrarianView: View {
           }
         )
       }
+      if canChooseResult {
+        trailingControlButton(
+          label: "Choose Result",
+          systemName: "list.bullet.rectangle",
+          action: {
+            presentSnatchPicker(for: item, libraries: snatchLibraries)
+          }
+        )
+      }
       if isDownloadingThisBook, let progress = downloadProgress, let kind = downloadKind {
         lazyLibrarianProgressCircle(
           value: Int(progress * 100),
@@ -703,26 +713,22 @@ struct LazyLibrarianView: View {
           systemName: "arrow.clockwise",
           isEnabled: canTriggerRefresh,
           action: {
-            if client.backendFlavor == .podible {
-              Task {
-                if canTriggerEbookSearch {
-                  await viewModel.triggerAcquire(
-                    bookID: item.id,
-                    library: .ebook,
-                    using: client
-                  )
-                }
-                if canTriggerAudioSearch {
-                  await viewModel.triggerAcquire(
-                    bookID: item.id,
-                    library: .audio,
-                    using: client
-                  )
-                }
-                await viewModel.loadLibraryItems(using: client)
+            Task {
+              if canTriggerEbookSearch {
+                await viewModel.triggerAcquire(
+                  bookID: item.id,
+                  library: .ebook,
+                  using: client
+                )
               }
-            } else {
-              presentSnatchPicker(for: item, libraries: snatchLibraries)
+              if canTriggerAudioSearch {
+                await viewModel.triggerAcquire(
+                  bookID: item.id,
+                  library: .audio,
+                  using: client
+                )
+              }
+              await viewModel.loadLibraryItems(using: client)
             }
           }
         )
