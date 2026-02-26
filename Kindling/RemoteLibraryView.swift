@@ -359,7 +359,7 @@ struct PodibleLibraryView: View {
     guard let client else { return }
     guard isSyncing == false else { return }
     Task {
-      await syncFromRemote(using: client)
+      await refresh(using: client)
     }
   }
 
