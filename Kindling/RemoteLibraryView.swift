@@ -821,8 +821,8 @@ struct PodibleLibraryView: View {
     let ebookStatus = item.ebookStatus ?? item.status
     let localEbookStatus = localEbookStatus(for: localBook, fallback: nil)
     let hasEbookAvailable =
-      ebookStatus.isComplete
-      || localEbookStatus?.isComplete == true
+      isImportedMediaStatus(ebookStatus)
+      || isImportedMediaStatus(localEbookStatus)
     let canShareEbook = hasRemoteClient && hasEbookAvailable
     let canKindleExport =
       canShareEbook && userSettings.kindleEmailAddress.isEmpty == false
@@ -832,7 +832,7 @@ struct PodibleLibraryView: View {
     let isLocalDownloading = localDownloadingBookIDs.contains(localBook?.llId ?? item.id)
     let canStartLocalAudioDownload =
       localPlaybackURL == nil
-      && localAudioStatus.isComplete
+      && isImportedMediaStatus(localAudioStatus)
       && localFileStatus != .completed
       && localFileStatus != .downloading
       && hasRemoteClient
@@ -1023,7 +1023,7 @@ struct PodibleLibraryView: View {
     client: RemoteLibraryServing?
   ) -> some View {
     let isDownloading = localDownloadingBookIDs.contains(book.llId)
-    let canDownload = audioStatus.isComplete && client != nil
+    let canDownload = isImportedMediaStatus(audioStatus) && client != nil
     Button(action: {
       guard let client else { return }
       startLocalDownload(for: book, client: client)
@@ -1052,7 +1052,7 @@ struct PodibleLibraryView: View {
     client: RemoteLibraryServing?
   ) -> some View {
     let isDownloading = localDownloadingBookIDs.contains(item.id)
-    let canDownload = audioStatus.isComplete && client != nil
+    let canDownload = isImportedMediaStatus(audioStatus) && client != nil
     Button(action: {
       guard let client else { return }
       startLocalDownload(for: item, client: client)
@@ -1100,7 +1100,7 @@ struct PodibleLibraryView: View {
     downloadErrorMessage = nil
 
     let audioStatus = parseAudioStatus(from: book)
-    guard audioStatus.isComplete else {
+    guard isImportedMediaStatus(audioStatus) else {
       downloadErrorMessage = "Audiobook not ready (AudioStatus: \(audioStatus.rawValue))."
       localDownloadingBookIDs.remove(book.llId)
       localDownloadProgressByBookID[book.llId] = nil
@@ -1182,6 +1182,10 @@ struct PodibleLibraryView: View {
 
   private func parseAudioStatus(from book: LibraryBook) -> PodibleLibraryItemStatus {
     audioStatus(for: book, fallback: nil)
+  }
+
+  private func isImportedMediaStatus(_ status: PodibleLibraryItemStatus?) -> Bool {
+    status == .have
   }
 
   private func playbackURL(for book: LibraryBook) -> URL? {
