@@ -33,6 +33,7 @@ struct PodibleLibraryView: View {
   @State private var localDownloadingBookIDs: Set<String> = []
   @StateObject private var player = AudioPlayerController()
   @State private var isShowingPlayer = false
+  @State private var isShowingWipeLocalLibraryConfirmation = false
 
   let clientOverride: RemoteLibraryServing?
 
@@ -137,6 +138,29 @@ struct PodibleLibraryView: View {
         .disabled(client == nil || isSyncing)
         .help("Sync from backend")
       }
+      ToolbarItem {
+        Button(role: .destructive) {
+          isShowingWipeLocalLibraryConfirmation = true
+        } label: {
+          Image(systemName: "trash")
+        }
+        .disabled(isSyncing || downloadingBookID != nil || localDownloadingBookIDs.isEmpty == false)
+        .help("Wipe local library cache and downloads")
+      }
+    }
+    .confirmationDialog(
+      "Wipe Local Library?",
+      isPresented: $isShowingWipeLocalLibraryConfirmation,
+      titleVisibility: .visible
+    ) {
+      Button("Wipe Local Library", role: .destructive) {
+        wipeLocalLibrary()
+      }
+      Button("Cancel", role: .cancel) {}
+    } message: {
+      Text(
+        "Removes local SwiftData library records, sync state, and downloaded local files. The remote podible library is not changed."
+      )
     }
     .onAppear {
       guard let client else { return }
@@ -500,6 +524,70 @@ struct PodibleLibraryView: View {
         ?? .distantPast
       return lhsDate < rhsDate
     }
+  }
+
+  @MainActor
+  private func wipeLocalLibrary() {
+    player.stop()
+    isShowingPlayer = false
+    isShowingShareSheet = false
+    shareURL = nil
+    isShowingKindleExporter = false
+    kindleExportFile = nil
+    downloadErrorMessage = nil
+    syncErrorMessage = nil
+    localDownloadProgressByBookID.removeAll()
+    localDownloadingBookIDs.removeAll()
+
+    do {
+      try removeLocalLibraryFiles()
+      try deleteLocalLibraryRows()
+      viewModel.downloadProgressByBookID.removeAll()
+      try modelContext.save()
+    } catch {
+      syncErrorMessage = "Failed to wipe local library: \(error.localizedDescription)"
+    }
+  }
+
+  private func deleteLocalLibraryRows() throws {
+    try deleteAll(LibraryBookFile.self)
+    try deleteAll(LocalBookState.self)
+    try deleteAll(LibrarySyncState.self)
+    try deleteAll(LibraryBook.self)
+    try deleteAll(Series.self)
+    try deleteAll(Author.self)
+  }
+
+  private func deleteAll<T: PersistentModel>(_ type: T.Type) throws {
+    let rows = try modelContext.fetch(FetchDescriptor<T>())
+    for row in rows {
+      modelContext.delete(row)
+    }
+  }
+
+  private func removeLocalLibraryFiles() throws {
+    let fm = FileManager.default
+    for url in localLibraryWipeTargets(fileManager: fm) {
+      if fm.fileExists(atPath: url.path) {
+        try fm.removeItem(at: url)
+      }
+    }
+  }
+
+  private func localLibraryWipeTargets(fileManager: FileManager) -> [URL] {
+    var urls: [URL] = []
+    if let appSupport = try? fileManager.url(
+      for: .applicationSupportDirectory,
+      in: .userDomainMask,
+      appropriateFor: nil,
+      create: false
+    ) {
+      urls.append(appSupport.appendingPathComponent("KindlingLibrary", isDirectory: true))
+    }
+    let temp = fileManager.temporaryDirectory
+    urls.append(temp.appendingPathComponent("lazy-librarian", isDirectory: true))
+    urls.append(temp.appendingPathComponent("podible-backend", isDirectory: true))
+    return urls
   }
 
   private func libraryRow(
