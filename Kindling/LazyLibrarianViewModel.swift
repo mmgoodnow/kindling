@@ -104,8 +104,11 @@ final class LazyLibrarianViewModel: ObservableObject {
     do {
       let originalBookID = book.id
       addPendingRequestIfNeeded(for: book)
-      let requested = try await client.requestBook(
-        id: book.id, titleHint: book.title, authorHint: book.author)
+      let requested = try await client.addLibraryBook(
+        openLibraryKey: book.id,
+        titleHint: book.title,
+        authorHint: book.author
+      )
       if requested.id != originalBookID {
         if let pending = pendingItemsByID.removeValue(forKey: originalBookID) {
           pendingItemsByID[requested.id] = pending
@@ -170,8 +173,8 @@ final class LazyLibrarianViewModel: ObservableObject {
     isLoading = true
     errorMessage = nil
     do {
-      try await client.searchBook(id: book.id, library: .ebook)
-      try await client.searchBook(id: book.id, library: .audio)
+      try await client.acquireLibraryMedia(bookID: book.id, library: .ebook)
+      try await client.acquireLibraryMedia(bookID: book.id, library: .audio)
       markSearchTriggered(bookID: book.id, library: .ebook)
       markSearchTriggered(bookID: book.id, library: .audio)
     } catch {
@@ -185,9 +188,15 @@ final class LazyLibrarianViewModel: ObservableObject {
   func triggerSearch(
     bookID: String, library: LazyLibrarianLibrary, using client: LazyLibrarianServing
   ) async {
+    await triggerAcquire(bookID: bookID, library: library, using: client)
+  }
+
+  func triggerAcquire(
+    bookID: String, library: LazyLibrarianLibrary, using client: LazyLibrarianServing
+  ) async {
     guard canTriggerSearch(bookID: bookID, library: library) else { return }
     do {
-      try await client.searchBook(id: bookID, library: library)
+      try await client.acquireLibraryMedia(bookID: bookID, library: library)
       markSearchTriggered(bookID: bookID, library: library)
     } catch {
       if shouldIgnoreError(error) == false {

@@ -706,14 +706,14 @@ struct LazyLibrarianView: View {
             if client.backendFlavor == .podible {
               Task {
                 if canTriggerEbookSearch {
-                  await viewModel.triggerSearch(
+                  await viewModel.triggerAcquire(
                     bookID: item.id,
                     library: .ebook,
                     using: client
                   )
                 }
                 if canTriggerAudioSearch {
-                  await viewModel.triggerSearch(
+                  await viewModel.triggerAcquire(
                     bookID: item.id,
                     library: .audio,
                     using: client

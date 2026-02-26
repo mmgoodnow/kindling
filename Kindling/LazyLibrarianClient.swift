@@ -278,6 +278,9 @@ extension KeyedDecodingContainer {
 protocol LazyLibrarianServing {
   var backendFlavor: LibraryBackendFlavor { get }
   func searchBooks(query: String) async throws -> [LazyLibrarianBook]
+  func addLibraryBook(openLibraryKey: String, titleHint: String?, authorHint: String?) async throws
+    -> LazyLibrarianLibraryItem
+  func acquireLibraryMedia(bookID: String, library: LazyLibrarianLibrary) async throws
   func requestBook(id: String, titleHint: String?, authorHint: String?) async throws
     -> LazyLibrarianLibraryItem
   func fetchLibraryItems() async throws -> [LazyLibrarianLibraryItem]
@@ -307,6 +310,16 @@ enum LibraryBackendFlavor {
 
 extension LazyLibrarianServing {
   var backendFlavor: LibraryBackendFlavor { .lazyLibrarian }
+
+  func addLibraryBook(openLibraryKey: String, titleHint: String?, authorHint: String?) async throws
+    -> LazyLibrarianLibraryItem
+  {
+    try await requestBook(id: openLibraryKey, titleHint: titleHint, authorHint: authorHint)
+  }
+
+  func acquireLibraryMedia(bookID: String, library: LazyLibrarianLibrary) async throws {
+    try await searchBook(id: bookID, library: library)
+  }
 
   func downloadEpub(bookID: String) async throws -> URL {
     try await downloadEpub(bookID: bookID, progress: { _ in })
