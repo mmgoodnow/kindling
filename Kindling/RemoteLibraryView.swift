@@ -490,6 +490,7 @@ struct PodibleLibraryView: View {
     downloadErrorMessage = nil
     do {
       try await client.reportImportIssue(bookID: bookID, library: library)
+      viewModel.watchBookStatus(bookID: bookID, using: client)
       await viewModel.loadLibraryItems(using: client)
     } catch {
       downloadErrorMessage = error.localizedDescription

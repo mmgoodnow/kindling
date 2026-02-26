@@ -277,6 +277,12 @@ final class PodibleLibraryViewModel: ObservableObject {
     markSearchTriggered(bookID: bookID, library: library)
   }
 
+  func watchBookStatus(bookID: String, using client: RemoteLibraryServing) {
+    // Recovery flows can return before the backend has transitioned the book into
+    // an in-progress state; allow a short warmup window before stopping polling.
+    startPolling(bookID: bookID, client: client, initialMissTolerance: 6)
+  }
+
   private func markSearchTriggered(bookID: String, library: PodibleLibraryMedia) {
     lastSearchByKey[SearchCooldownKey(bookID: bookID, library: library)] = .now
   }
@@ -290,7 +296,11 @@ final class PodibleLibraryViewModel: ObservableObject {
     }
   }
 
-  private func startPolling(bookID: String, client: RemoteLibraryServing) {
+  private func startPolling(
+    bookID: String,
+    client: RemoteLibraryServing,
+    initialMissTolerance: Int = 0
+  ) {
     if let existing = downloadPollingTasks[bookID] {
       existing.cancel()
       downloadPollingTasks[bookID] = nil
@@ -311,12 +321,20 @@ final class PodibleLibraryViewModel: ObservableObject {
     downloadPollingTasks[bookID] = Task { [weak self] in
       guard let self else { return }
       let deadline = Date.now.addingTimeInterval(15 * 60)
+      var missesRemaining = initialMissTolerance
       while Task.isCancelled == false, Date.now < deadline {
         do {
           let activeItems = try await client.fetchInProgressLibraryItems(bookIDs: [bookID])
           if let item = activeItems.first(where: { $0.id == bookID }) {
+            missesRemaining = initialMissTolerance
             self.mergeInProgressItem(item, forBookID: bookID)
           } else {
+            if missesRemaining > 0 {
+              missesRemaining -= 1
+              await self.refreshLibrarySilently(using: client)
+              try? await Task.sleep(nanoseconds: self.downloadPollIntervalNanoseconds)
+              continue
+            }
             await self.refreshLibrarySilently(using: client)
             self.downloadProgressByBookID[bookID] = nil
             break
