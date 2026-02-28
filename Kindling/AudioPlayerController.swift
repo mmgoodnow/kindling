@@ -138,7 +138,7 @@ final class AudioPlayerController: ObservableObject {
     chapterLoadTask = Task { [weak self] in
       let chapters = await Self.extractChapters(from: url)
       guard Task.isCancelled == false else { return }
-      await MainActor.run {
+      await MainActor.run { [weak self] in
         self?.chapters = chapters
       }
     }
@@ -149,8 +149,9 @@ final class AudioPlayerController: ObservableObject {
 
     do {
       _ = try await asset.load(.availableChapterLocales)
-      let metadataGroups = try await asset.loadChapterMetadataGroupsBestMatchingPreferredLanguages(
-        Locale.preferredLanguages
+      let metadataGroups = try await loadChapterMetadataGroups(
+        from: asset,
+        preferredLanguages: Locale.preferredLanguages
       )
 
       return metadataGroups.enumerated().compactMap { index, group in
@@ -171,13 +172,29 @@ final class AudioPlayerController: ObservableObject {
     }
   }
 
+  private static func loadChapterMetadataGroups(
+    from asset: AVURLAsset,
+    preferredLanguages: [String]
+  ) async throws -> [AVTimedMetadataGroup] {
+    try await withCheckedThrowingContinuation { continuation in
+      asset.loadChapterMetadataGroups(bestMatchingPreferredLanguages: preferredLanguages) {
+        groups,
+        error in
+        if let error {
+          continuation.resume(throwing: error)
+        } else {
+          continuation.resume(returning: groups ?? [])
+        }
+      }
+    }
+  }
+
   private static func chapterTitle(for group: AVTimedMetadataGroup, index: Int) -> String {
     if let titleItem = AVMetadataItem.metadataItems(
       from: group.items,
       filteredByIdentifier: .commonIdentifierTitle
     ).first,
-      let title = try? titleItem.load(.stringValue),
-      let title,
+      let title = titleItem.stringValue,
       title.isEmpty == false
     {
       return title
