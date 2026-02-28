@@ -201,10 +201,10 @@ struct LocalPlaybackView: View {
     let onExpand: () -> Void
 
     var body: some View {
-      HStack(spacing: 14) {
+      HStack(spacing: 12) {
         Button(action: onExpand) {
-          HStack(spacing: 14) {
-            sharedPlaybackArtwork(size: 44, cornerRadius: 10, player: player)
+          HStack(spacing: 12) {
+            sharedPlaybackArtwork(size: 40, cornerRadius: 9, player: player)
 
             VStack(alignment: .leading, spacing: 3) {
               Text(player.title)
@@ -229,20 +229,20 @@ struct LocalPlaybackView: View {
         } label: {
           Image(systemName: "gobackward.15")
             .font(.title3.weight(.semibold))
-            .frame(width: 34, height: 34)
+            .frame(width: 40, height: 40)
         }
         .buttonStyle(.plain)
 
         Button(action: player.togglePlayback) {
           Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
             .font(.title3.weight(.semibold))
-            .frame(width: 34, height: 34)
+            .frame(width: 40, height: 40)
         }
         .buttonStyle(.plain)
       }
-      .padding(.top, 8)
+      .padding(.top, 6)
       .padding(.horizontal, 16)
-      .padding(.bottom, 10)
+      .padding(.bottom, 8)
       .modifier(MiniPlaybackGlassBarStyle())
     }
   }
