@@ -224,21 +224,13 @@ struct LocalPlaybackView: View {
         .buttonStyle(.plain)
         .contentShape(Rectangle())
 
-        Button {
+        miniPlayerControlButton(systemName: "gobackward.15") {
           player.skip(by: -15)
-        } label: {
-          Image(systemName: "gobackward.15")
-            .font(.title2.weight(.semibold))
-            .frame(width: 48, height: 44)
         }
-        .buttonStyle(.plain)
 
-        Button(action: player.togglePlayback) {
-          Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-            .font(.title2.weight(.semibold))
-            .frame(width: 48, height: 44)
+        miniPlayerControlButton(systemName: player.isPlaying ? "pause.fill" : "play.fill") {
+          player.togglePlayback()
         }
-        .buttonStyle(.plain)
       }
       .padding(.top, 5)
       .padding(.horizontal, 16)
@@ -247,6 +239,24 @@ struct LocalPlaybackView: View {
     }
   }
 #endif
+
+@ViewBuilder
+private func miniPlayerControlButton(
+  systemName: String,
+  action: @escaping () -> Void
+) -> some View {
+  Button(action: action) {
+    Image(systemName: systemName)
+      .font(.system(size: 25, weight: .semibold))
+      .frame(width: 52, height: 44)
+      .contentShape(Rectangle())
+      .background {
+        Color.clear
+          .frame(width: 60, height: 60)
+      }
+  }
+  .buttonStyle(.plain)
+}
 
 private struct MiniPlaybackGlassBarStyle: ViewModifier {
   func body(content: Content) -> some View {
