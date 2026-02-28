@@ -38,6 +38,10 @@ struct PodibleLibraryView: View {
   @State private var isShowingWipeLocalLibraryConfirmation = false
   @State private var isWipingLocalLibrary = false
   @State private var pendingReportIssueBook: PendingReportIssueBook?
+  #if os(iOS)
+    @State private var isBottomSearchPresented = false
+    @FocusState private var isBottomSearchFocused: Bool
+  #endif
 
   let clientOverride: RemoteLibraryServing?
 
@@ -79,11 +83,7 @@ struct PodibleLibraryView: View {
     content(client: configuredClient)
       #if os(iOS)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-          if player.hasLoadedItem {
-            MiniPlaybackBar(player: player) {
-              isShowingPlayer = true
-            }
-          }
+          remoteLibraryBottomControlsBar
         }
       #endif
       .sheet(isPresented: $isShowingPlayer) {
@@ -231,13 +231,15 @@ struct PodibleLibraryView: View {
       guard let client, isWipingLocalLibrary == false else { return }
       await refresh(using: client)
     }
-    .searchable(text: $viewModel.query, prompt: "Search")
-    .onSubmit(of: .search) {
-      guard let client, isWipingLocalLibrary == false else { return }
-      Task {
-        await viewModel.search(using: client)
+    #if os(macOS)
+      .searchable(text: $viewModel.query, prompt: "Search")
+      .onSubmit(of: .search) {
+        guard let client, isWipingLocalLibrary == false else { return }
+        Task {
+          await viewModel.search(using: client)
+        }
       }
-    }
+    #endif
     .onChange(of: viewModel.query) { _, newValue in
       searchTask?.cancel()
       guard isWipingLocalLibrary == false else { return }
@@ -316,6 +318,137 @@ struct PodibleLibraryView: View {
     }
     return parts.isEmpty ? nil : parts.joined(separator: "  •  ")
   }
+
+  #if os(iOS)
+    private var isBottomSearchActive: Bool {
+      if isBottomSearchPresented || isBottomSearchFocused {
+        return true
+      }
+      return viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+    }
+
+    private var shouldShowBottomMiniPlayer: Bool {
+      player.hasLoadedItem && isBottomSearchActive == false
+    }
+
+    @ViewBuilder
+    private var remoteLibraryBottomControlsBar: some View {
+      VStack(spacing: 0) {
+        Divider()
+        HStack(spacing: 12) {
+          if shouldShowBottomMiniPlayer {
+            bottomMiniPlayerPill
+          } else {
+            bottomSearchField
+          }
+
+          Button(action: toggleBottomControlsMode) {
+            Image(systemName: shouldShowBottomMiniPlayer ? "magnifyingglass" : "xmark")
+              .font(.title3.weight(.medium))
+              .foregroundStyle(.primary)
+              .frame(width: 52, height: 52)
+              .background(.thinMaterial, in: Circle())
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel(shouldShowBottomMiniPlayer ? "Show Search" : "Hide Search")
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+        .background(.bar)
+      }
+    }
+
+    private var bottomSearchField: some View {
+      HStack(spacing: 10) {
+        Image(systemName: "magnifyingglass")
+          .foregroundStyle(.secondary)
+        TextField("Search", text: $viewModel.query)
+          .textFieldStyle(.plain)
+          .submitLabel(.search)
+          .focused($isBottomSearchFocused)
+      }
+      .padding(.horizontal, 16)
+      .frame(height: 52)
+      .background(.thinMaterial, in: Capsule())
+      .onSubmit {
+        guard let client = configuredClient, isWipingLocalLibrary == false else { return }
+        Task {
+          await viewModel.search(using: client)
+        }
+      }
+    }
+
+    private var bottomMiniPlayerPill: some View {
+      HStack(spacing: 12) {
+        bottomMiniPlayerArtwork
+
+        VStack(alignment: .leading, spacing: 2) {
+          Text(player.title)
+            .font(.subheadline.weight(.semibold))
+            .lineLimit(1)
+          if player.author.isEmpty == false {
+            Text(player.author)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+              .lineLimit(1)
+          }
+        }
+
+        Spacer(minLength: 0)
+
+        Button(action: player.togglePlayback) {
+          Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+            .font(.headline.weight(.semibold))
+            .frame(width: 36, height: 36)
+        }
+        .buttonStyle(.plain)
+      }
+      .padding(.horizontal, 12)
+      .frame(height: 52)
+      .background(.thinMaterial, in: Capsule())
+      .contentShape(Capsule())
+      .onTapGesture {
+        isShowingPlayer = true
+      }
+    }
+
+    @ViewBuilder
+    private var bottomMiniPlayerArtwork: some View {
+      if let artworkURL = player.artworkURL {
+        KFImage(artworkURL)
+          .placeholder {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+              .fill(.tertiary)
+          }
+          .resizable()
+          .scaledToFill()
+          .frame(width: 40, height: 40)
+          .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+      } else {
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+          .fill(.tertiary)
+          .frame(width: 40, height: 40)
+          .overlay {
+            Image(systemName: "headphones")
+              .font(.subheadline.weight(.semibold))
+              .foregroundStyle(.secondary)
+          }
+      }
+    }
+
+    private func toggleBottomControlsMode() {
+      if shouldShowBottomMiniPlayer {
+        isBottomSearchPresented = true
+        isBottomSearchFocused = true
+      } else {
+        isBottomSearchFocused = false
+        viewModel.query = ""
+        pendingSearchItemIDs.removeAll()
+        isBottomSearchPresented = false
+      }
+    }
+  #endif
 
   @ViewBuilder
   private func summaryRow(_ summary: LibrarySyncService.Summary) -> some View {
