@@ -68,6 +68,20 @@ final class AudioPlayerController: ObservableObject {
     currentTime = 0
   }
 
+  func unload() {
+    stop()
+    resetObservers()
+    player = nil
+    duration = 0
+    title = ""
+    author = ""
+    artworkURL = nil
+  }
+
+  var hasLoadedItem: Bool {
+    player != nil && title.isEmpty == false
+  }
+
   private func attachTimeObserver(to player: AVPlayer) {
     let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
     timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) {

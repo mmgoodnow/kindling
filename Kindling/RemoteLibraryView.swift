@@ -77,6 +77,15 @@ struct PodibleLibraryView: View {
 
   var body: some View {
     content(client: configuredClient)
+      #if os(iOS)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+          if player.hasLoadedItem {
+            MiniPlaybackBar(player: player) {
+              isShowingPlayer = true
+            }
+          }
+        }
+      #endif
       .sheet(isPresented: $isShowingPlayer) {
         LocalPlaybackView(player: player)
       }

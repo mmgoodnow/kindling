@@ -93,6 +93,15 @@ struct LocalLibraryView: View {
         startSync()
       }
     }
+    #if os(iOS)
+      .safeAreaInset(edge: .bottom, spacing: 0) {
+        if player.hasLoadedItem {
+          MiniPlaybackBar(player: player) {
+            isShowingPlayer = true
+          }
+        }
+      }
+    #endif
     .sheet(isPresented: $isShowingPlayer) {
       LocalPlaybackView(player: player)
     }

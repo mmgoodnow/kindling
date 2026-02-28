@@ -5,106 +5,19 @@ struct LocalPlaybackView: View {
   @ObservedObject var player: AudioPlayerController
   @Environment(\.dismiss) private var dismiss
 
-  #if os(iOS)
-    private static let miniDetent = PresentationDetent.height(124)
-    @State private var selectedDetent: PresentationDetent = miniDetent
-  #endif
-
   var body: some View {
     #if os(iOS)
-      playerSheetView
-        .presentationDetents([Self.miniDetent, .large], selection: $selectedDetent)
+      expandedPlayerView(showsDismissButton: true)
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
         .presentationBackground(.ultraThinMaterial)
-        .onDisappear {
-          player.pause()
-        }
     #else
-      macPlayerView
+      expandedPlayerView(showsDismissButton: true)
         .frame(minWidth: 420, minHeight: 560)
-        .onDisappear {
-          player.pause()
-        }
+        .padding(28)
+        .background(macPlayerBackground)
     #endif
   }
-
-  #if os(iOS)
-    private var playerSheetView: some View {
-      Group {
-        if isExpanded {
-          expandedPlayerView(showsDismissButton: true)
-        } else {
-          compactPlayerView
-        }
-      }
-      .animation(.easeInOut(duration: 0.25), value: isExpanded)
-    }
-
-    private var isExpanded: Bool {
-      selectedDetent == .large
-    }
-  #endif
-
-  private var macPlayerView: some View {
-    expandedPlayerView(showsDismissButton: true)
-      .padding(28)
-      .background(macPlayerBackground)
-  }
-
-  #if os(iOS)
-    private var compactPlayerView: some View {
-      VStack(spacing: 10) {
-        HStack(spacing: 14) {
-          artworkThumbnail(size: 52, cornerRadius: 12)
-
-          VStack(alignment: .leading, spacing: 3) {
-            Text(player.title)
-              .font(.subheadline.weight(.semibold))
-              .lineLimit(1)
-            if player.author.isEmpty == false {
-              Text(player.author)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-            }
-          }
-
-          Spacer(minLength: 0)
-
-          Button(action: player.togglePlayback) {
-            Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-              .font(.title3.weight(.semibold))
-              .frame(width: 36, height: 36)
-          }
-          .buttonStyle(.plain)
-
-          Button {
-            dismiss()
-          } label: {
-            Image(systemName: "xmark")
-              .font(.callout.weight(.bold))
-              .foregroundStyle(.secondary)
-              .frame(width: 28, height: 28)
-              .background(.thinMaterial, in: Circle())
-          }
-          .buttonStyle(.plain)
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-          withAnimation(.easeInOut(duration: 0.25)) {
-            selectedDetent = .large
-          }
-        }
-
-        ProgressView(value: playbackFraction)
-          .tint(.primary.opacity(0.55))
-      }
-      .padding(.top, 12)
-      .padding(.horizontal, 16)
-      .padding(.bottom, 14)
-    }
-  #endif
 
   private func expandedPlayerView(showsDismissButton: Bool) -> some View {
     VStack(spacing: 0) {
@@ -138,7 +51,7 @@ struct LocalPlaybackView: View {
 
       Spacer(minLength: 0)
 
-      artworkThumbnail(size: 296, cornerRadius: 24)
+      sharedPlaybackArtwork(size: 296, cornerRadius: 24, player: player)
         .shadow(color: .black.opacity(0.16), radius: 24, y: 10)
 
       VStack(spacing: 8) {
@@ -231,42 +144,6 @@ struct LocalPlaybackView: View {
       .fill(.ultraThinMaterial)
   }
 
-  private func artworkThumbnail(size: CGFloat, cornerRadius: CGFloat) -> some View {
-    Group {
-      if let artworkURL = player.artworkURL {
-        KFImage(artworkURL)
-          .placeholder {
-            artworkPlaceholder(size: size, cornerRadius: cornerRadius)
-          }
-          .resizable()
-          .scaledToFill()
-      } else {
-        artworkPlaceholder(size: size, cornerRadius: cornerRadius)
-      }
-    }
-    .frame(width: size, height: size)
-    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-  }
-
-  private func artworkPlaceholder(size: CGFloat, cornerRadius: CGFloat) -> some View {
-    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-      .fill(
-        LinearGradient(
-          colors: [
-            Color(red: 0.41, green: 0.31, blue: 0.20),
-            Color(red: 0.20, green: 0.16, blue: 0.11),
-          ],
-          startPoint: .topLeading,
-          endPoint: .bottomTrailing
-        )
-      )
-      .overlay {
-        Image(systemName: "books.vertical.fill")
-          .font(.system(size: size * 0.34, weight: .medium))
-          .foregroundStyle(.white.opacity(0.82))
-      }
-  }
-
   private func transportButton(systemName: String, action: @escaping () -> Void) -> some View {
     Button(action: action) {
       Image(systemName: systemName)
@@ -274,23 +151,125 @@ struct LocalPlaybackView: View {
     }
     .buttonStyle(.plain)
   }
+}
 
-  private var playbackFraction: Double {
-    guard player.duration > 0, player.duration.isFinite else { return 0 }
-    return min(max(player.currentTime / player.duration, 0), 1)
-  }
+#if os(iOS)
+  struct MiniPlaybackBar: View {
+    @ObservedObject var player: AudioPlayerController
+    let onExpand: () -> Void
 
-  private func formatTime(_ seconds: Double) -> String {
-    guard seconds.isFinite else { return "--:--" }
-    let total = max(0, Int(seconds))
-    let hours = total / 3600
-    let minutes = (total % 3600) / 60
-    let secs = total % 60
-    if hours > 0 {
-      return String(format: "%d:%02d:%02d", hours, minutes, secs)
+    var body: some View {
+      HStack(spacing: 14) {
+        sharedPlaybackArtwork(size: 52, cornerRadius: 12, player: player)
+
+        VStack(alignment: .leading, spacing: 3) {
+          Text(player.title)
+            .font(.subheadline.weight(.semibold))
+            .lineLimit(1)
+          if player.author.isEmpty == false {
+            Text(player.author)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+              .lineLimit(1)
+          }
+        }
+
+        Spacer(minLength: 0)
+
+        Button(action: player.togglePlayback) {
+          Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+            .font(.title3.weight(.semibold))
+            .frame(width: 36, height: 36)
+        }
+        .buttonStyle(.plain)
+
+        Button {
+          player.unload()
+        } label: {
+          Image(systemName: "xmark")
+            .font(.callout.weight(.bold))
+            .foregroundStyle(.secondary)
+            .frame(width: 28, height: 28)
+            .background(.thinMaterial, in: Circle())
+        }
+        .buttonStyle(.plain)
+      }
+      .padding(.top, 10)
+      .padding(.horizontal, 16)
+      .padding(.bottom, 14)
+      .background(.ultraThinMaterial)
+      .overlay(alignment: .top) {
+        ProgressView(value: playbackFraction(player))
+          .tint(.primary.opacity(0.55))
+          .padding(.horizontal, 16)
+          .padding(.top, 2)
+      }
+      .contentShape(Rectangle())
+      .onTapGesture(perform: onExpand)
     }
-    return String(format: "%d:%02d", minutes, secs)
   }
+#endif
+
+@MainActor
+@ViewBuilder
+private func sharedPlaybackArtwork(
+  size: CGFloat,
+  cornerRadius: CGFloat,
+  player: AudioPlayerController
+)
+  -> some View
+{
+  Group {
+    if let artworkURL = player.artworkURL {
+      KFImage(artworkURL)
+        .placeholder {
+          sharedPlaybackArtworkPlaceholder(size: size, cornerRadius: cornerRadius)
+        }
+        .resizable()
+        .scaledToFill()
+    } else {
+      sharedPlaybackArtworkPlaceholder(size: size, cornerRadius: cornerRadius)
+    }
+  }
+  .frame(width: size, height: size)
+  .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+}
+
+@MainActor
+private func sharedPlaybackArtworkPlaceholder(size: CGFloat, cornerRadius: CGFloat) -> some View {
+  RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+    .fill(
+      LinearGradient(
+        colors: [
+          Color(red: 0.41, green: 0.31, blue: 0.20),
+          Color(red: 0.20, green: 0.16, blue: 0.11),
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+      )
+    )
+    .overlay {
+      Image(systemName: "books.vertical.fill")
+        .font(.system(size: size * 0.34, weight: .medium))
+        .foregroundStyle(.white.opacity(0.82))
+    }
+}
+
+private func playbackFraction(_ player: AudioPlayerController) -> Double {
+  guard player.duration > 0, player.duration.isFinite else { return 0 }
+  return min(max(player.currentTime / player.duration, 0), 1)
+}
+
+private func formatTime(_ seconds: Double) -> String {
+  guard seconds.isFinite else { return "--:--" }
+  let total = max(0, Int(seconds))
+  let hours = total / 3600
+  let minutes = (total % 3600) / 60
+  let secs = total % 60
+  if hours > 0 {
+    return String(format: "%d:%02d:%02d", hours, minutes, secs)
+  }
+  return String(format: "%d:%02d", minutes, secs)
 }
 
 #Preview {
