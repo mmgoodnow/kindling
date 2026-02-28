@@ -201,10 +201,10 @@ struct LocalPlaybackView: View {
     let onExpand: () -> Void
 
     var body: some View {
-      HStack(spacing: 12) {
+      HStack(spacing: 10) {
         Button(action: onExpand) {
-          HStack(spacing: 12) {
-            sharedPlaybackArtwork(size: 40, cornerRadius: 9, player: player)
+          HStack(spacing: 10) {
+            sharedPlaybackArtwork(size: 38, cornerRadius: 8, player: player)
 
             VStack(alignment: .leading, spacing: 3) {
               Text(player.title)
@@ -240,9 +240,9 @@ struct LocalPlaybackView: View {
         }
         .buttonStyle(.plain)
       }
-      .padding(.top, 6)
+      .padding(.top, 5)
       .padding(.horizontal, 16)
-      .padding(.bottom, 8)
+      .padding(.bottom, 6)
       .modifier(MiniPlaybackGlassBarStyle())
     }
   }
