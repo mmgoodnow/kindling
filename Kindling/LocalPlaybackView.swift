@@ -229,14 +229,14 @@ struct LocalPlaybackView: View {
         } label: {
           Image(systemName: "gobackward.15")
             .font(.title3.weight(.semibold))
-            .frame(width: 40, height: 40)
+            .frame(width: 44, height: 44)
         }
         .buttonStyle(.plain)
 
         Button(action: player.togglePlayback) {
           Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
             .font(.title3.weight(.semibold))
-            .frame(width: 40, height: 40)
+            .frame(width: 44, height: 44)
         }
         .buttonStyle(.plain)
       }
