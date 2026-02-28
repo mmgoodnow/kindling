@@ -3,11 +3,10 @@ import SwiftUI
 
 struct LocalPlaybackView: View {
   @ObservedObject var player: AudioPlayerController
-  @Environment(\.dismiss) private var dismiss
 
   var body: some View {
     #if os(iOS)
-      expandedPlayerView(showsDismissButton: true)
+      expandedPlayerView(showsDismissButton: false)
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
         .presentationBackground(.ultraThinMaterial)
@@ -22,17 +21,6 @@ struct LocalPlaybackView: View {
   private func expandedPlayerView(showsDismissButton: Bool) -> some View {
     VStack(spacing: 0) {
       HStack(alignment: .center) {
-        if showsDismissButton {
-          Button {
-            dismiss()
-          } label: {
-            Image(systemName: "chevron.down")
-              .font(.headline.weight(.semibold))
-              .frame(width: 36, height: 36)
-          }
-          .modifier(PlayerGlassCircleButtonStyle())
-        }
-
         Spacer(minLength: 0)
 
         Text("Now Playing")
@@ -40,11 +28,6 @@ struct LocalPlaybackView: View {
           .foregroundStyle(.secondary)
 
         Spacer(minLength: 0)
-
-        if showsDismissButton {
-          Color.clear
-            .frame(width: 36, height: 36)
-        }
       }
       .padding(.bottom, 28)
 
@@ -209,25 +192,6 @@ private struct MiniPlaybackGlassBarStyle: ViewModifier {
     #else
       content
         .background(.ultraThinMaterial)
-    #endif
-  }
-}
-
-private struct PlayerGlassCircleButtonStyle: ViewModifier {
-  func body(content: Content) -> some View {
-    #if os(iOS)
-      if #available(iOS 26.0, *) {
-        content
-          .buttonStyle(.glass)
-      } else {
-        content
-          .buttonStyle(.plain)
-          .background(.thinMaterial, in: Circle())
-      }
-    #else
-      content
-        .buttonStyle(.plain)
-        .background(.thinMaterial, in: Circle())
     #endif
   }
 }
