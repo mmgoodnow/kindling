@@ -99,6 +99,9 @@ struct LocalLibraryView: View {
           MiniPlaybackBar(player: player) {
             isShowingPlayer = true
           }
+          .padding(.horizontal, 24)
+          .padding(.top, 10)
+          .padding(.bottom, 8)
         }
       }
     #endif

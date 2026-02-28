@@ -83,7 +83,7 @@ struct PodibleLibraryView: View {
             MiniPlaybackBar(player: player) {
               isShowingPlayer = true
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 24)
             .padding(.top, 10)
             .padding(.bottom, 8)
           }
