@@ -204,7 +204,7 @@ struct LocalPlaybackView: View {
       HStack(spacing: 14) {
         Button(action: onExpand) {
           HStack(spacing: 14) {
-            sharedPlaybackArtwork(size: 52, cornerRadius: 12, player: player)
+            sharedPlaybackArtwork(size: 44, cornerRadius: 10, player: player)
 
             VStack(alignment: .leading, spacing: 3) {
               Text(player.title)
@@ -224,34 +224,26 @@ struct LocalPlaybackView: View {
         .buttonStyle(.plain)
         .contentShape(Rectangle())
 
-        Button(action: player.togglePlayback) {
-          Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+        Button {
+          player.skip(by: -15)
+        } label: {
+          Image(systemName: "gobackward.15")
             .font(.title3.weight(.semibold))
-            .frame(width: 36, height: 36)
+            .frame(width: 34, height: 34)
         }
         .buttonStyle(.plain)
 
-        Button {
-          player.unload()
-        } label: {
-          Image(systemName: "xmark")
-            .font(.title3.weight(.bold))
-            .foregroundStyle(.secondary)
-            .frame(width: 36, height: 36)
+        Button(action: player.togglePlayback) {
+          Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+            .font(.title3.weight(.semibold))
+            .frame(width: 34, height: 34)
         }
         .buttonStyle(.plain)
-        .modifier(MiniPlaybackCloseButtonStyle())
       }
-      .padding(.top, 10)
+      .padding(.top, 8)
       .padding(.horizontal, 16)
-      .padding(.bottom, 14)
+      .padding(.bottom, 10)
       .modifier(MiniPlaybackGlassBarStyle())
-      .overlay(alignment: .top) {
-        ProgressView(value: playbackFraction(player))
-          .tint(.primary.opacity(0.55))
-          .padding(.horizontal, 16)
-          .padding(.top, 2)
-      }
     }
   }
 #endif
@@ -271,23 +263,6 @@ private struct MiniPlaybackGlassBarStyle: ViewModifier {
     #else
       content
         .background(.ultraThinMaterial)
-    #endif
-  }
-}
-
-private struct MiniPlaybackCloseButtonStyle: ViewModifier {
-  func body(content: Content) -> some View {
-    #if os(iOS)
-      if #available(iOS 26.0, *) {
-        content
-          .glassEffect(in: Circle())
-      } else {
-        content
-          .background(.thinMaterial, in: Circle())
-      }
-    #else
-      content
-        .background(.thinMaterial, in: Circle())
     #endif
   }
 }
@@ -335,11 +310,6 @@ private func sharedPlaybackArtworkPlaceholder(size: CGFloat, cornerRadius: CGFlo
         .font(.system(size: size * 0.34, weight: .medium))
         .foregroundStyle(.white.opacity(0.82))
     }
-}
-
-private func playbackFraction(_ player: AudioPlayerController) -> Double {
-  guard player.duration > 0, player.duration.isFinite else { return 0 }
-  return min(max(player.currentTime / player.duration, 0), 1)
 }
 
 private func formatTime(_ seconds: Double) -> String {
