@@ -76,7 +76,7 @@ struct LocalPlaybackView: View {
   }
 
   private var expandedPlayerControls: some View {
-    VStack(spacing: 16) {
+    VStack(spacing: 10) {
       playbackProgressSection
 
       HStack(spacing: 12) {
@@ -104,9 +104,9 @@ struct LocalPlaybackView: View {
       }
       .foregroundStyle(.accent)
     }
-    .padding(.horizontal, 24)
+    .padding(.horizontal, 14)
     .padding(.top, 14)
-    .padding(.bottom, 16)
+    .padding(.bottom, 14)
     .modifier(ExpandedPlayerControlsGlassStyle())
   }
 
@@ -639,7 +639,7 @@ private struct ExpandedPlayerControlsGlassStyle: ViewModifier {
       if #available(iOS 26.0, *) {
         GlassEffectContainer {
           content
-            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .glassEffect(in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         }
       } else {
         content
