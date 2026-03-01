@@ -76,6 +76,8 @@ struct LocalPlaybackView: View {
       }
       .padding(.horizontal, 24)
       .padding(.top, 28)
+      .padding(.vertical, 18)
+      .modifier(ExpandedPlayerControlsGlassStyle())
     }
     .padding(.bottom, 28)
     .background(expandedPlayerBackground)
@@ -616,6 +618,31 @@ private struct MiniPlaybackGlassBarStyle: ViewModifier {
     #else
       content
         .background(.ultraThinMaterial)
+    #endif
+  }
+}
+
+private struct ExpandedPlayerControlsGlassStyle: ViewModifier {
+  func body(content: Content) -> some View {
+    #if os(iOS)
+      if #available(iOS 26.0, *) {
+        GlassEffectContainer {
+          content
+            .glassEffect(in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        }
+      } else {
+        content
+          .background(
+            .ultraThinMaterial,
+            in: RoundedRectangle(cornerRadius: 28, style: .continuous)
+          )
+      }
+    #else
+      content
+        .background(
+          .ultraThinMaterial,
+          in: RoundedRectangle(cornerRadius: 28, style: .continuous)
+        )
     #endif
   }
 }
