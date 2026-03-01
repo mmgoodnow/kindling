@@ -40,8 +40,8 @@ struct LocalPlaybackView: View {
             }
           }
           .frame(maxWidth: .infinity)
-          .padding(.horizontal, 24)
-          .padding(.top, 28)
+          .padding(.horizontal, 12)
+          .padding(.top, 8)
           .padding(.bottom, floatingControlsReservedHeight)
         }
 
