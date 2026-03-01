@@ -271,7 +271,7 @@ struct LocalPlaybackView: View {
 
       VStack(alignment: .leading, spacing: 8) {
         if let currentChapter {
-          Text(currentChapter.title)
+          Text("\(currentChapter.title) • Book: \(bookProgressPercent)%")
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(.secondary)
             .lineLimit(1)
@@ -424,6 +424,12 @@ struct LocalPlaybackView: View {
   private var currentChapterProgress: Double {
     let duration = max(currentChapterDuration, 1)
     return min(max(currentChapterElapsed / duration, 0), 1)
+  }
+
+  private var bookProgressPercent: Int {
+    let totalDuration = max(player.duration, 1)
+    let percent = (currentPlaybackTime / totalDuration) * 100
+    return Int(percent.rounded())
   }
 
   private func clampToPlaybackBounds(_ time: Double) -> Double {
