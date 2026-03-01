@@ -41,9 +41,6 @@ struct LocalPlaybackView: View {
         .frame(maxWidth: .infinity)
         .padding(.top, 28)
       }
-      .overlay(alignment: .bottom) {
-        scrollViewportBottomFade
-      }
       VStack(spacing: 24) {
         playbackProgressSection
 
@@ -77,6 +74,10 @@ struct LocalPlaybackView: View {
     .padding(.horizontal, 24)
     .padding(.bottom, 28)
     .background(expandedPlayerBackground)
+    .overlay(alignment: .bottom) {
+      scrollViewportBottomFade
+        .padding(.bottom, 164)
+    }
   }
 
   private var scrollViewportBottomFade: some View {
