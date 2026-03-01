@@ -381,7 +381,7 @@ struct LocalPlaybackView: View {
     if index == currentChapterIndex {
       return .primary
     }
-    return Color.primary.opacity(index < currentChapterIndex ? 0.18 : 0.10)
+    return Color.primary.opacity(index < currentChapterIndex ? 0.34 : 0.10)
   }
 
   private func chapterSegmentWidth(
