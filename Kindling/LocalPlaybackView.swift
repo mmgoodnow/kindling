@@ -40,6 +40,7 @@ struct LocalPlaybackView: View {
             }
           }
           .frame(maxWidth: .infinity)
+          .padding(.horizontal, 24)
           .padding(.top, 28)
         }
 
@@ -73,9 +74,9 @@ struct LocalPlaybackView: View {
         }
         .foregroundStyle(.accent)
       }
+      .padding(.horizontal, 24)
       .padding(.top, 28)
     }
-    .padding(.horizontal, 24)
     .padding(.bottom, 28)
     .background(expandedPlayerBackground)
   }
