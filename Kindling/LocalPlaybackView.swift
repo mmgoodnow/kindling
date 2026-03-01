@@ -45,24 +45,24 @@ struct LocalPlaybackView: View {
       VStack(spacing: 24) {
         playbackProgressSection
 
-        HStack(spacing: 26) {
+        HStack(spacing: 12) {
           #if os(iOS)
             AirPlayRouteButton()
-              .frame(width: 84, height: 84)
+              .frame(width: 52, height: 52)
           #endif
 
-          transportButton(systemName: "gobackward.15", size: 84, iconFont: .title) {
+          transportButton(systemName: "gobackward.15", size: 60, iconFont: .title2) {
             player.skip(by: -15)
           }
 
           Button(action: player.togglePlayback) {
             Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-              .font(.system(size: 70, weight: .regular))
-              .frame(width: 88, height: 88)
+              .font(.system(size: 54, weight: .regular))
+              .frame(width: 68, height: 68)
           }
           .buttonStyle(.plain)
 
-          transportButton(systemName: "goforward.30", size: 84, iconFont: .title) {
+          transportButton(systemName: "goforward.30", size: 60, iconFont: .title2) {
             player.skip(by: 30)
           }
 
@@ -198,9 +198,9 @@ struct LocalPlaybackView: View {
       isShowingPlaybackSpeedPicker = true
     } label: {
       Text(formatPlaybackRate(player.playbackRate))
-        .font(.title3.weight(.semibold))
+        .font(.headline.weight(.semibold))
         .monospacedDigit()
-        .frame(width: 84, height: 84)
+        .frame(width: 52, height: 52)
     }
     .buttonStyle(.plain)
   }
@@ -498,7 +498,10 @@ struct LocalPlaybackView: View {
       return view
     }
 
-    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
+    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {
+      uiView.activeTintColor = UIColor.label
+      uiView.tintColor = UIColor.label
+    }
   }
 #endif
 
