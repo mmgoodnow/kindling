@@ -323,10 +323,10 @@ struct LocalPlaybackView: View {
 
       ZStack(alignment: .leading) {
         Capsule(style: .continuous)
-          .fill(Color.primary.opacity(0.12))
+          .fill(Color.accentColor.opacity(0.14))
 
         Capsule(style: .continuous)
-          .fill(Color.primary)
+          .fill(Color.accentColor)
           .frame(width: max(proxy.size.width * progress, 10))
       }
       .frame(height: 8)
@@ -449,11 +449,11 @@ struct LocalPlaybackView: View {
   }
 
   private func chapterSegmentColor(for index: Int) -> Color {
-    guard let currentChapterIndex else { return Color.primary.opacity(0.14) }
+    guard let currentChapterIndex else { return Color.accentColor.opacity(0.14) }
     if index == currentChapterIndex {
-      return .primary
+      return .accentColor
     }
-    return Color.primary.opacity(index < currentChapterIndex ? 0.34 : 0.10)
+    return Color.accentColor.opacity(index < currentChapterIndex ? 0.34 : 0.10)
   }
 
   private func chapterSegmentWidth(
