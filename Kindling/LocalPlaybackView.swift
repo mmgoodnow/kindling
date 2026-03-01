@@ -639,7 +639,7 @@ private struct ExpandedPlayerControlsGlassStyle: ViewModifier {
       if #available(iOS 26.0, *) {
         GlassEffectContainer {
           content
-            .glassEffect(in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         }
       } else {
         content
