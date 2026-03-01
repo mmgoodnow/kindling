@@ -18,6 +18,7 @@ final class AudioPlayerController: ObservableObject {
   @Published var artworkURL: URL?
   @Published var chapters: [Chapter] = []
   @Published var playbackRate: Double = 1.0
+  @Published private(set) var seekHistory: [Double] = []
 
   private var player: AVPlayer?
   private var timeObserver: Any?
@@ -41,6 +42,7 @@ final class AudioPlayerController: ObservableObject {
     self.duration = 0
     self.isPlaying = false
     self.chapters = []
+    self.seekHistory = []
 
     #if os(iOS)
       let session = AVAudioSession.sharedInstance()
@@ -82,8 +84,11 @@ final class AudioPlayerController: ObservableObject {
     }
   }
 
-  func seek(to seconds: Double) {
+  func seek(to seconds: Double, recordHistory: Bool = true) {
     let clampedSeconds = min(max(seconds, 0), max(duration, 0))
+    if recordHistory {
+      rememberSeekOrigin(currentTime)
+    }
     currentTime = clampedSeconds
 
     let time = CMTime(seconds: clampedSeconds, preferredTimescale: 1_000)
@@ -94,6 +99,15 @@ final class AudioPlayerController: ObservableObject {
   func skip(by seconds: Double) {
     let target = max(0, currentTime + seconds)
     seek(to: target)
+  }
+
+  func rememberCurrentPositionForSeek() {
+    rememberSeekOrigin(currentTime)
+  }
+
+  func restorePreviousSeek() {
+    guard let previousTime = seekHistory.popLast() else { return }
+    seek(to: previousTime, recordHistory: false)
   }
 
   func stop() {
@@ -114,10 +128,15 @@ final class AudioPlayerController: ObservableObject {
     bookDescription = ""
     artworkURL = nil
     chapters = []
+    seekHistory = []
   }
 
   var hasLoadedItem: Bool {
     player != nil && title.isEmpty == false
+  }
+
+  var canRestorePreviousSeek: Bool {
+    seekHistory.isEmpty == false
   }
 
   private func attachTimeObserver(to player: AVPlayer) {
@@ -155,6 +174,12 @@ final class AudioPlayerController: ObservableObject {
       NotificationCenter.default.removeObserver(endObserver)
       self.endObserver = nil
     }
+  }
+
+  private func rememberSeekOrigin(_ seconds: Double) {
+    let normalized = min(max(seconds, 0), max(duration, 0))
+    guard seekHistory.last.map({ abs($0 - normalized) < 0.25 }) != true else { return }
+    seekHistory.append(normalized)
   }
 
   private func loadChapters(from url: URL) {

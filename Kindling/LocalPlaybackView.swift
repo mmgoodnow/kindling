@@ -312,7 +312,19 @@ struct LocalPlaybackView: View {
             .multilineTextAlignment(.center)
         }
 
-        chapterScrubBar
+        HStack(spacing: 8) {
+          chapterScrubBar
+
+          Button(action: player.restorePreviousSeek) {
+            Image(systemName: "arrow.counterclockwise")
+              .font(.subheadline.weight(.semibold))
+              .frame(width: 28, height: 28)
+          }
+          .buttonStyle(.plain)
+          .foregroundStyle(.accent)
+          .opacity(player.canRestorePreviousSeek ? 1 : 0.35)
+          .disabled(player.canRestorePreviousSeek == false)
+        }
 
         HStack {
           Text(formatTime(currentChapterElapsed))
@@ -372,6 +384,7 @@ struct LocalPlaybackView: View {
             if chapterScrubOriginTime == nil {
               chapterScrubOriginTime = currentPlaybackTime
               chapterScrubOriginDuration = max(currentChapterDuration, 1)
+              player.rememberCurrentPositionForSeek()
             }
 
             let width = max(proxy.size.width, 1)
@@ -386,12 +399,12 @@ struct LocalPlaybackView: View {
             let now = Date().timeIntervalSinceReferenceDate
             if now - chapterScrubLastSeekTimestamp >= (1.0 / 30.0) {
               chapterScrubLastSeekTimestamp = now
-              player.seek(to: candidateTime)
+              player.seek(to: candidateTime, recordHistory: false)
             }
           }
           .onEnded { _ in
             if let chapterScrubPreviewTime {
-              player.seek(to: chapterScrubPreviewTime)
+              player.seek(to: chapterScrubPreviewTime, recordHistory: false)
             }
             chapterScrubOriginTime = nil
             chapterScrubOriginDuration = nil
