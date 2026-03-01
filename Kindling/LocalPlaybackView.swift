@@ -43,20 +43,23 @@ struct LocalPlaybackView: View {
       VStack(spacing: 24) {
         playbackProgressSection
 
-        HStack(spacing: 36) {
-          transportButton(systemName: "gobackward.15", size: 72, iconFont: .title2) {
+        HStack(spacing: 26) {
+          transportButton(systemName: "gobackward.15", size: 84, iconFont: .title) {
             player.skip(by: -15)
           }
 
           Button(action: player.togglePlayback) {
             Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-              .font(.system(size: 88))
+              .font(.system(size: 70, weight: .regular))
+              .frame(width: 88, height: 88)
           }
           .buttonStyle(.plain)
 
-          transportButton(systemName: "goforward.30", size: 72, iconFont: .title2) {
+          transportButton(systemName: "goforward.30", size: 84, iconFont: .title) {
             player.skip(by: 30)
           }
+
+          playbackSpeedButton
         }
       }
       .padding(.top, 28)
@@ -147,6 +150,28 @@ struct LocalPlaybackView: View {
       Image(systemName: systemName)
         .font(iconFont.weight(.semibold))
         .frame(width: size, height: size)
+    }
+    .buttonStyle(.plain)
+  }
+
+  private var playbackSpeedButton: some View {
+    Menu {
+      ForEach([0.8, 1.0, 1.25, 1.5, 1.75, 2.0], id: \.self) { rate in
+        Button {
+          player.setPlaybackRate(rate)
+        } label: {
+          if rate == player.playbackRate {
+            Label(formatPlaybackRate(rate), systemImage: "checkmark")
+          } else {
+            Text(formatPlaybackRate(rate))
+          }
+        }
+      }
+    } label: {
+      Text(formatPlaybackRate(player.playbackRate))
+        .font(.title3.weight(.semibold))
+        .monospacedDigit()
+        .frame(width: 84, height: 84)
     }
     .buttonStyle(.plain)
   }
@@ -576,6 +601,17 @@ private func formatTime(_ seconds: Double) -> String {
     return String(format: "%d:%02d:%02d", hours, minutes, secs)
   }
   return String(format: "%d:%02d", minutes, secs)
+}
+
+private func formatPlaybackRate(_ rate: Double) -> String {
+  let roundedRate = (rate * 100).rounded() / 100
+  if roundedRate.rounded() == roundedRate {
+    return String(format: "%.0fx", roundedRate)
+  }
+  if (roundedRate * 10).rounded() == roundedRate * 10 {
+    return String(format: "%.1fx", roundedRate)
+  }
+  return String(format: "%.2fx", roundedRate)
 }
 
 #Preview {

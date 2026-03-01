@@ -16,6 +16,7 @@ final class AudioPlayerController: ObservableObject {
   @Published var author: String = ""
   @Published var artworkURL: URL?
   @Published var chapters: [Chapter] = []
+  @Published var playbackRate: Double = 1.0
 
   private var player: AVPlayer?
   private var timeObserver: Any?
@@ -48,6 +49,7 @@ final class AudioPlayerController: ObservableObject {
 
   func play() {
     player?.play()
+    player?.rate = Float(playbackRate)
     isPlaying = true
   }
 
@@ -61,6 +63,14 @@ final class AudioPlayerController: ObservableObject {
       pause()
     } else {
       play()
+    }
+  }
+
+  func setPlaybackRate(_ rate: Double) {
+    let clampedRate = min(max(rate, 0.5), 3.0)
+    playbackRate = clampedRate
+    if isPlaying {
+      player?.rate = Float(clampedRate)
     }
   }
 
