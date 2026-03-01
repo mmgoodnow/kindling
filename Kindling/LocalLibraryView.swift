@@ -13,7 +13,7 @@ struct LocalLibraryView: View {
   @Query(filter: #Predicate<LibrarySyncState> { $0.scope == "library" })
   private var syncStates: [LibrarySyncState]
 
-  let client: LazyLibrarianServing
+  let client: RemoteLibraryServing
 
   @State private var isSyncing = false
   @State private var errorMessage: String?
@@ -66,7 +66,7 @@ struct LocalLibraryView: View {
         ContentUnavailableView(
           "No Local Books",
           systemImage: "tray",
-          description: Text("Tap Sync to pull your LazyLibrarian library.")
+          description: Text("Tap Sync to pull your remote library.")
         )
       } else {
         ForEach(books) { book in
@@ -85,7 +85,7 @@ struct LocalLibraryView: View {
           }
         }
         .disabled(isSyncing)
-        .help("Sync from LazyLibrarian")
+        .help("Sync from remote library")
       }
     }
     .onAppear {
@@ -93,6 +93,18 @@ struct LocalLibraryView: View {
         startSync()
       }
     }
+    #if os(iOS)
+      .safeAreaInset(edge: .bottom, spacing: 0) {
+        if player.hasLoadedItem {
+          MiniPlaybackBar(player: player) {
+            isShowingPlayer = true
+          }
+          .padding(.horizontal, 24)
+          .padding(.top, 10)
+          .padding(.bottom, 8)
+        }
+      }
+    #endif
     .sheet(isPresented: $isShowingPlayer) {
       LocalPlaybackView(player: player)
     }
@@ -172,7 +184,7 @@ struct LocalLibraryView: View {
   private func statusLine(
     status: DownloadStatus,
     progress: Double?,
-    audioStatus: LazyLibrarianLibraryItemStatus
+    audioStatus: PodibleLibraryItemStatus
   ) -> some View {
     HStack(spacing: 6) {
       Text(statusLabel(for: status))
@@ -205,7 +217,7 @@ struct LocalLibraryView: View {
   private func downloadButton(
     for book: LibraryBook,
     status: DownloadStatus,
-    audioStatus: LazyLibrarianLibraryItemStatus
+    audioStatus: PodibleLibraryItemStatus
   ) -> some View {
     let isDownloading = downloadingBookIDs.contains(book.llId)
     let canDownload = audioStatus.isComplete
@@ -296,7 +308,14 @@ struct LocalLibraryView: View {
     let localState = ensureLocalState(for: book)
     localState.lastPlayedAt = Date()
     try? modelContext.save()
-    player.load(url: url, title: book.title)
+    player.load(
+      url: url,
+      bookID: book.llId,
+      title: book.title,
+      author: book.author?.name,
+      description: book.summary,
+      artworkURL: book.coverURLString.flatMap(URL.init(string:))
+    )
     player.play()
     isShowingPlayer = true
   }
@@ -323,9 +342,9 @@ struct LocalLibraryView: View {
     }
   }
 
-  private func parseAudioStatus(from book: LibraryBook) -> LazyLibrarianLibraryItemStatus {
+  private func parseAudioStatus(from book: LibraryBook) -> PodibleLibraryItemStatus {
     guard let raw = book.audioStatusRaw else { return .unknown }
-    return LazyLibrarianLibraryItemStatus(rawValue: raw) ?? .unknown
+    return PodibleLibraryItemStatus(rawValue: raw) ?? .unknown
   }
 
   private func ensureFileRecord(for book: LibraryBook) -> LibraryBookFile {
@@ -365,7 +384,7 @@ struct LocalLibraryView: View {
 #if DEBUG
   #Preview {
     NavigationStack {
-      LocalLibraryView(client: PreviewLazyLibrarianClient())
+      LocalLibraryView(client: PreviewPodibleClient())
     }
     .modelContainer(
       for: [
@@ -380,76 +399,60 @@ struct LocalLibraryView: View {
     )
   }
 
-  private struct PreviewLazyLibrarianClient: LazyLibrarianServing {
-    func searchBooks(query: String) async throws -> [LazyLibrarianBook] {
+  private struct PreviewPodibleClient: RemoteLibraryServing {
+    func searchBooks(query: String) async throws -> [PodibleBook] {
       []
     }
 
-    func requestBook(id: String, titleHint: String?, authorHint: String?) async throws
-      -> LazyLibrarianLibraryItem
-    {
-      throw LazyLibrarianError.notConfigured
+    func addLibraryBook(
+      openLibraryKey: String,
+      titleHint: String?,
+      authorHint: String?
+    ) async throws -> PodibleLibraryItem {
+      throw PodibleError.notConfigured
     }
 
-    func fetchLibraryItems() async throws -> [LazyLibrarianLibraryItem] {
+    func fetchLibraryItems() async throws -> [PodibleLibraryItem] {
       [
-        LazyLibrarianLibraryItem(
+        PodibleLibraryItem(
           id: "demo-1",
           title: "The Left Hand of Darkness",
           author: "Ursula K. Le Guin",
           status: .downloaded,
           audioStatus: .downloaded,
           bookAdded: Date().addingTimeInterval(-86400),
-          bookLibrary: Date().addingTimeInterval(-86400),
-          audioLibrary: Date().addingTimeInterval(-86400),
+          updatedAt: Date().addingTimeInterval(-86400),
           bookImagePath: nil
         ),
-        LazyLibrarianLibraryItem(
+        PodibleLibraryItem(
           id: "demo-2",
           title: "Ancillary Justice",
           author: "Ann Leckie",
           status: .downloaded,
           audioStatus: .downloaded,
           bookAdded: Date().addingTimeInterval(-172800),
-          bookLibrary: Date().addingTimeInterval(-172800),
-          audioLibrary: Date().addingTimeInterval(-172800),
+          updatedAt: Date().addingTimeInterval(-172800),
           bookImagePath: nil
         ),
       ]
     }
 
-    func fetchBookCovers(wait: Bool) async throws {}
+    func acquireLibraryMedia(bookID: String, library: PodibleLibraryMedia) async throws {}
 
-    func searchBook(id: String, library: LazyLibrarianLibrary) async throws {}
-
-    func searchItem(
-      query: String,
-      cat: LazyLibrarianSearchCategory?,
-      bookID: String?
-    ) async throws -> [LazyLibrarianSearchResult] {
-      []
-    }
-
-    func snatchResult(
-      bookID: String,
-      library: LazyLibrarianLibrary,
-      result: LazyLibrarianSearchResult
-    ) async throws {}
-
-    func fetchDownloadProgress(limit: Int?) async throws -> [LazyLibrarianDownloadProgressItem] {
+    func fetchDownloadProgress(limit: Int?) async throws -> [PodibleDownloadProgressItem] {
       []
     }
 
     func downloadEpub(bookID: String, progress: @escaping (Double) -> Void) async throws
       -> URL
     {
-      throw LazyLibrarianError.notConfigured
+      throw PodibleError.notConfigured
     }
 
     func downloadAudiobook(bookID: String, progress: @escaping (Double) -> Void) async throws
       -> URL
     {
-      throw LazyLibrarianError.notConfigured
+      throw PodibleError.notConfigured
     }
   }
 #endif

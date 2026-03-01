@@ -1,7 +1,7 @@
 ## Build Instructions
-- Build and run after changes with: `xcodebuild -project Kindling.xcodeproj -scheme Kindling -destination 'platform=macOS' build`.
-- Always escalate permissions when running `xcodebuild` (requires access to Xcode caches/DerivedData).
-- Run `make run` after every change.
-- When working on code that interacts with the LazyLibrarian API, test with `./llapi` (example: `./llapi cmd=getAllBooks`).
-- Commit early and often.
+- When working on the macOS app, use Xcode as the run surface: build and launch the Mac app from Xcode, and prefer AppleScript automation to trigger Run/hide Xcode instead of only using `xcodebuild`.
+- When working on the iOS app, switch the active Xcode run destination to `Fermat` and use Xcode as the run surface: trigger a fresh Run via AppleScript so the app builds and launches on the phone after changes unless the user says otherwise, then hide Xcode and bring the iPhone Mirroring app to the front.
+- Use `xcodebuild` as a verification/build tool, but prefer Xcode-driven launch flows for actual app running.
+- Commit after every change or logical set of changes.
+- Do not batch unrelated work into a single uncommitted checkpoint when you can avoid it.
 - Do not ask before committing; use good judgment on commit messages.

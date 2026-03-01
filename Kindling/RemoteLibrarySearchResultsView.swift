@@ -1,9 +1,9 @@
 import SwiftUI
 
-struct LazyLibrarianSearchResultsView: View {
-  @ObservedObject var viewModel: LazyLibrarianViewModel
+struct PodibleSearchResultsView: View {
+  @ObservedObject var viewModel: RemoteLibraryViewModel
   @EnvironmentObject var userSettings: UserSettings
-  let client: LazyLibrarianServing
+  let client: RemoteLibraryServing
   @State private var pendingItemIDs: Set<String> = []
 
   var body: some View {
@@ -21,7 +21,7 @@ struct LazyLibrarianSearchResultsView: View {
         )
       } else {
         ForEach(viewModel.searchResults) { book in
-          LazyLibrarianSearchResultRow(
+          PodibleSearchResultRow(
             viewModel: viewModel,
             book: book,
             client: client,
@@ -34,11 +34,11 @@ struct LazyLibrarianSearchResultsView: View {
   }
 }
 
-struct LazyLibrarianSearchResultRow: View {
-  @ObservedObject var viewModel: LazyLibrarianViewModel
+struct PodibleSearchResultRow: View {
+  @ObservedObject var viewModel: RemoteLibraryViewModel
   @EnvironmentObject var userSettings: UserSettings
-  let book: LazyLibrarianBook
-  let client: LazyLibrarianServing
+  let book: PodibleBook
+  let client: RemoteLibraryServing
   @Binding var pendingItemIDs: Set<String>
 
   var body: some View {
@@ -50,7 +50,7 @@ struct LazyLibrarianSearchResultRow: View {
     let effectiveItem =
       matchingItem
       ?? (isPending
-        ? LazyLibrarianLibraryItem(
+        ? PodibleLibraryItem(
           id: book.id,
           title: book.title,
           author: book.author,
@@ -65,8 +65,8 @@ struct LazyLibrarianSearchResultRow: View {
       HStack(alignment: .top, spacing: 12) {
         let coverURL = book.coverImageURL.flatMap { url -> URL? in
           if url.scheme != nil { return url }
-          return lazyLibrarianAssetURL(
-            baseURLString: userSettings.lazyLibrarianURL,
+          return remoteLibraryAssetURL(
+            baseURLString: userSettings.podibleRPCURL,
             path: url.absoluteString
           )
         }
@@ -84,12 +84,8 @@ struct LazyLibrarianSearchResultRow: View {
             .foregroundStyle(.secondary)
             .lineLimit(1)
           if let item = effectiveItem {
-            lazyLibrarianStatusCluster(
-              item: item,
-              progress: progress,
-              shouldOfferSearch: { status in
-                viewModel.shouldOfferSearch(status: status)
-              }
+            remoteLibraryStatusCluster(
+              item: item
             )
           }
           Button {
@@ -151,9 +147,9 @@ struct LazyLibrarianSearchResultRow: View {
 }
 
 #Preview {
-  let viewModel = LazyLibrarianViewModel()
+  let viewModel = RemoteLibraryViewModel()
   viewModel.searchResults = [
-    LazyLibrarianBook(
+    PodibleBook(
       id: "1",
       title: "They Both Die at the End",
       author: "Adam Silvera",
@@ -164,7 +160,7 @@ struct LazyLibrarianSearchResultRow: View {
           "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1315601232l/11869272._SX98_.jpg"
       )
     ),
-    LazyLibrarianBook(
+    PodibleBook(
       id: "2",
       title: "The Secret History",
       author: "Donna Tartt",
@@ -172,7 +168,7 @@ struct LazyLibrarianSearchResultRow: View {
     ),
   ]
   viewModel.downloadProgressByBookID["1"] =
-    LazyLibrarianViewModel.DownloadProgress(
+    PodibleLibraryDownloadProgress(
       ebook: 42,
       audiobook: 18,
       ebookFinished: false,
@@ -183,9 +179,9 @@ struct LazyLibrarianSearchResultRow: View {
     )
 
   return NavigationStack {
-    LazyLibrarianSearchResultsView(
+    PodibleSearchResultsView(
       viewModel: viewModel,
-      client: LazyLibrarianMockClient()
+      client: PodibleMockClient()
     )
     .environmentObject(UserSettings())
   }

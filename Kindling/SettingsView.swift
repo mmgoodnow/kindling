@@ -5,27 +5,26 @@ struct SettingsView: View {
 
   var body: some View {
     Form {
-      Section("Email") {
+      Section("Podible Backend") {
         TextField(
-          "Kindle Email Address",
-          text: userSettings.$kindleEmailAddress
-        )
-      }
-
-      Section("LazyLibrarian") {
-        TextField(
-          "Base URL (e.g. http://localhost:5299)",
-          text: userSettings.$lazyLibrarianURL
+          "RPC URL (e.g. http://localhost/rpc)",
+          text: userSettings.$podibleRPCURL
         )
         #if os(iOS)
           .textInputAutocapitalization(.never)
           .keyboardType(.URL)
         #endif
-        SecureField("API Key", text: userSettings.$lazyLibrarianAPIKey)
-          .textContentType(.password)
+        TextField("API Key", text: userSettings.$podibleAPIKey)
           #if os(iOS)
             .textInputAutocapitalization(.never)
           #endif
+      }
+
+      Section("Email") {
+        TextField(
+          "Kindle Email Address",
+          text: userSettings.$kindleEmailAddress
+        )
       }
 
       Section("IRC") {

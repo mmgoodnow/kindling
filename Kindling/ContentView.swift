@@ -16,8 +16,8 @@ struct ContentView: View {
 
   var body: some View {
     NavigationStack {
-      if hasLazyLibrarianConfig {
-        LazyLibrarianView()
+      if hasPodibleBackendConfig {
+        RemoteLibraryView()
           .toolbar {
             ToolbarItem {
               NavigationLink(destination: SettingsView()) {
@@ -58,13 +58,9 @@ struct ContentView: View {
     }
   }
 
-  private var hasLazyLibrarianConfig: Bool {
-    let url = userSettings.lazyLibrarianURL.trimmingCharacters(
-      in: .whitespacesAndNewlines
-    )
-    let key = userSettings.lazyLibrarianAPIKey.trimmingCharacters(
-      in: .whitespacesAndNewlines
-    )
+  private var hasPodibleBackendConfig: Bool {
+    let url = userSettings.podibleRPCURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    let key = userSettings.podibleAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
     return url.isEmpty == false && key.isEmpty == false
   }
 
