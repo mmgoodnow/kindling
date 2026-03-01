@@ -316,7 +316,7 @@ struct LocalPlaybackView: View {
               .buttonStyle(.plain)
             }
           }
-          .frame(maxWidth: .infinity, alignment: .leading)
+          .frame(maxWidth: .infinity, alignment: .center)
         }
 
         switch effectiveContentTab(
