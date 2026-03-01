@@ -4,7 +4,7 @@ import SwiftUI
 
 struct LocalPlaybackView: View {
   private enum ContentTab: String, CaseIterable, Identifiable {
-    case description = "Description"
+    case description = "About"
     case chapters = "Chapters"
 
     var id: String { rawValue }
@@ -296,12 +296,27 @@ struct LocalPlaybackView: View {
     if hasDescription || hasChapters {
       VStack(alignment: .leading, spacing: 18) {
         if hasDescription && hasChapters {
-          Picker("Playback Content", selection: $selectedContentTab) {
+          HStack(spacing: 18) {
             ForEach(ContentTab.allCases) { tab in
-              Text(tab.rawValue).tag(tab)
+              let isSelected = selectedContentTab == tab
+              Button {
+                selectedContentTab = tab
+              } label: {
+                VStack(spacing: 6) {
+                  Text(tab.rawValue)
+                    .font(.subheadline.weight(isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? .accent : .secondary)
+
+                  Rectangle()
+                    .fill(isSelected ? Color.accentColor : .clear)
+                    .frame(height: 2)
+                }
+                .frame(width: 72, alignment: .leading)
+              }
+              .buttonStyle(.plain)
             }
           }
-          .pickerStyle(.segmented)
+          .frame(maxWidth: .infinity, alignment: .leading)
         }
 
         switch effectiveContentTab(
