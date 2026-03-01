@@ -4,7 +4,9 @@ import SwiftUI
 struct LocalPlaybackView: View {
   @ObservedObject var player: AudioPlayerController
   @State private var chapterScrubOriginTime: Double?
-  @State private var titleBlockMinY: CGFloat = .zero
+  @State private var chapterScrubPreviewTime: Double?
+  @State private var chapterScrubLastSeekTimestamp: TimeInterval = 0
+  @State private var titleBlockMaxY: CGFloat = .greatestFiniteMagnitude
 
   var body: some View {
     #if os(iOS)
@@ -44,8 +46,8 @@ struct LocalPlaybackView: View {
           .background {
             GeometryReader { proxy in
               Color.clear.preference(
-                key: PlaybackTitleBlockMinYPreferenceKey.self,
-                value: proxy.frame(in: .named("playbackScroll")).minY
+                key: PlaybackTitleBlockMaxYPreferenceKey.self,
+                value: proxy.frame(in: .global).maxY
               )
             }
           }
@@ -87,8 +89,8 @@ struct LocalPlaybackView: View {
     .overlay(alignment: .top) {
       stickyPlaybackHeader
     }
-    .onPreferenceChange(PlaybackTitleBlockMinYPreferenceKey.self) { value in
-      titleBlockMinY = value
+    .onPreferenceChange(PlaybackTitleBlockMaxYPreferenceKey.self) { value in
+      titleBlockMaxY = value
     }
   }
 
@@ -108,7 +110,7 @@ struct LocalPlaybackView: View {
   }
 
   private var stickyPlaybackHeader: some View {
-    let isVisible = titleBlockMinY < 16
+    let isVisible = titleBlockMaxY < 100
 
     return VStack(spacing: 2) {
       Text(player.title)
@@ -258,27 +260,44 @@ struct LocalPlaybackView: View {
         DragGesture(minimumDistance: 0)
           .onChanged { value in
             if chapterScrubOriginTime == nil {
-              chapterScrubOriginTime = player.currentTime
+              chapterScrubOriginTime = currentPlaybackTime
             }
 
             let width = max(proxy.size.width, 1)
             let deltaFraction = value.translation.width / width
             let deltaSeconds = Double(deltaFraction) * currentChapterDuration
-            let candidateTime = (chapterScrubOriginTime ?? player.currentTime) + deltaSeconds
-            player.seek(to: clampToCurrentChapter(candidateTime))
+            let candidateTime = clampToCurrentChapter(
+              (chapterScrubOriginTime ?? currentPlaybackTime) + deltaSeconds
+            )
+            chapterScrubPreviewTime = candidateTime
+
+            let now = Date().timeIntervalSinceReferenceDate
+            if now - chapterScrubLastSeekTimestamp >= (1.0 / 30.0) {
+              chapterScrubLastSeekTimestamp = now
+              player.seek(to: candidateTime)
+            }
           }
           .onEnded { _ in
+            if let chapterScrubPreviewTime {
+              player.seek(to: chapterScrubPreviewTime)
+            }
             chapterScrubOriginTime = nil
+            chapterScrubPreviewTime = nil
+            chapterScrubLastSeekTimestamp = 0
           }
       )
     }
     .frame(height: 8)
   }
 
+  private var currentPlaybackTime: Double {
+    chapterScrubPreviewTime ?? player.currentTime
+  }
+
   private var currentChapterID: Int? {
     guard player.chapters.isEmpty == false else { return nil }
 
-    let currentTime = max(player.currentTime, 0)
+    let currentTime = max(currentPlaybackTime, 0)
     for (index, chapter) in player.chapters.enumerated() {
       let nextStart =
         player.chapters.indices.contains(index + 1)
@@ -311,8 +330,8 @@ struct LocalPlaybackView: View {
   }
 
   private var currentChapterElapsed: Double {
-    guard let currentChapter else { return min(player.currentTime, max(player.duration, 0)) }
-    return max(0, player.currentTime - currentChapter.startTime)
+    guard let currentChapter else { return min(currentPlaybackTime, max(player.duration, 0)) }
+    return max(0, currentPlaybackTime - currentChapter.startTime)
   }
 
   private var currentChapterDuration: Double {
@@ -534,8 +553,8 @@ private func formatTime(_ seconds: Double) -> String {
   return String(format: "%d:%02d", minutes, secs)
 }
 
-private struct PlaybackTitleBlockMinYPreferenceKey: PreferenceKey {
-  static var defaultValue: CGFloat = .zero
+private struct PlaybackTitleBlockMaxYPreferenceKey: PreferenceKey {
+  static var defaultValue: CGFloat = .greatestFiniteMagnitude
 
   static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
     value = nextValue()
