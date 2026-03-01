@@ -7,7 +7,7 @@ struct LocalPlaybackView: View {
   @State private var chapterScrubOriginDuration: Double?
   @State private var chapterScrubPreviewTime: Double?
   @State private var chapterScrubLastSeekTimestamp: TimeInterval = 0
-  @State private var heroSectionBottomInWindow: CGFloat = .greatestFiniteMagnitude
+  @State private var heroBottomOffset: CGFloat = .greatestFiniteMagnitude
 
   var body: some View {
     #if os(iOS)
@@ -45,14 +45,17 @@ struct LocalPlaybackView: View {
               }
             }
             .padding(.top, 28)
-          }
-          .background {
-            GeometryReader { proxy in
-              Color.clear.preference(
-                key: PlaybackHeroSectionMaxYPreferenceKey.self,
-                value: proxy.frame(in: .global).maxY
-              )
-            }
+
+            Color.clear
+              .frame(height: 0)
+              .background {
+                GeometryReader { proxy in
+                  Color.clear.preference(
+                    key: PlaybackHeroBottomOffsetPreferenceKey.self,
+                    value: proxy.frame(in: .named("playbackScroll")).minY
+                  )
+                }
+              }
           }
 
           if player.chapters.isEmpty == false {
@@ -63,6 +66,7 @@ struct LocalPlaybackView: View {
         .frame(maxWidth: .infinity)
         .padding(.top, 28)
       }
+      .coordinateSpace(name: "playbackScroll")
       VStack(spacing: 24) {
         playbackProgressSection
 
@@ -90,8 +94,8 @@ struct LocalPlaybackView: View {
     .overlay(alignment: .top) {
       stickyPlaybackHeader
     }
-    .onPreferenceChange(PlaybackHeroSectionMaxYPreferenceKey.self) { value in
-      heroSectionBottomInWindow = value
+    .onPreferenceChange(PlaybackHeroBottomOffsetPreferenceKey.self) { value in
+      heroBottomOffset = value
     }
   }
 
@@ -111,7 +115,7 @@ struct LocalPlaybackView: View {
   }
 
   private var stickyPlaybackHeader: some View {
-    let isVisible = heroSectionBottomInWindow < 120
+    let isVisible = heroBottomOffset < 16
 
     return VStack(spacing: 2) {
       Text(player.title)
@@ -577,7 +581,7 @@ private func formatTime(_ seconds: Double) -> String {
   return String(format: "%d:%02d", minutes, secs)
 }
 
-private struct PlaybackHeroSectionMaxYPreferenceKey: PreferenceKey {
+private struct PlaybackHeroBottomOffsetPreferenceKey: PreferenceKey {
   static var defaultValue: CGFloat = .greatestFiniteMagnitude
 
   static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
