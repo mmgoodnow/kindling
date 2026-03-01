@@ -6,7 +6,7 @@ struct LocalPlaybackView: View {
   @State private var chapterScrubOriginTime: Double?
   @State private var chapterScrubPreviewTime: Double?
   @State private var chapterScrubLastSeekTimestamp: TimeInterval = 0
-  @State private var titleBlockMaxY: CGFloat = .greatestFiniteMagnitude
+  @State private var heroSectionMaxY: CGFloat = .greatestFiniteMagnitude
 
   var body: some View {
     #if os(iOS)
@@ -26,28 +26,30 @@ struct LocalPlaybackView: View {
     VStack(spacing: 0) {
       ScrollView(showsIndicators: false) {
         VStack(spacing: 0) {
-          sharedPlaybackArtwork(size: 296, cornerRadius: 24, player: player)
-            .shadow(color: .black.opacity(0.16), radius: 24, y: 10)
+          VStack(spacing: 0) {
+            sharedPlaybackArtwork(size: 296, cornerRadius: 24, player: player)
+              .shadow(color: .black.opacity(0.16), radius: 24, y: 10)
 
-          VStack(spacing: 8) {
-            Text(player.title)
-              .font(.title2.weight(.bold))
-              .multilineTextAlignment(.center)
-              .lineLimit(3)
-            if player.author.isEmpty == false {
-              Text(player.author)
-                .font(.headline)
-                .foregroundStyle(.secondary)
+            VStack(spacing: 8) {
+              Text(player.title)
+                .font(.title2.weight(.bold))
                 .multilineTextAlignment(.center)
-                .lineLimit(2)
+                .lineLimit(3)
+              if player.author.isEmpty == false {
+                Text(player.author)
+                  .font(.headline)
+                  .foregroundStyle(.secondary)
+                  .multilineTextAlignment(.center)
+                  .lineLimit(2)
+              }
             }
+            .padding(.top, 28)
           }
-          .padding(.top, 28)
           .background {
             GeometryReader { proxy in
               Color.clear.preference(
-                key: PlaybackTitleBlockMaxYPreferenceKey.self,
-                value: proxy.frame(in: .global).maxY
+                key: PlaybackHeroSectionMaxYPreferenceKey.self,
+                value: proxy.frame(in: .named("playbackScroll")).maxY
               )
             }
           }
@@ -89,8 +91,8 @@ struct LocalPlaybackView: View {
     .overlay(alignment: .top) {
       stickyPlaybackHeader
     }
-    .onPreferenceChange(PlaybackTitleBlockMaxYPreferenceKey.self) { value in
-      titleBlockMaxY = value
+    .onPreferenceChange(PlaybackHeroSectionMaxYPreferenceKey.self) { value in
+      heroSectionMaxY = value
     }
   }
 
@@ -110,7 +112,7 @@ struct LocalPlaybackView: View {
   }
 
   private var stickyPlaybackHeader: some View {
-    let isVisible = titleBlockMaxY < 100
+    let isVisible = heroSectionMaxY < 12
 
     return VStack(spacing: 2) {
       Text(player.title)
@@ -218,14 +220,14 @@ struct LocalPlaybackView: View {
   private var chapterTimelineBar: some View {
     GeometryReader { proxy in
       let chapters = player.chapters
-      let spacing: CGFloat = 4
+      let spacing: CGFloat = 2
       let totalSpacing = spacing * CGFloat(max(chapters.count - 1, 0))
       let availableWidth = max(proxy.size.width - totalSpacing, 0)
       let totalDuration = max(chapterTimelineDuration, 1)
 
       HStack(spacing: spacing) {
         ForEach(Array(chapters.enumerated()), id: \.element.id) { index, chapter in
-          RoundedRectangle(cornerRadius: 999, style: .continuous)
+          chapterSegmentShape(for: index, count: chapters.count)
             .fill(chapterSegmentColor(for: index))
             .frame(
               width: chapterSegmentWidth(
@@ -391,6 +393,28 @@ struct LocalPlaybackView: View {
     return max(fraction * availableWidth, 6)
   }
 
+  private func chapterSegmentShape(for index: Int, count: Int) -> AnyShape {
+    let radius: CGFloat = 4
+    if count == 1 {
+      return AnyShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+    } else if index == 0 {
+      return AnyShape(
+        UnevenRoundedRectangle(
+          cornerRadii: .init(topLeading: radius, bottomLeading: radius),
+          style: .continuous
+        )
+      )
+    } else if index == count - 1 {
+      return AnyShape(
+        UnevenRoundedRectangle(
+          cornerRadii: .init(bottomTrailing: radius, topTrailing: radius),
+          style: .continuous
+        )
+      )
+    }
+    return AnyShape(Rectangle())
+  }
+
   @ViewBuilder
   private func chapterRowBackground(isCurrent: Bool) -> some View {
     #if os(iOS)
@@ -553,7 +577,7 @@ private func formatTime(_ seconds: Double) -> String {
   return String(format: "%d:%02d", minutes, secs)
 }
 
-private struct PlaybackTitleBlockMaxYPreferenceKey: PreferenceKey {
+private struct PlaybackHeroSectionMaxYPreferenceKey: PreferenceKey {
   static var defaultValue: CGFloat = .greatestFiniteMagnitude
 
   static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
