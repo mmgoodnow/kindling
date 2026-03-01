@@ -1252,6 +1252,7 @@ struct PodibleLibraryView: View {
         localState.lastPlayedAt = localState.lastPlayedAt ?? Date()
 
         try modelContext.save()
+        try LocalAudiobookCache().enforceLimit(modelContext: modelContext, keeping: book.llId)
       } catch {
         fileRecord.downloadStatus = .failed
         fileRecord.lastError = error.localizedDescription

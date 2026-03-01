@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 struct LibraryStorage {
   struct StoredFile {
@@ -82,5 +83,88 @@ struct LibraryStorage {
   private func makeRelativePath(_ fileURL: URL, baseURL: URL) -> String {
     let basePath = baseURL.path.hasSuffix("/") ? baseURL.path : baseURL.path + "/"
     return fileURL.path.replacingOccurrences(of: basePath, with: "")
+  }
+}
+
+@MainActor
+struct LocalAudiobookCache {
+  static let maxDownloadedBooks = 3
+
+  private let fileManager = FileManager.default
+
+  func enforceLimit(modelContext: ModelContext, keeping protectedBookID: String) throws {
+    let books = try modelContext.fetch(
+      FetchDescriptor<LibraryBook>(
+        sortBy: [SortDescriptor(\LibraryBook.addedAt, order: .forward)]
+      ))
+
+    let cachedBooks =
+      books
+      .filter(hasCachedAudiobook)
+      .sorted { cacheSortDate(for: $0) < cacheSortDate(for: $1) }
+
+    let overflowCount = cachedBooks.count - Self.maxDownloadedBooks
+    guard overflowCount > 0 else { return }
+
+    let evictionCandidates = cachedBooks.filter { $0.llId != protectedBookID }
+    guard evictionCandidates.isEmpty == false else { return }
+
+    for book in evictionCandidates.prefix(overflowCount) {
+      evict(book)
+    }
+
+    if modelContext.hasChanges {
+      try modelContext.save()
+    }
+  }
+
+  private func hasCachedAudiobook(_ book: LibraryBook) -> Bool {
+    if book.localState?.isDownloaded == true {
+      return true
+    }
+    return book.files.contains { file in
+      file.localRelativePath?.isEmpty == false && file.downloadStatus == .completed
+    }
+  }
+
+  private func cacheSortDate(for book: LibraryBook) -> Date {
+    book.localState?.lastPlayedAt ?? book.addedAt ?? .distantPast
+  }
+
+  private func evict(_ book: LibraryBook) {
+    let localFileURLs: [URL] = book.files.compactMap { file in
+      guard let relativePath = file.localRelativePath else { return nil }
+      return try? LibraryStorage().url(forRelativePath: relativePath)
+    }
+
+    for url in localFileURLs where fileManager.fileExists(atPath: url.path) {
+      try? fileManager.removeItem(at: url)
+    }
+
+    let parentFolders = Set(localFileURLs.map { $0.deletingLastPathComponent() })
+    for folder in parentFolders {
+      guard fileManager.fileExists(atPath: folder.path) else { continue }
+      let contents =
+        (try? fileManager.contentsOfDirectory(
+          at: folder,
+          includingPropertiesForKeys: nil,
+          options: [.skipsHiddenFiles]
+        )) ?? []
+      if contents.isEmpty {
+        try? fileManager.removeItem(at: folder)
+      }
+    }
+
+    for file in book.files {
+      file.localRelativePath = nil
+      file.downloadStatus = .notStarted
+      file.bytesDownloaded = 0
+      file.lastError = nil
+      file.format = .unknown
+    }
+
+    if let localState = book.localState {
+      localState.isDownloaded = false
+    }
   }
 }

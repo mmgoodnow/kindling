@@ -260,7 +260,7 @@ struct LocalLibraryView: View {
       return
     }
 
-    Task {
+    Task { @MainActor in
       let fileRecord = ensureFileRecord(for: book)
       fileRecord.downloadStatus = .downloading
       fileRecord.lastError = nil
@@ -290,6 +290,7 @@ struct LocalLibraryView: View {
         localState.lastPlayedAt = localState.lastPlayedAt ?? Date()
 
         try modelContext.save()
+        try LocalAudiobookCache().enforceLimit(modelContext: modelContext, keeping: book.llId)
       } catch {
         fileRecord.downloadStatus = .failed
         fileRecord.lastError = error.localizedDescription
