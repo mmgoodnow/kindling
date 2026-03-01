@@ -13,6 +13,9 @@ struct LocalPlaybackView: View {
   var body: some View {
     #if os(iOS)
       expandedPlayerView()
+        .safeAreaInset(edge: .top, spacing: 0) {
+          stickyPlaybackHeader
+        }
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
         .presentationBackground(.ultraThinMaterial)
@@ -88,9 +91,6 @@ struct LocalPlaybackView: View {
     .padding(.horizontal, 24)
     .padding(.bottom, 28)
     .background(expandedPlayerBackground)
-    .overlay(alignment: .top) {
-      stickyPlaybackHeader
-    }
     .onPreferenceChange(PlaybackHeroTopPreferenceKey.self) { value in
       heroTopInWindow = value
       if heroTopBaseline == nil, value.isFinite {
@@ -136,7 +136,6 @@ struct LocalPlaybackView: View {
     .padding(.bottom, 10)
     .background(.ultraThinMaterial)
     .opacity(isVisible ? 1 : 0)
-    .offset(y: isVisible ? 0 : -12)
     .animation(.easeInOut(duration: 0.2), value: isVisible)
     .allowsHitTesting(false)
   }
