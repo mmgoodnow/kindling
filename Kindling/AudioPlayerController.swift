@@ -148,10 +148,11 @@ final class AudioPlayerController: ObservableObject {
     let asset = AVURLAsset(url: url)
 
     do {
-      _ = try await asset.load(.availableChapterLocales)
+      let locales = try await asset.load(.availableChapterLocales)
       let metadataGroups = try await loadChapterMetadataGroups(
         from: asset,
-        preferredLanguages: Locale.preferredLanguages
+        preferredLanguages: Locale.preferredLanguages,
+        availableLocales: locales
       )
 
       return metadataGroups.enumerated().compactMap { index, group in
@@ -174,9 +175,11 @@ final class AudioPlayerController: ObservableObject {
 
   private static func loadChapterMetadataGroups(
     from asset: AVURLAsset,
-    preferredLanguages: [String]
+    preferredLanguages: [String],
+    availableLocales: [Locale]
   ) async throws -> [AVTimedMetadataGroup] {
-    try await withCheckedThrowingContinuation { continuation in
+    let preferredGroups: [AVTimedMetadataGroup] = try await withCheckedThrowingContinuation {
+      continuation in
       asset.loadChapterMetadataGroups(bestMatchingPreferredLanguages: preferredLanguages) {
         groups,
         error in
@@ -187,6 +190,16 @@ final class AudioPlayerController: ObservableObject {
         }
       }
     }
+
+    if preferredGroups.isEmpty == false {
+      return preferredGroups
+    }
+
+    guard let locale = availableLocales.first else { return [] }
+    return try await asset.loadChapterMetadataGroups(
+      withTitleLocale: locale,
+      containingItemsWithCommonKeys: []
+    )
   }
 
   private static func chapterTitle(for group: AVTimedMetadataGroup, index: Int) -> String {
