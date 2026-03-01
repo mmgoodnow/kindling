@@ -152,7 +152,7 @@ struct LocalPlaybackView: View {
     }
 
     if #available(iOS 18.0, macOS 15.0, *) {
-      hero.onScrollVisibilityChange(threshold: 0.1) { isVisible in
+      hero.onScrollVisibilityChange(threshold: 0.35) { isVisible in
         isHeroVisible = isVisible
       }
     } else {
