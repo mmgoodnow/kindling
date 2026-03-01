@@ -6,6 +6,8 @@ final class AudioPlayerController: ObservableObject {
     static let keyPrefix = "audioPlayer.resumePosition."
   }
 
+  private static let resumeRewindSeconds: Double = 2.5
+
   struct Chapter: Identifiable, Equatable {
     let id: Int
     let title: String
@@ -70,6 +72,14 @@ final class AudioPlayerController: ObservableObject {
   }
 
   func play() {
+    if shouldRewindOnResume {
+      let rewindTarget = max(0, currentTime - Self.resumeRewindSeconds)
+      let rewindTime = CMTime(seconds: rewindTarget, preferredTimescale: 1_000)
+      player?.currentItem?.cancelPendingSeeks()
+      player?.seek(to: rewindTime, toleranceBefore: .zero, toleranceAfter: .zero)
+      currentTime = rewindTarget
+      persistCurrentPosition()
+    }
     player?.play()
     player?.rate = Float(playbackRate)
     isPlaying = true
@@ -212,6 +222,14 @@ final class AudioPlayerController: ObservableObject {
   private func clearPersistedPosition() {
     guard let currentBookID else { return }
     UserDefaults.standard.removeObject(forKey: ResumeStore.keyPrefix + currentBookID)
+  }
+
+  private var shouldRewindOnResume: Bool {
+    guard currentTime > 0.5 else { return false }
+    if duration.isFinite, duration > 0, currentTime >= duration - 0.5 {
+      return false
+    }
+    return true
   }
 
   private func loadChapters(from url: URL) {
