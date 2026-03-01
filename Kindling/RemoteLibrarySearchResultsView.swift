@@ -45,7 +45,6 @@ struct PodibleSearchResultRow: View {
     let isPending =
       pendingItemIDs.contains(book.id)
       && viewModel.progressForBookID(book.id) == nil
-    let progress = viewModel.progressForBookID(book.id)
     let matchingItem = viewModel.libraryItems.first(where: { $0.id == book.id })
     let effectiveItem =
       matchingItem
@@ -89,40 +88,45 @@ struct PodibleSearchResultRow: View {
             )
           }
           Button {
-            guard shouldShowGetButton else { return }
-            pendingItemIDs.insert(book.id)
-            viewModel.beginOptimisticRequest(for: book)
-            Task {
-              await viewModel.request(
-                book,
-                using: client
-              )
-              let updated = viewModel
-                .searchResults
-                .first(where: {
-                  $0.id == book.id
-                })
-              let shouldWait =
-                updated.map {
-                  viewModel
-                    .shouldShowDownloadProgress(
-                      status: $0.status,
-                      audioStatus: $0
-                        .audioStatus
-                    )
-                } ?? false
-              if shouldWait == false
-                || viewModel.progressForBookID(
-                  book.id
-                ) != nil
-              {
-                pendingItemIDs.remove(
-                  book.id
+            if shouldShowGetButton {
+              pendingItemIDs.insert(book.id)
+              viewModel.beginOptimisticRequest(for: book)
+              Task {
+                await viewModel.request(
+                  book,
+                  using: client
                 )
+                let updated = viewModel
+                  .searchResults
+                  .first(where: {
+                    $0.id == book.id
+                  })
+                let shouldWait =
+                  updated.map {
+                    viewModel
+                      .shouldShowDownloadProgress(
+                        status: $0.status,
+                        audioStatus: $0
+                          .audioStatus
+                      )
+                  } ?? false
+                if shouldWait == false
+                  || viewModel.progressForBookID(
+                    book.id
+                  ) != nil
+                {
+                  pendingItemIDs.remove(
+                    book.id
+                  )
+                }
               }
+            } else {
+              viewModel.query = ""
+              viewModel.searchResults = []
+              pendingItemIDs.removeAll()
             }
           } label: {
-            Text("GET")
+            Text(shouldShowGetButton ? "GET" : "View in Library")
               .font(.subheadline.weight(.semibold))
               .padding(.horizontal, 10)
               .padding(.vertical, 2)
@@ -132,8 +136,7 @@ struct PodibleSearchResultRow: View {
           .tint(.accentColor)
           .clipShape(Capsule())
           .disabled(
-            shouldShowGetButton == false
-              || isPending
+            isPending
               || book.status == .requested
               || book.status == .wanted
           )
